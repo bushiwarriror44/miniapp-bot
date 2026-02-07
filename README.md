@@ -1,5 +1,9 @@
 ## Структура монорепозитория miniapp-bot
 
+Один репозиторий: `frontend`, `backend` и `bot` — обычные папки, без git-сабмодулей. Если где-то остались сабмодули или вложенные `.git`, выполни из корня проекта:
+- **Windows:** `.\deploy\remove-submodules.ps1`
+- **Linux/macOS:** `./deploy/remove-submodules.sh`
+
 - `frontend` — Next.js + TypeScript, Tailwind CSS, интеграция с Telegram Mini Apps SDK и TanStack Query.
 - **Деплой на сервер:** пошаговая инструкция в [DEPLOY.md](./DEPLOY.md). В папке [deploy/](./deploy/) — примеры конфигов Nginx.
 - `backend` — NestJS + PostgreSQL (через TypeORM).
