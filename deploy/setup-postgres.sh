@@ -25,7 +25,6 @@ sudo systemctl start postgresql
 
 echo "Создание пользователя PostgreSQL из backend/.env..."
 cd "$PROJECT_ROOT/backend"
-npm install --silent 2>/dev/null || true   # dotenv для скрипта
 sudo -u postgres node scripts/create-pg-user.js
 
 echo ""

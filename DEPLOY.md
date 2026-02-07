@@ -81,9 +81,21 @@ chmod +x deploy/setup-postgres.sh
 
 ## 6. Переменные окружения на сервере
 
-Дополни `backend/.env` при необходимости (NODE_ENV=production, PORT=3001). Создай `.env` для бота и фронта.
+### Backend — `backend/.env`
 
-**Backend** — `backend/.env` (уже создан в шаге 5):
+На сервере измени в `backend/.env` по сравнению с локальной версией:
+
+| Переменная   | Локально        | На сервере                          |
+|-------------|-----------------|-------------------------------------|
+| `NODE_ENV`  | `development`   | **`production`**                    |
+| `PORT`      | `3001`          | `3001` (или другой, если занят)    |
+| `DB_HOST`   | `localhost`     | `localhost` (если БД на том же сервере) |
+| `DB_PORT`   | `5432`          | `5432`                              |
+| `DB_USER`   | `postgres`      | `miniapp` или `postgres`            |
+| `DB_PASSWORD` | `postgres`    | **надёжный пароль** (тот же, что в шаге 5) |
+| `DB_NAME`   | `miniapp_bot`   | `miniapp_bot`                       |
+
+**Пример `backend/.env` на сервере** (после шага 5 скрипта — пользователь и пароль уже заданы):
 
 ```env
 NODE_ENV=production
@@ -95,6 +107,8 @@ DB_USER=miniapp
 DB_PASSWORD=придумай_надёжный_пароль
 DB_NAME=miniapp_bot
 ```
+
+Главное: поставь **`NODE_ENV=production`** и используй **надёжный `DB_PASSWORD`** (тот же, что указал при запуске `./deploy/setup-postgres.sh`). Если БД на другом хосте — поменяй `DB_HOST` (и при необходимости порт).
 
 **Bot** — `bot/.env`:
 
@@ -112,6 +126,30 @@ NEXT_PUBLIC_API_URL=https://api.ТВОЙ_ДОМЕН.com
 Замени `ТВОЙ_ДОМЕН.com` на реальный домен (например `mybot.com`). Тогда:
 - mini app: `https://miniapp.mybot.com`
 - API: `https://api.mybot.com`
+
+### Если нет домена (только IP сервера)
+
+Telegram для кнопки Mini App принимает **только HTTPS**. По одному IP без домена кнопка «Открыть приложение» работать не будет.
+
+**Варианты:**
+
+1. **Бесплатный «домен» по IP — nip.io**  
+   Имя вида `miniapp.192.168.1.10.nip.io` автоматически резолвится в указанный IP. Подставь свой IP:
+   - Mini app: `https://miniapp.ТВОЙ_IP.nip.io` (например `https://miniapp.123.45.67.89.nip.io`)
+   - API: `https://api.ТВОЙ_IP.nip.io`  
+   В Nginx укажи `server_name miniapp.ТВОЙ_IP.nip.io` и `api.ТВОЙ_IP.nip.io`, затем получи серты:  
+   `sudo certbot --nginx -d miniapp.ТВОЙ_IP.nip.io -d api.ТВОЙ_IP.nip.io`  
+   В Bot: `WEBAPP_URL=https://miniapp.ТВОЙ_IP.nip.io`. В BotFather: `/setdomain` → `miniapp.ТВОЙ_IP.nip.io`, `/setmenubutton` → Web app → этот же URL.
+
+2. **Бесплатный поддомен (DuckDNS, No-IP и т.п.)**  
+   Зарегистрируй поддомен, привяжи его к IP сервера, настрой Nginx и Certbot на это имя и используй его в Bot и BotFather так же, как в таблице выше.
+
+3. **Только бот, без Mini App**  
+   Если мини-приложение пока не нужно, в `bot/.env` достаточно:
+   ```env
+   BOT_TOKEN=токен_от_BotFather
+   ```
+   Переменную `WEBAPP_URL` можно не задавать или оставить пустой — бот будет отвечать в чате, кнопка «Открыть приложение» не появится (или будет подсказка про HTTPS).
 
 ---
 

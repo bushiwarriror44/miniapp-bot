@@ -1,21 +1,26 @@
 /**
  * Создаёт пользователя PostgreSQL с правами CREATEDB.
- * Параметры берутся из backend/.env (DB_USER, DB_PASSWORD, DB_NAME не используется, базу создаёт бэкенд).
+ * Параметры берутся из backend/.env (DB_USER, DB_PASSWORD). Без внешних зависимостей.
  *
- * Запуск (из корня проекта, после того как backend/.env заполнен):
- *   sudo -u postgres node backend/scripts/create-pg-user.js
- *
- * Или из папки backend:
+ * Запуск из папки backend:
  *   sudo -u postgres node scripts/create-pg-user.js
  */
 
 const path = require('path');
+const fs = require('fs');
 const { execSync } = require('child_process');
 
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const envPath = path.join(__dirname, '..', '.env');
+const env = {};
+if (fs.existsSync(envPath)) {
+  fs.readFileSync(envPath, 'utf8').split('\n').forEach(function (line) {
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+    if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, '').trim();
+  });
+}
 
-const DB_USER = process.env.DB_USER || 'miniapp';
-const DB_PASSWORD = process.env.DB_PASSWORD || '';
+const DB_USER = env.DB_USER || process.env.DB_USER || 'miniapp';
+const DB_PASSWORD = env.DB_PASSWORD || process.env.DB_PASSWORD || '';
 
 if (!DB_PASSWORD) {
   console.error('В backend/.env должен быть задан DB_PASSWORD.');
