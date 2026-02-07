@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+
+# Environment (секреты — не коммитить; .env.example коммитим)
+.env
+.env.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+.env.test
+.env.test.local
+
+# Build / output
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tests / coverage
+coverage/
+.nyc_output/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / editors
+.idea/
+.vscode/
+*.sublime-workspace
+.project
+.classpath
+.settings/
+.c9/
+
+# Vercel
+.vercel
+
+# PM2
+.pm2/
+ecosystem.config.js
+
+# Temp
+.temp/
+.tmp/
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports (Node.js)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
