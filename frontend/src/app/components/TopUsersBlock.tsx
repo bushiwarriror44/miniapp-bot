@@ -82,9 +82,9 @@ export function TopUsersBlock() {
           ))}
         </div>
       )}
-      {!loading && data?.users?.length > 0 && (
+      {!loading && (data?.users?.length ?? 0) > 0 && (
         <div>
-          {data.users.map((user) => (
+          {(data?.users ?? []).map((user) => (
             <UserRow key={user.id} user={user} />
           ))}
         </div>
