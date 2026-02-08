@@ -47,16 +47,15 @@ bot.on('message:text', (ctx) => {
 });
 
 // Обработчик ошибок, чтобы бот не падал
-bot.catch = (err) => {
-  const ctx = err.ctx;
+bot.catch((err) => {
+  const { ctx, error: e } = err;
   console.error(`Ошибка при обработке обновления ${ctx.update.update_id}:`);
-  const e = err.error;
   if (e instanceof Error) {
     console.error('Ошибка:', e.message);
   } else {
     console.error('Неизвестная ошибка:', e);
   }
-};
+});
 
 bot.start();
 
