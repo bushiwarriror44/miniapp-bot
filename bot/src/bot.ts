@@ -1,7 +1,9 @@
+import path from 'path';
 import { Bot, Keyboard } from 'grammy';
 import * as dotenv from 'dotenv';
 
-dotenv.config();
+// Загружаем .env из папки bot (важно при запуске через PM2 из корня проекта)
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const token = process.env.BOT_TOKEN;
 const webAppUrl = process.env.WEBAPP_URL || 'http://localhost:3000';
