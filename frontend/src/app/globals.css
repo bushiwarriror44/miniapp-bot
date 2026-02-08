@@ -1,26 +1,110 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Тема по умолчанию — тёмная */
+:root,
+[data-theme="dark"] {
+  --color-bg: #000;
+  --color-bg-elevated: #0f172a;
+  --color-surface: #1e293b;
+  --color-border: #334155;
+  --color-text: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-nav-bg: #000;
+  --color-nav-border: #0f172a;
+  --color-nav-border-top: #334155;
+  --color-nav-active: #3b82f6;
+  --color-nav-inactive: #64748b;
+}
+
+[data-theme="light"] {
+  --color-bg: #f8fafc;
+  --color-bg-elevated: #ffffff;
+  --color-surface: #e2e8f0;
+  --color-border: #cbd5e1;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-nav-bg: #ffffff;
+  --color-nav-border: #e2e8f0;
+  --color-nav-border-top: #cbd5e1;
+  --color-nav-active: #2563eb;
+  --color-nav-inactive: #94a3b8;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+/* Заголовки в 1.25 раза больше */
+h1, h2, h3, h4, h5, h6 {
+  font-size: calc(1em * 1.25);
+}
+
+/* Область контента над нижней навигацией */
+.main-content {
+  min-height: 100vh;
+  padding-bottom: 72px;
+}
+
+/* Анимация прогресс-бара загрузки (0% → 100% за 400ms) */
+@keyframes loaderProgress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.loader-progress {
+  width: 0%;
+  animation: loaderProgress 400ms linear forwards;
+}
+
+/* Скрыть полосу прокрутки, оставив скролл */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Горизонтальная полоса прокрутки акцентного цвета */
+.scrollbar-accent {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-accent) var(--color-surface);
+}
+.scrollbar-accent::-webkit-scrollbar {
+  height: 4px;
+}
+.scrollbar-accent::-webkit-scrollbar-track {
+  background: var(--color-surface);
+  border-radius: 2px;
+}
+.scrollbar-accent::-webkit-scrollbar-thumb {
+  background: var(--color-accent);
+  border-radius: 2px;
+}
+.scrollbar-accent::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent-hover);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
 }

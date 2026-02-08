@@ -1,0 +1,40 @@
+{
+  "jobs": [
+    {
+      "id": "1",
+      "offerType": "seeking",
+      "work": "editor",
+      "usernameLink": "https://t.me/redactor_anna",
+      "portfolioUrl": "https://behance.net/anna_editor",
+      "employmentType": "remote",
+      "paymentCurrency": "usd",
+      "paymentAmount": "500",
+      "description": "Ищем редактора контента для Telegram-каналов. Опыт от 1 года. Удаленно, график гибкий.",
+      "publishedAt": "2025-02-01"
+    },
+    {
+      "id": "2",
+      "offerType": "offering",
+      "work": "sales",
+      "usernameLink": "https://t.me/sales_team",
+      "portfolioUrl": null,
+      "employmentType": "offline",
+      "paymentCurrency": "rub",
+      "paymentAmount": "120000",
+      "description": "Продажник в офис. Работа с рекламодателями каналов. Оффлайн, Москва.",
+      "publishedAt": "2025-02-03"
+    },
+    {
+      "id": "3",
+      "offerType": "seeking",
+      "work": "motion_designer",
+      "usernameLink": "https://t.me/motion_vlad",
+      "portfolioUrl": "https://vlad-motion.ru",
+      "employmentType": "remote",
+      "paymentCurrency": "usd",
+      "paymentAmount": "800",
+      "description": "Моушен-дизайнер для рекламных интеграций. After Effects, удаленка.",
+      "publishedAt": "2025-02-02"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "sellChannels": [
+    {
+      "id": "1",
+      "imageUrl": null,
+      "name": "Крипто-сигналы и аналитика",
+      "subscribers": 12500,
+      "reach": 8000,
+      "price": 450000,
+      "viaGuarantor": true,
+      "username": "crypto_seller",
+      "usernameLink": "https://t.me/crypto_seller",
+      "verified": true,
+      "description": "Канал с платными сигналами и разборами. Стабильная аудитория, монетизация через подписку.",
+      "publishedAt": "2025-02-01"
+    },
+    {
+      "id": "2",
+      "imageUrl": null,
+      "name": "Маркетинг и SMM",
+      "subscribers": 8200,
+      "reach": 5200,
+      "price": 280000,
+      "viaGuarantor": false,
+      "username": "marketer_ch",
+      "usernameLink": "https://t.me/marketer_ch",
+      "verified": false,
+      "description": "Узкая тематика: маркетинг, таргет, копирайтинг. Подходит под рекламу курсов и сервисов.",
+      "publishedAt": "2025-02-02"
+    },
+    {
+      "id": "3",
+      "imageUrl": null,
+      "name": "Дизайн и креатив",
+      "subscribers": 18500,
+      "reach": 11000,
+      "price": 620000,
+      "viaGuarantor": true,
+      "username": "design_channel",
+      "usernameLink": "https://t.me/design_channel",
+      "verified": true,
+      "description": "Визуал, лайфхаки для дизайнеров. Высокий ER, активные комментарии.",
+      "publishedAt": "2025-02-03"
+    },
+    {
+      "id": "4",
+      "imageUrl": null,
+      "name": "Новости IT",
+      "subscribers": 3400,
+      "reach": 2100,
+      "price": 95000,
+      "viaGuarantor": false,
+      "username": "it_news_owner",
+      "usernameLink": "https://t.me/it_news_owner",
+      "verified": false,
+      "description": "Ежедневные дайджесты. Продаю из-за смены направления.",
+      "publishedAt": "2025-01-28"
+    }
+  ]
+}

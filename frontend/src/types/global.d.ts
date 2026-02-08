@@ -13,4 +13,9 @@ declare global {
   }
 }
 
+declare module "*.svg" {
+  const value: string | { default?: string; src?: string };
+  export default value;
+}
+
 export {};

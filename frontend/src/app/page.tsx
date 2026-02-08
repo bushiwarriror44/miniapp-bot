@@ -1,35 +1,36 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { getTelegramWebApp } from "@/shared/api/client";
+import { useEffect, useState } from 'react';
+import { getTelegramWebApp } from '@/shared/api/client';
+import { PromoBlock } from './components/PromoBlock';
+import { CryptoPrices } from './components/CryptoPrices';
+import { HotOffersBlock } from './components/HotOffersBlock';
+import { TopUsersBlock } from './components/TopUsersBlock';
+import { NewsBlock } from './components/NewsBlock';
+import { PublicationsBlock } from './components/PublicationsBlock';
+import { SearchField } from './components/SearchField';
 
 export default function Home() {
-  const [username, setUsername] = useState<string | null>(null);
+	const [username, setUsername] = useState<string | null>(null);
 
-  useEffect(() => {
-    const telegram = getTelegramWebApp();
-    if (!telegram) return;
-    
-    // Вызываем ready() только если метод существует
-    if (typeof telegram.ready === 'function') {
-      telegram.ready();
-    }
-    
-    const user = telegram.initDataUnsafe?.user;
-    if (user) {
-      setUsername(user.first_name || user.username || null);
-    }
-  }, []);
+	useEffect(() => {
+		const telegram = getTelegramWebApp();
+		if (!telegram) return;
+		if (typeof telegram.ready === 'function') telegram.ready();
+		const user = telegram.initDataUnsafe?.user;
+		if (user) setUsername(user.first_name || user.username || null);
+	}, []);
 
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-3 px-4">
-      <h1 className="text-xl font-semibold">
-        {username ? `Привет, ${username}!` : "Telegram Mini App"}
-      </h1>
-      <p className="text-sm text-slate-300 text-center">
-        Здесь будет UI мини‑приложения, данные тянем через TanStack Query, а
-        авторизацию и тему берем из Telegram WebApp.
-      </p>
-    </main>
-  );
+	return (
+		<main className="px-4 py-6">
+			<SearchField />
+			<PromoBlock />
+
+			<CryptoPrices />
+			<HotOffersBlock />
+			<TopUsersBlock />
+			<PublicationsBlock />
+			<NewsBlock />
+		</main>
+	);
 }

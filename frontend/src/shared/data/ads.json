@@ -1,0 +1,52 @@
+{
+  "ads": [
+    {
+      "id": "1",
+      "adType": "post_in_channel",
+      "channelOrChatLink": "https://t.me/crypto_news",
+      "imageUrl": null,
+      "verified": true,
+      "username": "crypto_seller",
+      "price": 1500,
+      "pinned": true,
+      "underGuarantee": true,
+      "publishTime": "вечер",
+      "postDuration": "1 час топа и 24 часа в ленте",
+      "paymentMethod": "crypto",
+      "description": "Крипто-канал, аудитория 15k. Готов к долгосрочному сотрудничеству.",
+      "publishedAt": "2025-02-01"
+    },
+    {
+      "id": "2",
+      "adType": "post_in_chat",
+      "channelOrChatLink": "https://t.me/marketing_chat",
+      "imageUrl": null,
+      "verified": false,
+      "username": "marketer_pro",
+      "price": 800,
+      "pinned": false,
+      "underGuarantee": false,
+      "publishTime": "14:00",
+      "postDuration": "12 часов в ленте",
+      "paymentMethod": "card",
+      "description": "Чат маркетологов. Размещение поста без закрепа.",
+      "publishedAt": "2025-02-03"
+    },
+    {
+      "id": "3",
+      "adType": "post_in_channel",
+      "channelOrChatLink": "https://t.me/design_channel",
+      "imageUrl": null,
+      "verified": true,
+      "username": "design_ch",
+      "price": 2200,
+      "pinned": true,
+      "underGuarantee": true,
+      "publishTime": "день",
+      "postDuration": "2 часа топа, 48 часов в ленте",
+      "paymentMethod": "crypto",
+      "description": "Канал про дизайн. Верифицированный продавец. Залив под гарант.",
+      "publishedAt": "2025-02-02"
+    }
+  ]
+}

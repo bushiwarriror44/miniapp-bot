@@ -1,0 +1,64 @@
+{
+  "buyChannels": [
+    {
+      "id": "1",
+      "username": "crypto_buyer",
+      "usernameLink": "https://t.me/crypto_buyer",
+      "verified": true,
+      "priceMin": 200000,
+      "priceMax": 500000,
+      "reachMin": 5000,
+      "reachMax": 15000,
+      "subscribersMin": 8000,
+      "subscribersMax": 20000,
+      "viaGuarantor": true,
+      "description": "Ищу канал в тематике крипты или трейдинга. Готов рассмотреть каналы с активной аудиторией и историей постов.",
+      "publishedAt": "2025-02-01"
+    },
+    {
+      "id": "2",
+      "username": "marketing_lead",
+      "usernameLink": "https://t.me/marketing_lead",
+      "verified": false,
+      "priceMin": 100000,
+      "priceMax": 100000,
+      "reachMin": 3000,
+      "reachMax": 8000,
+      "subscribersMin": 5000,
+      "subscribersMax": 12000,
+      "viaGuarantor": false,
+      "description": "Покупаю канал для рекламы своих курсов. Тематика: маркетинг, SMM, таргет. Без гаранта.",
+      "publishedAt": "2025-02-02"
+    },
+    {
+      "id": "3",
+      "username": "design_studio",
+      "usernameLink": "https://t.me/design_studio",
+      "verified": true,
+      "priceMin": 300000,
+      "priceMax": 700000,
+      "reachMin": 10000,
+      "reachMax": 25000,
+      "subscribersMin": 15000,
+      "subscribersMax": 35000,
+      "viaGuarantor": true,
+      "description": "Студия ищет канал про дизайн, креатив или фриланс. Обязательно через гаранта. Рассмотрим варианты с хорошим ER.",
+      "publishedAt": "2025-02-03"
+    },
+    {
+      "id": "4",
+      "username": "it_news_buyer",
+      "usernameLink": "https://t.me/it_news_buyer",
+      "verified": false,
+      "priceMin": 50000,
+      "priceMax": 150000,
+      "reachMin": 2000,
+      "reachMax": 6000,
+      "subscribersMin": 3000,
+      "subscribersMax": 10000,
+      "viaGuarantor": false,
+      "description": "Нужен канал про IT, софт или новости технологий. Небольшая аудитория подходит.",
+      "publishedAt": "2025-01-30"
+    }
+  ]
+}

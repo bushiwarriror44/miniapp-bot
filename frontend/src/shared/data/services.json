@@ -1,0 +1,40 @@
+{
+  "services": [
+    {
+      "id": "1",
+      "title": "Сделаю монтаж видео",
+      "price": 3000,
+      "verified": true,
+      "username": "montage_pro",
+      "description": "Монтаж рекламных роликов, сторис, тизеров. Сроки от 1 дня. After Effects, Premiere.",
+      "publishedAt": "2025-02-01"
+    },
+    {
+      "id": "2",
+      "title": "Зарегистрирую кошелек",
+      "price": 500,
+      "verified": false,
+      "username": "wallet_help",
+      "description": "Помощь с регистрацией криптокошельков: TON, Solana. Инструкция и поддержка.",
+      "publishedAt": "2025-02-03"
+    },
+    {
+      "id": "3",
+      "title": "Залью подписчиков из Тик-Ток",
+      "price": 1500,
+      "verified": true,
+      "username": "smm_tiktok",
+      "description": "Накрутка подписчиков и просмотров в TikTok. Безопасно, гарантия.",
+      "publishedAt": "2025-02-02"
+    },
+    {
+      "id": "4",
+      "title": "Дизайн обложек для каналов",
+      "price": 2000,
+      "verified": false,
+      "username": "cover_design",
+      "description": "Оформление Telegram-каналов: обложки, шапка, стиль. Figma, Photoshop.",
+      "publishedAt": "2025-01-28"
+    }
+  ]
+}

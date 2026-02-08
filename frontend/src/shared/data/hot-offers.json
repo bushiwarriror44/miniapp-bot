@@ -1,0 +1,7 @@
+{
+  "offers": [
+    { "id": "1", "title": "BTC → USDT", "price": "97 250", "subtitle": "Быстрый обмен, низкая комиссия" },
+    { "id": "2", "title": "ETH → USDT", "price": "3 420", "subtitle": "Мгновенное зачисление" },
+    { "id": "3", "title": "TON → USDT", "price": "5.12", "subtitle": "Выгодный курс" }
+  ]
+}

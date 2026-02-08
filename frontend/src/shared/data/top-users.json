@@ -1,0 +1,9 @@
+{
+  "users": [
+    { "id": "1", "rank": 1, "name": "Алексей", "rating": 4.98, "dealsCount": 342 },
+    { "id": "2", "rank": 2, "name": "Мария", "rating": 4.95, "dealsCount": 289 },
+    { "id": "3", "rank": 3, "name": "Дмитрий", "rating": 4.92, "dealsCount": 256 },
+    { "id": "4", "rank": 4, "name": "Елена", "rating": 4.89, "dealsCount": 198 },
+    { "id": "5", "rank": 5, "name": "Игорь", "rating": 4.86, "dealsCount": 167 }
+  ]
+}

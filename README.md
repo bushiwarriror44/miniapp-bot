@@ -15,6 +15,18 @@
 - `src/shared/api` — клиент TanStack Query и обёртка над Telegram WebApp SDK.
 - Важные зависимости: `next`, `react`, `tailwindcss`, `@twa-dev/sdk`, `@tanstack/react-query`.
 
+**Локальная разработка:**
+```bash
+# Из корня проекта
+npm run dev
+# или
+npm run dev:frontend
+
+# Либо из папки frontend
+cd frontend && npm install && npm run dev
+```
+Откроется [http://localhost:3000](http://localhost:3000). Для запросов к API создай `frontend/.env.local` с `NEXT_PUBLIC_API_URL=http://localhost:3001` (если бэкенд запущен локально).
+
 ### Backend (`backend`)
 
 - `src/app.module.ts` — подключение `TypeOrmModule.forRoot` с PostgreSQL.
