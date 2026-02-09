@@ -3,6 +3,17 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faShieldHalved } from "@fortawesome/free-solid-svg-icons";
 
+const TG_USERNAME = "autogarant_example";
+const TG_DISPLAY_NAME = "Гарант miniapp-bot";
+const TG_PROFILE_LINK = `https://t.me/${TG_USERNAME}`;
+const TG_AVATAR_URL = `https://t.me/i/userpic/320/${TG_USERNAME}.jpg`;
+
+const COMMISSION_TIERS = [
+  "1) До 100 000 ₽ — 5% от суммы сделки",
+  "2) От 100 000 ₽ до 500 000 ₽ — 4% от суммы сделки",
+  "3) Свыше 500 000 ₽ — 3% от суммы сделки (обсуждается индивидуально)",
+];
+
 export default function AutogarantPage() {
   return (
     <main className="px-4 py-6">
@@ -12,35 +23,65 @@ export default function AutogarantPage() {
       <p className="text-sm mb-6" style={{ color: "var(--color-text-muted)" }}>
         Защита сделок и гарант исполнения.
       </p>
+
+      {/* Блок профиля гаранта */}
       <section
         className="rounded-xl p-4 mb-4"
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
       >
-        <div className="flex items-center gap-3 mb-3">
+        <a
+          href={TG_PROFILE_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 mb-3 no-underline"
+        >
+          <span className="relative w-12 h-12 shrink-0 rounded-full overflow-hidden">
+            <img
+              src={TG_AVATAR_URL}
+              alt={TG_DISPLAY_NAME}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.currentTarget;
+                // Fallback на локальную иконку Telegram, если аватар недоступен
+                target.onerror = null;
+                target.src = "/assets/telegram-ico.svg";
+              }}
+            />
+          </span>
+          <div className="min-w-0">
+            <p className="font-semibold text-sm" style={{ color: "var(--color-text)" }}>
+              {TG_DISPLAY_NAME}
+            </p>
+            <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+              @{TG_USERNAME}
+            </p>
+          </div>
           <span
-            className="flex items-center justify-center w-10 h-10 rounded-full"
+            className="ml-auto flex items-center justify-center w-8 h-8 rounded-full shrink-0"
             style={{ backgroundColor: "var(--color-accent)", color: "white" }}
           >
-            <FontAwesomeIcon icon={faShieldHalved} className="w-5 h-5" />
+            <FontAwesomeIcon icon={faShieldHalved} className="w-4 h-4" />
           </span>
-          <h2 className="font-semibold" style={{ color: "var(--color-text)" }}>
-            Активные гарантии
-          </h2>
-        </div>
+        </a>
+
         <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Список ваших гарантий будет отображаться здесь после подключения к бэкенду.
+          Автогарант сейчас находится в разработке, сейчас гарант доступен в ручном режиме.
         </p>
       </section>
+
+      {/* Блок с текущей ставкой комиссии */}
       <section
         className="rounded-xl p-4"
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
       >
         <h2 className="font-semibold mb-2" style={{ color: "var(--color-text)" }}>
-          Как это работает
+          Текущая ставка комиссии по сделкам
         </h2>
-        <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Автогарант защищает стороны сделки: средства блокируются до подтверждения выполнения условий.
-        </p>
+        <div className="space-y-1 text-sm" style={{ color: "var(--color-text-muted)" }}>
+          {COMMISSION_TIERS.map((item) => (
+            <p key={item}>{item}</p>
+          ))}
+        </div>
       </section>
     </main>
   );

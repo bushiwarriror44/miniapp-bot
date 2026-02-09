@@ -11,6 +11,7 @@
       "username": "crypto_seller",
       "usernameLink": "https://t.me/crypto_seller",
       "verified": true,
+      "theme": "криптовалюты, трейдинг",
       "description": "Канал с платными сигналами и разборами. Стабильная аудитория, монетизация через подписку.",
       "publishedAt": "2025-02-01"
     },
@@ -25,6 +26,7 @@
       "username": "marketer_ch",
       "usernameLink": "https://t.me/marketer_ch",
       "verified": false,
+      "theme": "маркетинг, SMM",
       "description": "Узкая тематика: маркетинг, таргет, копирайтинг. Подходит под рекламу курсов и сервисов.",
       "publishedAt": "2025-02-02"
     },
@@ -39,6 +41,7 @@
       "username": "design_channel",
       "usernameLink": "https://t.me/design_channel",
       "verified": true,
+      "theme": "дизайн, креатив",
       "description": "Визуал, лайфхаки для дизайнеров. Высокий ER, активные комментарии.",
       "publishedAt": "2025-02-03"
     },
@@ -53,6 +56,7 @@
       "username": "it_news_owner",
       "usernameLink": "https://t.me/it_news_owner",
       "verified": false,
+      "theme": "IT, технологии",
       "description": "Ежедневные дайджесты. Продаю из-за смены направления.",
       "publishedAt": "2025-01-28"
     }

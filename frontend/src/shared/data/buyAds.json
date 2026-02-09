@@ -1,0 +1,56 @@
+{
+  "buyAds": [
+    {
+      "id": "1",
+      "username": "crypto_buyer",
+      "usernameLink": "https://t.me/crypto_buyer",
+      "verified": true,
+      "priceMin": 1000,
+      "priceMax": 2000,
+      "viewsMin": 5000,
+      "viewsMax": 10000,
+      "theme": "криптовалюты, трейдинг",
+      "description": "Ищу канал для размещения рекламы крипто-сигналов. Нужна активная аудитория, готов к долгосрочному сотрудничеству.",
+      "publishedAt": "2025-02-01"
+    },
+    {
+      "id": "2",
+      "username": "marketing_agency",
+      "usernameLink": "https://t.me/marketing_agency",
+      "verified": false,
+      "priceMin": 500,
+      "priceMax": 500,
+      "viewsMin": 3000,
+      "viewsMax": 5000,
+      "theme": "маркетинг, SMM",
+      "description": "Агентство ищет каналы для рекламы курсов по маркетингу. Рассмотрим варианты с узкой тематикой.",
+      "publishedAt": "2025-02-02"
+    },
+    {
+      "id": "3",
+      "username": "design_studio",
+      "usernameLink": "https://t.me/design_studio",
+      "verified": true,
+      "priceMin": 1500,
+      "priceMax": 3000,
+      "viewsMin": 8000,
+      "viewsMax": 15000,
+      "theme": "дизайн, креатив",
+      "description": "Студия ищет каналы про дизайн и визуал. Важны высокий ER и активные комментарии.",
+      "publishedAt": "2025-02-03"
+    },
+    {
+      "id": "4",
+      "username": "it_news_buyer",
+      "usernameLink": "https://t.me/it_news_buyer",
+      "verified": false,
+      "priceMin": 800,
+      "priceMax": 1200,
+      "viewsMin": 2000,
+      "viewsMax": 6000,
+      "theme": "IT, технологии",
+      "description": "Ищу каналы про IT и новости технологий. Небольшая аудитория подходит.",
+      "publishedAt": "2025-01-30"
+    }
+  ]
+}

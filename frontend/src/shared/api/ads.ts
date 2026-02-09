@@ -15,6 +15,7 @@ export type AdItem = {
   publishTime: string;
   postDuration: string;
   paymentMethod: PaymentMethod;
+  theme: string;
   description: string;
   publishedAt: string;
 };

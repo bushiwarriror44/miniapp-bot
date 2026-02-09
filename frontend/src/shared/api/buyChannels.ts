@@ -10,6 +10,7 @@ export type BuyChannelItem = {
   subscribersMin: number;
   subscribersMax: number;
   viaGuarantor: boolean;
+  theme: string;
   description: string;
   publishedAt: string;
 };

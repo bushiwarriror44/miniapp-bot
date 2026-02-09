@@ -12,6 +12,7 @@
       "subscribersMin": 8000,
       "subscribersMax": 20000,
       "viaGuarantor": true,
+      "theme": "криптовалюты, трейдинг",
       "description": "Ищу канал в тематике крипты или трейдинга. Готов рассмотреть каналы с активной аудиторией и историей постов.",
       "publishedAt": "2025-02-01"
     },
@@ -27,6 +28,7 @@
       "subscribersMin": 5000,
       "subscribersMax": 12000,
       "viaGuarantor": false,
+      "theme": "маркетинг, SMM",
       "description": "Покупаю канал для рекламы своих курсов. Тематика: маркетинг, SMM, таргет. Без гаранта.",
       "publishedAt": "2025-02-02"
     },
@@ -42,6 +44,7 @@
       "subscribersMin": 15000,
       "subscribersMax": 35000,
       "viaGuarantor": true,
+      "theme": "дизайн, креатив",
       "description": "Студия ищет канал про дизайн, креатив или фриланс. Обязательно через гаранта. Рассмотрим варианты с хорошим ER.",
       "publishedAt": "2025-02-03"
     },
@@ -57,6 +60,7 @@
       "subscribersMin": 3000,
       "subscribersMax": 10000,
       "viaGuarantor": false,
+      "theme": "IT, технологии",
       "description": "Нужен канал про IT, софт или новости технологий. Небольшая аудитория подходит.",
       "publishedAt": "2025-01-30"
     }

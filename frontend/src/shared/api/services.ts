@@ -4,6 +4,7 @@ export type ServiceItem = {
   price: number;
   verified: boolean;
   username: string;
+  theme: string;
   description: string;
   publishedAt: string;
 };

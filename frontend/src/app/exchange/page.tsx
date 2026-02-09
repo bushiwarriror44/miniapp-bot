@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faExternalLink } from "@fortawesome/free-solid-svg-icons";
 import { fetchAds, AD_TYPE_LABELS, PAYMENT_LABELS, type AdItem } from "@/shared/api/ads";
+import { fetchBuyAds, type BuyAdItem } from "@/shared/api/buyAds";
 import {
   fetchJobs,
   WORK_LABELS,
@@ -23,6 +24,7 @@ import {
 } from "@/shared/api/services";
 import { fetchSellChannels, type SellChannelItem } from "@/shared/api/sellChannels";
 import { fetchBuyChannels, type BuyChannelItem } from "@/shared/api/buyChannels";
+import { fetchOther, type OtherItem } from "@/shared/api/other";
 import {
   faBullhorn,
   faBriefcase,
@@ -35,39 +37,42 @@ import {
   faFilter,
   faFilterCircleXmark,
   faXmark,
+  faBox,
 } from "@fortawesome/free-solid-svg-icons";
 
-type ExchangeSection = "ads" | "jobs" | "designers" | "currency" | "sell-channel" | "buy-channel";
+type ExchangeSection = "buy-ads" | "sell-ads" | "jobs" | "designers" | "currency" | "sell-channel" | "buy-channel" | "other";
 
 type SubmitFormSection = Exclude<ExchangeSection, "currency">;
 
 const SECTIONS: { id: ExchangeSection; label: string; icon: typeof faBullhorn }[] = [
-  { id: "ads", label: "Реклама", icon: faBullhorn },
+  { id: "buy-ads", label: "Покупка рекламы", icon: faBullhorn },
+  { id: "sell-ads", label: "Продажа рекламы", icon: faBullhorn },
   { id: "jobs", label: "Вакансии", icon: faBriefcase },
   { id: "designers", label: "Услуги", icon: faPalette },
   { id: "currency", label: "Обмен валют", icon: faCoins },
   { id: "sell-channel", label: "Продать канал", icon: faStore },
   { id: "buy-channel", label: "Купить канал", icon: faShoppingCart },
+  { id: "other", label: "Другое", icon: faBox },
 ];
 
 const SECTIONS_FOR_SUBMIT = SECTIONS.filter((s) => s.id !== "currency");
 
 const inputStyleModal = {
-  backgroundColor: "var(--color-surface)",
-  border: "1px solid var(--color-border)",
-  color: "var(--color-text)",
+  backgroundColor: "var(--input-bg)",
+  border: "1px solid var(--input-border)",
+  color: "var(--input-text)",
 };
 
 export default function ExchangePage() {
-  const [activeSection, setActiveSection] = useState<ExchangeSection>("ads");
+  const [activeSection, setActiveSection] = useState<ExchangeSection>("buy-ads");
   const [showSubmitModal, setShowSubmitModal] = useState(false);
-  const [submitSection, setSubmitSection] = useState<SubmitFormSection>("ads");
+  const [submitSection, setSubmitSection] = useState<SubmitFormSection>("buy-ads");
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [showSuccessNotice, setShowSuccessNotice] = useState(false);
 
   const openSubmitModal = () => {
     setShowSubmitModal(true);
-    setSubmitSection("ads");
+    setSubmitSection("buy-ads");
     setFormData({});
   };
 
@@ -154,7 +159,7 @@ export default function ExchangePage() {
                   setSubmitSection((e.target.value || "ads") as SubmitFormSection);
                   setFormData({});
                 }}
-                className="w-full rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+                className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
                 style={inputStyleModal}
               >
                 {SECTIONS_FOR_SUBMIT.map((s) => (
@@ -209,12 +214,14 @@ export default function ExchangePage() {
       </div>
 
       {/* Контент по выбранному разделу */}
-      {activeSection === "ads" && <AdsSection />}
+      {activeSection === "buy-ads" && <BuyAdsSection />}
+      {activeSection === "sell-ads" && <SellAdsSection />}
       {activeSection === "jobs" && <JobsSection />}
       {activeSection === "designers" && <DesignersSection />}
       {activeSection === "currency" && <CurrencySection />}
       {activeSection === "sell-channel" && <SellChannelSection />}
       {activeSection === "buy-channel" && <BuyChannelSection />}
+      {activeSection === "other" && <OtherSection />}
     </main>
   );
 }
@@ -260,7 +267,7 @@ function SubmitFormBySection({
     <select
       value={formData[key] ?? ""}
       onChange={(e) => setFormField(key, e.target.value)}
-      className="w-full rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+      className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
       style={inputStyleModal}
     >
       <option value="">Выберите...</option>
@@ -270,7 +277,34 @@ function SubmitFormBySection({
     </select>
   );
 
-  if (section === "ads") {
+  if (section === "buy-ads") {
+    return (
+      <div className="space-y-3">
+        <div>
+          {label("Юзернейм пользователя")}
+          {input("username", "@username")}
+        </div>
+        <div>
+          {label("Сумма (₽)", true)}
+          {input("priceRange", "например: 1000-2000 или ~1500")}
+        </div>
+        <div>
+          {label("Необходимое количество просмотров", true)}
+          {input("viewsRange", "например: 5000-10000 или ~8000")}
+        </div>
+        <div>
+          {label("Тематика канала", true)}
+          {input("theme", "например: крипто, маркетинг")}
+        </div>
+        <div>
+          {label("Дополнительное описание", true)}
+          {textarea("description", "Опишите, какую рекламу вы хотите разместить...")}
+        </div>
+      </div>
+    );
+  }
+
+  if (section === "sell-ads") {
     return (
       <div className="space-y-3">
         <div>
@@ -308,6 +342,10 @@ function SubmitFormBySection({
         <div>
           {label("Способ оплаты", true)}
           {select("paymentMethod", Object.entries(PAYMENT_LABELS).map(([v, l]) => ({ value: v, label: l })))}
+        </div>
+        <div>
+          {label("Тематика канала", true)}
+          {input("theme", "например: крипто, маркетинг")}
         </div>
         <div>
           {label("Дополнительное описание", true)}
@@ -349,6 +387,10 @@ function SubmitFormBySection({
           {input("paymentAmount", "например: 500")}
         </div>
         <div>
+          {label("Тематика", true)}
+          {input("theme", "например: контент, дизайн")}
+        </div>
+        <div>
           {label("Дополнительное описание", true)}
           {textarea("description", "Опишите вакансию...")}
         </div>
@@ -370,6 +412,10 @@ function SubmitFormBySection({
         <div>
           {label("Цена, ₽", true)}
           {input("price", "0", "number")}
+        </div>
+        <div>
+          {label("Тематика", true)}
+          {input("theme", "например: видео, дизайн")}
         </div>
         <div>
           {label("Дополнительное описание", true)}
@@ -409,6 +455,10 @@ function SubmitFormBySection({
         <div>
           {label("Через гаранта", true)}
           {select("viaGuarantor", [{ value: "", label: "—" }, { value: "yes", label: "Да" }, { value: "no", label: "Нет" }])}
+        </div>
+        <div>
+          {label("Тематика канала", true)}
+          {input("theme", "например: крипто, маркетинг")}
         </div>
         <div>
           {label("Дополнительное описание", true)}
@@ -458,8 +508,39 @@ function SubmitFormBySection({
           {select("viaGuarantor", [{ value: "", label: "—" }, { value: "yes", label: "Да" }, { value: "no", label: "Нет" }])}
         </div>
         <div>
+          {label("Тематика канала", true)}
+          {input("theme", "например: крипто, маркетинг")}
+        </div>
+        <div>
           {label("Дополнительное описание", true)}
           {textarea("description", "Что ищете...")}
+        </div>
+      </div>
+    );
+  }
+
+  if (section === "other") {
+    return (
+      <div className="space-y-3">
+        <div>
+          {label("Юзернейм пользователя")}
+          {input("username", "@username")}
+        </div>
+        <div>
+          {label("Ссылка на профиль")}
+          {input("usernameLink", "https://t.me/...")}
+        </div>
+        <div>
+          {label("Верифицирован", true)}
+          {select("verified", [{ value: "", label: "—" }, { value: "yes", label: "Да" }, { value: "no", label: "Нет" }])}
+        </div>
+        <div>
+          {label("Цена (₽)", true)}
+          {input("price", "0", "number")}
+        </div>
+        <div>
+          {label("Дополнительное описание", true)}
+          {textarea("description", "Опишите товар или услугу...")}
         </div>
       </div>
     );
@@ -530,6 +611,8 @@ function AdCard({ ad }: { ad: AdItem }) {
         <span style={{ color: "var(--color-text)" }}>{ad.postDuration}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Оплата:</span>
         <span style={{ color: "var(--color-text)" }}>{PAYMENT_LABELS[ad.paymentMethod]}</span>
+        <span style={{ color: "var(--color-text-muted)" }}>Тематика:</span>
+        <span style={{ color: "var(--color-text)" }}>{ad.theme}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Опубликовано:</span>
         <span style={{ color: "var(--color-text)" }}>{formatServiceDate(ad.publishedAt)}</span>
       </div>
@@ -542,8 +625,8 @@ function AdCard({ ad }: { ad: AdItem }) {
   );
 }
 
-/* ——— Покупка/продажа рекламы (фильтр + загрузка по API) ——— */
-function AdsSection() {
+/* ——— Продажа рекламы (фильтр + загрузка по API) ——— */
+function SellAdsSection() {
   const [priceFrom, setPriceFrom] = useState("");
   const [priceTo, setPriceTo] = useState("");
   const [reachFrom, setReachFrom] = useState("");
@@ -563,11 +646,25 @@ function AdsSection() {
     return () => { cancelled = true; };
   }, []);
 
+  const filteredAds = ads.filter((ad) => {
+    const pFrom = priceFrom.trim() ? Number(priceFrom) : null;
+    const pTo = priceTo.trim() ? Number(priceTo) : null;
+    if (pFrom != null && !Number.isNaN(pFrom) && ad.price < pFrom) return false;
+    if (pTo != null && !Number.isNaN(pTo) && ad.price > pTo) return false;
+    const rFrom = reachFrom.trim() ? Number(reachFrom) : null;
+    if (rFrom != null && !Number.isNaN(rFrom)) {
+      // Для охвата можно использовать описание или другие поля, пока просто пропускаем
+    }
+    const themeMatch = !theme.trim() || ad.theme.toLowerCase().includes(theme.trim().toLowerCase());
+    if (!themeMatch) return false;
+    return true;
+  });
+
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-semibold text-sm" style={{ color: "var(--color-text)" }}>
-          Покупка / продажа рекламы
+          Продажа рекламы
         </h2>
         <button
           type="button"
@@ -685,7 +782,302 @@ function AdsSection() {
             Объявлений пока нет.
           </p>
         )}
-        {!loading && ads.length > 0 && ads.map((ad) => <AdCard key={ad.id} ad={ad} />)}
+        {!loading && ads.length > 0 && filteredAds.length === 0 && (
+          <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-muted)" }}>
+            По фильтрам ничего не найдено.
+          </p>
+        )}
+        {!loading && filteredAds.length > 0 && filteredAds.map((ad) => <AdCard key={ad.id} ad={ad} />)}
+      </div>
+    </section>
+  );
+}
+
+/* ——— Карточка заявки на покупку рекламы ——— */
+function BuyAdCard({ item }: { item: BuyAdItem }) {
+  const formatPriceRange = (min: number, max: number): string => {
+    if (min === max) return `${min.toLocaleString("ru-RU")} ₽`;
+    return `${min.toLocaleString("ru-RU")} — ${max.toLocaleString("ru-RU")} ₽`;
+  };
+
+  const formatViewsRange = (min: number, max: number): string => {
+    if (min === max) return min.toLocaleString("ru-RU");
+    return `${min.toLocaleString("ru-RU")} — ${max.toLocaleString("ru-RU")}`;
+  };
+
+  return (
+    <article
+      className="rounded-xl p-4 space-y-3 min-w-0"
+      style={{
+        backgroundColor: "var(--color-bg-elevated)",
+        border: "1px solid var(--color-border)",
+      }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <a
+          href={item.usernameLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm font-medium min-w-0"
+          style={{ color: "var(--color-accent)" }}
+        >
+          @{item.username}
+          <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
+        </a>
+        {item.verified && (
+          <FontAwesomeIcon icon={faCheck} className="w-3.5 h-3.5 shrink-0 text-(--color-accent)" />
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+        <span style={{ color: "var(--color-text-muted)" }}>Сумма:</span>
+        <span style={{ color: "var(--color-text)" }}>
+          {formatPriceRange(item.priceMin, item.priceMax)}
+        </span>
+        <span style={{ color: "var(--color-text-muted)" }}>Просмотров:</span>
+        <span style={{ color: "var(--color-text)" }}>
+          {formatViewsRange(item.viewsMin, item.viewsMax)}
+        </span>
+        <span style={{ color: "var(--color-text-muted)" }}>Тематика:</span>
+        <span style={{ color: "var(--color-text)" }}>{item.theme}</span>
+        <span style={{ color: "var(--color-text-muted)" }}>Опубликовано:</span>
+        <span style={{ color: "var(--color-text)" }}>{formatServiceDate(item.publishedAt)}</span>
+      </div>
+      {item.description && (
+        <p
+          className="text-xs pt-2 border-t"
+          style={{ color: "var(--color-text-muted)", borderColor: "var(--color-border)" }}
+        >
+          {item.description}
+        </p>
+      )}
+    </article>
+  );
+}
+
+/* ——— Покупка рекламы (фильтры + загрузка по API) ——— */
+function BuyAdsSection() {
+  const [usernameSearch, setUsernameSearch] = useState("");
+  const [priceFrom, setPriceFrom] = useState("");
+  const [priceTo, setPriceTo] = useState("");
+  const [viewsFrom, setViewsFrom] = useState("");
+  const [viewsTo, setViewsTo] = useState("");
+  const [themeSearch, setThemeSearch] = useState("");
+  const [descriptionSearch, setDescriptionSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<BuyAdItem[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchBuyAds().then((res) => {
+      if (!cancelled) {
+        setItems(res.buyAds ?? []);
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const filteredItems = items.filter((item) => {
+    const usernameMatch = !usernameSearch.trim() || item.username.toLowerCase().includes(usernameSearch.trim().toLowerCase());
+    if (!usernameMatch) return false;
+    const pFrom = priceFrom.trim() ? Number(priceFrom) : null;
+    const pTo = priceTo.trim() ? Number(priceTo) : null;
+    if (pFrom != null && !Number.isNaN(pFrom) && item.priceMax < pFrom) return false;
+    if (pTo != null && !Number.isNaN(pTo) && item.priceMin > pTo) return false;
+    const vFrom = viewsFrom.trim() ? Number(viewsFrom) : null;
+    const vTo = viewsTo.trim() ? Number(viewsTo) : null;
+    if (vFrom != null && !Number.isNaN(vFrom) && item.viewsMax < vFrom) return false;
+    if (vTo != null && !Number.isNaN(vTo) && item.viewsMin > vTo) return false;
+    const themeMatch = !themeSearch.trim() || item.theme.toLowerCase().includes(themeSearch.trim().toLowerCase());
+    if (!themeMatch) return false;
+    const descMatch = !descriptionSearch.trim() || item.description.toLowerCase().includes(descriptionSearch.trim().toLowerCase());
+    if (!descMatch) return false;
+    if (dateFrom.trim() && item.publishedAt < dateFrom) return false;
+    if (dateTo.trim() && item.publishedAt > dateTo) return false;
+    return true;
+  });
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-semibold text-sm" style={{ color: "var(--color-text)" }}>
+          Покупка рекламы
+        </h2>
+        <button
+          type="button"
+          onClick={() => setShowFilters((v) => !v)}
+          className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
+          aria-label={showFilters ? "Скрыть фильтры" : "Показать фильтры"}
+        >
+          <FontAwesomeIcon icon={showFilters ? faFilterCircleXmark : faFilter} className="w-4 h-4" />
+        </button>
+      </div>
+      {showFilters && (
+      <div
+        className="rounded-xl p-4 space-y-4 min-w-0 overflow-hidden"
+        style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+      >
+        <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+          Фильтры по юзернейму, сумме, просмотрам, тематике, описанию и дате
+        </p>
+        <div className="grid gap-3 min-w-0">
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Юзернейм
+            </label>
+            <input
+              type="text"
+              placeholder="Поиск по юзернейму"
+              value={usernameSearch}
+              onChange={(e) => setUsernameSearch(e.target.value)}
+              className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+              style={inputStyle}
+            />
+          </div>
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Сумма (₽), от — до
+            </label>
+            <div className="flex gap-2 min-w-0">
+              <input
+                type="text"
+                placeholder="От"
+                value={priceFrom}
+                onChange={(e) => setPriceFrom(e.target.value)}
+                className="flex-1 min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                style={inputStyle}
+              />
+              <input
+                type="text"
+                placeholder="До"
+                value={priceTo}
+                onChange={(e) => setPriceTo(e.target.value)}
+                className="flex-1 min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                style={inputStyle}
+              />
+            </div>
+          </div>
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Просмотров, от — до
+            </label>
+            <div className="flex gap-2 min-w-0">
+              <input
+                type="text"
+                placeholder="От"
+                value={viewsFrom}
+                onChange={(e) => setViewsFrom(e.target.value)}
+                className="flex-1 min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                style={inputStyle}
+              />
+              <input
+                type="text"
+                placeholder="До"
+                value={viewsTo}
+                onChange={(e) => setViewsTo(e.target.value)}
+                className="flex-1 min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                style={inputStyle}
+              />
+            </div>
+          </div>
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Тематика канала
+            </label>
+            <input
+              type="text"
+              placeholder="Например: крипто, маркетинг"
+              value={themeSearch}
+              onChange={(e) => setThemeSearch(e.target.value)}
+              className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+              style={inputStyle}
+            />
+          </div>
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Описание
+            </label>
+            <input
+              type="text"
+              placeholder="Поиск по описанию"
+              value={descriptionSearch}
+              onChange={(e) => setDescriptionSearch(e.target.value)}
+              className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+              style={inputStyle}
+            />
+          </div>
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Дата публикации, от
+            </label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+              style={inputStyle}
+            />
+          </div>
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Дата публикации, до
+            </label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+              style={inputStyle}
+            />
+          </div>
+        </div>
+      </div>
+      )}
+
+      <div className="space-y-3">
+        {loading && (
+          <div
+            className="rounded-xl p-4 min-w-0"
+            style={{
+              backgroundColor: "var(--color-bg-elevated)",
+              border: "1px solid var(--color-border)",
+            }}
+          >
+            <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>
+              Загрузка заявок…
+            </p>
+            <div
+              className="w-full h-1.5 rounded-full overflow-hidden"
+              style={{ backgroundColor: "var(--color-surface)" }}
+            >
+              <div
+                className="loader-progress h-full rounded-full"
+                style={{ backgroundColor: "var(--color-accent)" }}
+              />
+            </div>
+          </div>
+        )}
+        {!loading && items.length === 0 && (
+          <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-muted)" }}>
+            Заявок на покупку рекламы пока нет.
+          </p>
+        )}
+        {!loading && items.length > 0 && filteredItems.length === 0 && (
+          <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-muted)" }}>
+            По фильтрам ничего не найдено.
+          </p>
+        )}
+        {!loading && filteredItems.length > 0 && (
+          <div className="space-y-3">
+            {filteredItems.map((item) => (
+              <BuyAdCard key={item.id} item={item} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -743,6 +1135,8 @@ function JobCard({ job }: { job: JobItem }) {
         <span style={{ color: "var(--color-text)" }}>
           {job.paymentAmount} {PAYMENT_CURRENCY_LABELS[job.paymentCurrency]}
         </span>
+        <span style={{ color: "var(--color-text-muted)" }}>Тематика:</span>
+        <span style={{ color: "var(--color-text)" }}>{job.theme}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Опубликовано:</span>
         <span style={{ color: "var(--color-text)" }}>{formatServiceDate(job.publishedAt)}</span>
       </div>
@@ -759,9 +1153,9 @@ function JobCard({ job }: { job: JobItem }) {
 }
 
 const inputStyle = {
-  backgroundColor: "var(--color-surface)",
-  border: "1px solid var(--color-border)",
-  color: "var(--color-text)",
+  backgroundColor: "var(--input-bg)",
+  border: "1px solid var(--input-border)",
+  color: "var(--input-text)",
 };
 
 /* ——— Поиск/предложение вакансии (фильтры + загрузка по API) ——— */
@@ -772,6 +1166,7 @@ function JobsSection() {
   const [paymentCurrency, setPaymentCurrency] = useState<PaymentCurrency | "">("");
   const [hasPortfolio, setHasPortfolio] = useState<"" | "yes" | "no">("");
   const [descriptionSearch, setDescriptionSearch] = useState("");
+  const [themeSearch, setThemeSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [showFilters, setShowFilters] = useState(false);
@@ -795,6 +1190,8 @@ function JobsSection() {
     if (hasPortfolio === "yes" && !job.portfolioUrl) return false;
     if (hasPortfolio === "no" && job.portfolioUrl) return false;
     if (descriptionSearch.trim() && !job.description.toLowerCase().includes(descriptionSearch.trim().toLowerCase())) return false;
+    const themeMatch = !themeSearch.trim() || job.theme.toLowerCase().includes(themeSearch.trim().toLowerCase());
+    if (!themeMatch) return false;
     return true;
   });
 
@@ -820,7 +1217,7 @@ function JobsSection() {
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
       >
         <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Фильтр по типу, работе, занятости, оплате и портфолио.
+          Фильтр по типу, работе, занятости, оплате, тематике и портфолио.
         </p>
         <div>
           <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
@@ -829,7 +1226,7 @@ function JobsSection() {
           <select
             value={offerType}
             onChange={(e) => setOfferType((e.target.value || "") as JobOfferType | "")}
-            className="w-full rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+            className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
             style={inputStyle}
           >
             <option value="">Любое</option>
@@ -844,7 +1241,7 @@ function JobsSection() {
           <select
             value={work}
             onChange={(e) => setWork((e.target.value || "") as WorkType | "")}
-            className="w-full rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+            className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
             style={inputStyle}
           >
             <option value="">Любая</option>
@@ -860,7 +1257,7 @@ function JobsSection() {
           <select
             value={employmentType}
             onChange={(e) => setEmploymentType((e.target.value || "") as EmploymentType | "")}
-            className="w-full rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+            className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
             style={inputStyle}
           >
             <option value="">Любой</option>
@@ -875,7 +1272,7 @@ function JobsSection() {
           <select
             value={paymentCurrency}
             onChange={(e) => setPaymentCurrency((e.target.value || "") as PaymentCurrency | "")}
-            className="w-full rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+            className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
             style={inputStyle}
           >
             <option value="">Любая</option>
@@ -890,13 +1287,26 @@ function JobsSection() {
           <select
             value={hasPortfolio}
             onChange={(e) => setHasPortfolio((e.target.value || "") as "" | "yes" | "no")}
-            className="w-full rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+            className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
             style={inputStyle}
           >
             <option value="">Любое</option>
             <option value="yes">Есть</option>
             <option value="no">Нет</option>
           </select>
+        </div>
+        <div>
+          <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+            Тематика
+          </label>
+          <input
+            type="text"
+            placeholder="Например: контент, дизайн"
+            value={themeSearch}
+            onChange={(e) => setThemeSearch(e.target.value)}
+            className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+            style={inputStyle}
+          />
         </div>
         <div>
           <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
@@ -986,6 +1396,10 @@ function ServiceCard({ service }: { service: ServiceItem }) {
           @{service.username}
         </span>
       </div>
+      <div className="text-xs">
+        <span style={{ color: "var(--color-text-muted)" }}>Тематика: </span>
+        <span style={{ color: "var(--color-text)" }}>{service.theme}</span>
+      </div>
       {service.description && (
         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
           {service.description}
@@ -1006,6 +1420,7 @@ function DesignersSection() {
   const [verified, setVerified] = useState<"" | "yes" | "no">("");
   const [usernameSearch, setUsernameSearch] = useState("");
   const [descriptionSearch, setDescriptionSearch] = useState("");
+  const [themeSearch, setThemeSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(true);
@@ -1033,15 +1448,17 @@ function DesignersSection() {
     if (verified === "no" && s.verified) return false;
     if (usernameSearch.trim() && !s.username.toLowerCase().includes(usernameSearch.trim().toLowerCase())) return false;
     if (descriptionSearch.trim() && !s.description.toLowerCase().includes(descriptionSearch.trim().toLowerCase())) return false;
+    const themeMatch = !themeSearch.trim() || s.theme.toLowerCase().includes(themeSearch.trim().toLowerCase());
+    if (!themeMatch) return false;
     if (dateFrom.trim() && s.publishedAt < dateFrom) return false;
     if (dateTo.trim() && s.publishedAt > dateTo) return false;
     return true;
   });
 
   const serviceInputStyle = {
-    backgroundColor: "var(--color-surface)",
-    border: "1px solid var(--color-border)",
-    color: "var(--color-text)",
+    backgroundColor: "var(--input-bg)",
+    border: "1px solid var(--input-border)",
+    color: "var(--input-text)",
   };
 
   return (
@@ -1066,7 +1483,7 @@ function DesignersSection() {
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
       >
         <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Фильтр по названию, цене, верификации, юзернейму, описанию и дате.
+          Фильтр по названию, цене, верификации, юзернейму, тематике, описанию и дате.
         </p>
         <div>
           <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
@@ -1111,7 +1528,7 @@ function DesignersSection() {
           <select
             value={verified}
             onChange={(e) => setVerified((e.target.value || "") as "" | "yes" | "no")}
-            className="w-full rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+            className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
             style={serviceInputStyle}
           >
             <option value="">Любой</option>
@@ -1128,6 +1545,19 @@ function DesignersSection() {
             placeholder="Поиск по юзернейму..."
             value={usernameSearch}
             onChange={(e) => setUsernameSearch(e.target.value)}
+            className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+            style={serviceInputStyle}
+          />
+        </div>
+        <div>
+          <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+            Тематика
+          </label>
+          <input
+            type="text"
+            placeholder="Например: видео, дизайн"
+            value={themeSearch}
+            onChange={(e) => setThemeSearch(e.target.value)}
             className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
             style={serviceInputStyle}
           />
@@ -1287,6 +1717,8 @@ function SellChannelCard({ channel }: { channel: SellChannelItem }) {
         <span style={{ color: "var(--color-text)" }}>{channel.price.toLocaleString("ru-RU")} ₽</span>
         <span style={{ color: "var(--color-text-muted)" }}>Через гаранта:</span>
         <span style={{ color: "var(--color-text)" }}>{channel.viaGuarantor ? "Да" : "Нет"}</span>
+        <span style={{ color: "var(--color-text-muted)" }}>Тематика:</span>
+        <span style={{ color: "var(--color-text)" }}>{channel.theme}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Опубликовано:</span>
         <span style={{ color: "var(--color-text)" }}>{formatServiceDate(channel.publishedAt)}</span>
       </div>
@@ -1315,6 +1747,7 @@ function SellChannelSection() {
   const [usernameSearch, setUsernameSearch] = useState("");
   const [verified, setVerified] = useState<"" | "yes" | "no">("");
   const [descriptionSearch, setDescriptionSearch] = useState("");
+  const [themeSearch, setThemeSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [hasPhoto, setHasPhoto] = useState<"" | "yes" | "no">("");
@@ -1355,6 +1788,8 @@ function SellChannelSection() {
     if (verified === "no" && ch.verified) return false;
     const descMatch = !descriptionSearch.trim() || ch.description.toLowerCase().includes(descriptionSearch.trim().toLowerCase());
     if (!descMatch) return false;
+    const themeMatch = !themeSearch.trim() || ch.theme.toLowerCase().includes(themeSearch.trim().toLowerCase());
+    if (!themeMatch) return false;
     if (dateFrom.trim() && ch.publishedAt < dateFrom) return false;
     if (dateTo.trim() && ch.publishedAt > dateTo) return false;
     if (hasPhoto === "yes" && !ch.imageUrl) return false;
@@ -1384,7 +1819,7 @@ function SellChannelSection() {
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
       >
         <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Фильтры по названию, подписчикам, охвату, цене, гаранту, юзернейму, верификации, описанию, дате и наличию фото
+          Фильтры по названию, подписчикам, охвату, цене, гаранту, юзернейму, верификации, тематике, описанию, дате и наличию фото
         </p>
         <div className="grid gap-3 min-w-0 grid-cols-1 sm:grid-cols-2">
           <div className="min-w-0">
@@ -1476,7 +1911,7 @@ function SellChannelSection() {
             <select
               value={viaGuarantor}
               onChange={(e) => setViaGuarantor((e.target.value || "") as "" | "yes" | "no")}
-              className="w-full rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+              className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
               style={inputStyle}
             >
               <option value="">Любой</option>
@@ -1504,7 +1939,7 @@ function SellChannelSection() {
             <select
               value={verified}
               onChange={(e) => setVerified((e.target.value || "") as "" | "yes" | "no")}
-              className="w-full rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+              className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
               style={inputStyle}
             >
               <option value="">Любой</option>
@@ -1519,13 +1954,26 @@ function SellChannelSection() {
             <select
               value={hasPhoto}
               onChange={(e) => setHasPhoto((e.target.value || "") as "" | "yes" | "no")}
-              className="w-full rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+              className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
               style={inputStyle}
             >
               <option value="">Любой</option>
               <option value="yes">Есть</option>
               <option value="no">Нет</option>
             </select>
+          </div>
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Тематика канала
+            </label>
+            <input
+              type="text"
+              placeholder="Например: крипто, маркетинг"
+              value={themeSearch}
+              onChange={(e) => setThemeSearch(e.target.value)}
+              className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+              style={inputStyle}
+            />
           </div>
           <div className="min-w-0 sm:col-span-2">
             <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
@@ -1656,6 +2104,8 @@ function BuyChannelCard({ item }: { item: BuyChannelItem }) {
         </span>
         <span style={{ color: "var(--color-text-muted)" }}>Согласен на гаранта:</span>
         <span style={{ color: "var(--color-text)" }}>{item.viaGuarantor ? "Да" : "Нет"}</span>
+        <span style={{ color: "var(--color-text-muted)" }}>Тематика:</span>
+        <span style={{ color: "var(--color-text)" }}>{item.theme}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Опубликовано:</span>
         <span style={{ color: "var(--color-text)" }}>{formatServiceDate(item.publishedAt)}</span>
       </div>
@@ -1683,6 +2133,7 @@ function BuyChannelSection() {
   const [subscribersTo, setSubscribersTo] = useState("");
   const [viaGuarantor, setViaGuarantor] = useState<"" | "yes" | "no">("");
   const [descriptionSearch, setDescriptionSearch] = useState("");
+  const [themeSearch, setThemeSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(true);
@@ -1721,6 +2172,8 @@ function BuyChannelSection() {
     if (viaGuarantor === "no" && item.viaGuarantor) return false;
     const descMatch = !descriptionSearch.trim() || item.description.toLowerCase().includes(descriptionSearch.trim().toLowerCase());
     if (!descMatch) return false;
+    const themeMatch = !themeSearch.trim() || item.theme.toLowerCase().includes(themeSearch.trim().toLowerCase());
+    if (!themeMatch) return false;
     if (dateFrom.trim() && item.publishedAt < dateFrom) return false;
     if (dateTo.trim() && item.publishedAt > dateTo) return false;
     return true;
@@ -1748,7 +2201,7 @@ function BuyChannelSection() {
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
       >
         <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Фильтры по нику, верификации, цене, охвату, подписчикам, гаранту, описанию и дате
+          Фильтры по нику, верификации, цене, охвату, подписчикам, гаранту, тематике, описанию и дате
         </p>
         <div className="grid gap-3 min-w-0 grid-cols-1 sm:grid-cols-2">
           <div className="min-w-0">
@@ -1771,7 +2224,7 @@ function BuyChannelSection() {
             <select
               value={verified}
               onChange={(e) => setVerified((e.target.value || "") as "" | "yes" | "no")}
-              className="w-full rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+              className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
               style={inputStyle}
             >
               <option value="">Любой</option>
@@ -1855,13 +2308,26 @@ function BuyChannelSection() {
             <select
               value={viaGuarantor}
               onChange={(e) => setViaGuarantor((e.target.value || "") as "" | "yes" | "no")}
-              className="w-full rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+              className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
               style={inputStyle}
             >
               <option value="">Любой</option>
               <option value="yes">Да</option>
               <option value="no">Нет</option>
             </select>
+          </div>
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Тематика канала
+            </label>
+            <input
+              type="text"
+              placeholder="Например: крипто, маркетинг"
+              value={themeSearch}
+              onChange={(e) => setThemeSearch(e.target.value)}
+              className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+              style={inputStyle}
+            />
           </div>
           <div className="min-w-0 sm:col-span-2">
             <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
@@ -1940,6 +2406,251 @@ function BuyChannelSection() {
         <div className="space-y-3">
           {filteredItems.map((item) => (
             <BuyChannelCard key={item.id} item={item} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ——— Карточка товара/услуги из раздела Другое ——— */
+function OtherCard({ item }: { item: OtherItem }) {
+  return (
+    <article
+      className="rounded-xl p-4 space-y-3 min-w-0"
+      style={{
+        backgroundColor: "var(--color-bg-elevated)",
+        border: "1px solid var(--color-border)",
+      }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <a
+          href={item.usernameLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm font-medium min-w-0"
+          style={{ color: "var(--color-accent)" }}
+        >
+          @{item.username}
+          <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
+        </a>
+        {item.verified && (
+          <FontAwesomeIcon icon={faCheck} className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--color-accent)" }} />
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+        <span style={{ color: "var(--color-text-muted)" }}>Верифицирован:</span>
+        <span style={{ color: "var(--color-text)" }}>{item.verified ? "Да" : "Нет"}</span>
+        <span style={{ color: "var(--color-text-muted)" }}>Цена (₽):</span>
+        <span style={{ color: "var(--color-text)" }}>{item.price.toLocaleString("ru-RU")}</span>
+        <span style={{ color: "var(--color-text-muted)" }}>Опубликовано:</span>
+        <span style={{ color: "var(--color-text)" }}>{formatServiceDate(item.publishedAt)}</span>
+      </div>
+      {item.description && (
+        <p
+          className="text-xs pt-2 border-t"
+          style={{ color: "var(--color-text-muted)", borderColor: "var(--color-border)" }}
+        >
+          {item.description}
+        </p>
+      )}
+    </article>
+  );
+}
+
+/* ——— Другое (каталог из JSON + фильтры) ——— */
+function OtherSection() {
+  const [usernameSearch, setUsernameSearch] = useState("");
+  const [verified, setVerified] = useState<"" | "yes" | "no">("");
+  const [priceFrom, setPriceFrom] = useState("");
+  const [priceTo, setPriceTo] = useState("");
+  const [descriptionSearch, setDescriptionSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<OtherItem[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchOther().then((res) => {
+      if (!cancelled) {
+        setItems(res.other ?? []);
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const filteredItems = items.filter((item) => {
+    const usernameMatch = !usernameSearch.trim() || item.username.toLowerCase().includes(usernameSearch.trim().toLowerCase());
+    if (!usernameMatch) return false;
+    if (verified === "yes" && !item.verified) return false;
+    if (verified === "no" && item.verified) return false;
+    const pFrom = priceFrom.trim() ? Number(priceFrom) : null;
+    const pTo = priceTo.trim() ? Number(priceTo) : null;
+    if (pFrom != null && !Number.isNaN(pFrom) && item.price < pFrom) return false;
+    if (pTo != null && !Number.isNaN(pTo) && item.price > pTo) return false;
+    const descMatch = !descriptionSearch.trim() || item.description.toLowerCase().includes(descriptionSearch.trim().toLowerCase());
+    if (!descMatch) return false;
+    if (dateFrom.trim() && item.publishedAt < dateFrom) return false;
+    if (dateTo.trim() && item.publishedAt > dateTo) return false;
+    return true;
+  });
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-semibold text-sm" style={{ color: "var(--color-text)" }}>
+          Другое
+        </h2>
+        <button
+          type="button"
+          onClick={() => setShowFilters((v) => !v)}
+          className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
+          aria-label={showFilters ? "Скрыть фильтры" : "Показать фильтры"}
+        >
+          <FontAwesomeIcon icon={showFilters ? faFilterCircleXmark : faFilter} className="w-4 h-4" />
+        </button>
+      </div>
+      {showFilters && (
+      <div
+        className="rounded-xl p-4 space-y-4 min-w-0 overflow-hidden"
+        style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+      >
+        <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+          Фильтр по юзернейму, верификации, цене, описанию и дате публикации.
+        </p>
+        <div className="grid gap-3 min-w-0 grid-cols-1 sm:grid-cols-2">
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Юзернейм пользователя
+            </label>
+            <input
+              type="text"
+              placeholder="Поиск по юзернейму"
+              value={usernameSearch}
+              onChange={(e) => setUsernameSearch(e.target.value)}
+              className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+              style={inputStyle}
+            />
+          </div>
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Верифицирован
+            </label>
+            <select
+              value={verified}
+              onChange={(e) => setVerified((e.target.value || "") as "" | "yes" | "no")}
+              className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
+              style={inputStyle}
+            >
+              <option value="">Любой</option>
+              <option value="yes">Да</option>
+              <option value="no">Нет</option>
+            </select>
+          </div>
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Цена, от — до (₽)
+            </label>
+            <div className="flex gap-2 min-w-0">
+              <input
+                type="number"
+                placeholder="От"
+                value={priceFrom}
+                onChange={(e) => setPriceFrom(e.target.value)}
+                className="flex-1 min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                style={inputStyle}
+              />
+              <input
+                type="number"
+                placeholder="До"
+                value={priceTo}
+                onChange={(e) => setPriceTo(e.target.value)}
+                className="flex-1 min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                style={inputStyle}
+              />
+            </div>
+          </div>
+          <div className="min-w-0 sm:col-span-2">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Описание
+            </label>
+            <input
+              type="text"
+              placeholder="Поиск по описанию"
+              value={descriptionSearch}
+              onChange={(e) => setDescriptionSearch(e.target.value)}
+              className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+              style={inputStyle}
+            />
+          </div>
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Дата публикации, от
+            </label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+              style={inputStyle}
+            />
+          </div>
+          <div className="min-w-0">
+            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
+              Дата публикации, до
+            </label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+              style={inputStyle}
+            />
+          </div>
+        </div>
+      </div>
+      )}
+
+      {loading && (
+        <div
+          className="rounded-xl p-4 min-w-0"
+          style={{
+            backgroundColor: "var(--color-bg-elevated)",
+            border: "1px solid var(--color-border)",
+          }}
+        >
+          <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>
+            Загрузка товаров и услуг…
+          </p>
+          <div
+            className="w-full h-1.5 rounded-full overflow-hidden"
+            style={{ backgroundColor: "var(--color-surface)" }}
+          >
+            <div
+              className="loader-progress h-full rounded-full"
+              style={{ backgroundColor: "var(--color-accent)" }}
+            />
+          </div>
+        </div>
+      )}
+      {!loading && items.length === 0 && (
+        <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-muted)" }}>
+          Товаров и услуг пока нет.
+        </p>
+      )}
+      {!loading && items.length > 0 && filteredItems.length === 0 && (
+        <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-muted)" }}>
+          По фильтрам ничего не найдено.
+        </p>
+      )}
+      {!loading && filteredItems.length > 0 && (
+        <div className="space-y-3">
+          {filteredItems.map((item) => (
+            <OtherCard key={item.id} item={item} />
           ))}
         </div>
       )}

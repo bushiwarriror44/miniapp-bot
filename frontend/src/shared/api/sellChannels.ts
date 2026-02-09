@@ -9,6 +9,7 @@ export type SellChannelItem = {
   username: string;
   usernameLink: string;
   verified: boolean;
+  theme: string;
   description: string;
   publishedAt: string;
 };

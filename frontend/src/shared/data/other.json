@@ -1,0 +1,49 @@
+{
+  "other": [
+    {
+      "id": "1",
+      "username": "wallet_seller",
+      "usernameLink": "https://t.me/wallet_seller",
+      "verified": true,
+      "price": 500,
+      "description": "Продаю готовые криптокошельки TON и Solana с балансом. Безопасно, проверено.",
+      "publishedAt": "2025-02-01"
+    },
+    {
+      "id": "2",
+      "username": "casino_reg",
+      "usernameLink": "https://t.me/casino_reg",
+      "verified": false,
+      "price": 300,
+      "description": "Регистрация в казино с бонусами. Помощь с верификацией аккаунта. Быстро и надежно.",
+      "publishedAt": "2025-02-02"
+    },
+    {
+      "id": "3",
+      "username": "accounts_market",
+      "usernameLink": "https://t.me/accounts_market",
+      "verified": true,
+      "price": 1200,
+      "description": "Продажа аккаунтов соцсетей: Instagram, TikTok, YouTube. Разные ниши, готовые к работе.",
+      "publishedAt": "2025-02-03"
+    },
+    {
+      "id": "4",
+      "username": "vpn_keys",
+      "usernameLink": "https://t.me/vpn_keys",
+      "verified": false,
+      "price": 200,
+      "description": "Продажа ключей для VPN: NordVPN, ExpressVPN, Surfshark. Длительные подписки, выгодные цены.",
+      "publishedAt": "2025-01-30"
+    },
+    {
+      "id": "5",
+      "username": "game_accounts",
+      "usernameLink": "https://t.me/game_accounts",
+      "verified": true,
+      "price": 2500,
+      "description": "Аккаунты игр: Steam, Epic Games, PlayStation. С играми и достижениями. Гарантия.",
+      "publishedAt": "2025-02-01"
+    }
+  ]
+}

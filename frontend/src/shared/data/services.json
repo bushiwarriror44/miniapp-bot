@@ -6,6 +6,7 @@
       "price": 3000,
       "verified": true,
       "username": "montage_pro",
+      "theme": "видео, монтаж",
       "description": "Монтаж рекламных роликов, сторис, тизеров. Сроки от 1 дня. After Effects, Premiere.",
       "publishedAt": "2025-02-01"
     },
@@ -15,6 +16,7 @@
       "price": 500,
       "verified": false,
       "username": "wallet_help",
+      "theme": "криптовалюты, помощь",
       "description": "Помощь с регистрацией криптокошельков: TON, Solana. Инструкция и поддержка.",
       "publishedAt": "2025-02-03"
     },
@@ -24,6 +26,7 @@
       "price": 1500,
       "verified": true,
       "username": "smm_tiktok",
+      "theme": "SMM, продвижение",
       "description": "Накрутка подписчиков и просмотров в TikTok. Безопасно, гарантия.",
       "publishedAt": "2025-02-02"
     },
@@ -33,6 +36,7 @@
       "price": 2000,
       "verified": false,
       "username": "cover_design",
+      "theme": "дизайн, оформление",
       "description": "Оформление Telegram-каналов: обложки, шапка, стиль. Figma, Photoshop.",
       "publishedAt": "2025-01-28"
     }

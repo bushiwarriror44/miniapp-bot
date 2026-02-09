@@ -13,6 +13,7 @@
       "publishTime": "вечер",
       "postDuration": "1 час топа и 24 часа в ленте",
       "paymentMethod": "crypto",
+      "theme": "криптовалюты, трейдинг",
       "description": "Крипто-канал, аудитория 15k. Готов к долгосрочному сотрудничеству.",
       "publishedAt": "2025-02-01"
     },
@@ -29,6 +30,7 @@
       "publishTime": "14:00",
       "postDuration": "12 часов в ленте",
       "paymentMethod": "card",
+      "theme": "маркетинг, SMM",
       "description": "Чат маркетологов. Размещение поста без закрепа.",
       "publishedAt": "2025-02-03"
     },
@@ -45,6 +47,7 @@
       "publishTime": "день",
       "postDuration": "2 часа топа, 48 часов в ленте",
       "paymentMethod": "crypto",
+      "theme": "дизайн, креатив",
       "description": "Канал про дизайн. Верифицированный продавец. Залив под гарант.",
       "publishedAt": "2025-02-02"
     }

@@ -1,5 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import { Providers } from "./providers";
 import { BottomNav } from "./components/BottomNav";
 import { AppLoader } from "./components/AppLoader";
@@ -15,8 +17,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" suppressHydrationWarning data-theme="dark">
-      <body className="min-h-screen antialiased" style={{ backgroundColor: "var(--color-bg)", color: "var(--color-text)" }} suppressHydrationWarning>
+    <html lang="ru" suppressHydrationWarning data-theme="dark" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <body className="min-h-screen antialiased font-sans" style={{ backgroundColor: "var(--color-bg)", color: "var(--color-text)" }} suppressHydrationWarning>
         <Providers>
           <AppLoader />
           <div className="main-content">{children}</div>

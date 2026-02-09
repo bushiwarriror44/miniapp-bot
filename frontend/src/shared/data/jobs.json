@@ -9,6 +9,7 @@
       "employmentType": "remote",
       "paymentCurrency": "usd",
       "paymentAmount": "500",
+      "theme": "контент, медиа",
       "description": "Ищем редактора контента для Telegram-каналов. Опыт от 1 года. Удаленно, график гибкий.",
       "publishedAt": "2025-02-01"
     },
@@ -21,6 +22,7 @@
       "employmentType": "offline",
       "paymentCurrency": "rub",
       "paymentAmount": "120000",
+      "theme": "реклама, продажи",
       "description": "Продажник в офис. Работа с рекламодателями каналов. Оффлайн, Москва.",
       "publishedAt": "2025-02-03"
     },
@@ -33,6 +35,7 @@
       "employmentType": "remote",
       "paymentCurrency": "usd",
       "paymentAmount": "800",
+      "theme": "дизайн, видео",
       "description": "Моушен-дизайнер для рекламных интеграций. After Effects, удаленка.",
       "publishedAt": "2025-02-02"
     }

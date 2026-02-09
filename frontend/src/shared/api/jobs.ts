@@ -20,6 +20,7 @@ export type JobItem = {
   employmentType: EmploymentType;
   paymentCurrency: PaymentCurrency;
   paymentAmount: string;
+  theme: string;
   description: string;
   publishedAt: string;
 };

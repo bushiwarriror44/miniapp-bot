@@ -1,54 +1,88 @@
 @import "tailwindcss";
 
-/* Тема по умолчанию — тёмная */
-:root,
-[data-theme="dark"] {
-  --color-bg: #000;
-  --color-bg-elevated: #0f172a;
-  --color-surface: #1e293b;
-  --color-border: #334155;
-  --color-text: #f1f5f9;
-  --color-text-muted: #94a3b8;
-  --color-accent: #3b82f6;
-  --color-accent-hover: #2563eb;
-  --color-nav-bg: #000;
-  --color-nav-border: #0f172a;
-  --color-nav-border-top: #334155;
-  --color-nav-active: #3b82f6;
-  --color-nav-inactive: #64748b;
-}
-
-[data-theme="light"] {
-  --color-bg: #f8fafc;
-  --color-bg-elevated: #ffffff;
-  --color-surface: #e2e8f0;
-  --color-border: #cbd5e1;
-  --color-text: #0f172a;
-  --color-text-muted: #64748b;
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
-  --color-nav-bg: #ffffff;
-  --color-nav-border: #e2e8f0;
-  --color-nav-border-top: #cbd5e1;
-  --color-nav-active: #2563eb;
-  --color-nav-inactive: #94a3b8;
-}
-
+/* Шрифты Geist (Vercel) — переменные задаются в layout через GeistSans.variable / GeistMono.variable */
 @theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --color-background: var(--color-bg);
   --color-foreground: var(--color-text);
+}
+
+/* Палитра в стиле Vercel / Geist Design System — тёмная тема */
+:root,
+[data-theme="dark"] {
+  --color-bg: #0a0a0a;
+  --color-bg-elevated: #171717;
+  --color-surface: #262626;
+  --color-border: #262626;
+  --color-border-hover: #404040;
+  --color-text: #fafafa;
+  --color-text-muted: #a1a1a1;
+  --color-accent: #0070f3;
+  --color-accent-hover: #0761d1;
+  --color-nav-bg: #0a0a0a;
+  --color-nav-border: #171717;
+  --color-nav-border-top: #262626;
+  --color-nav-active: #0070f3;
+  --color-nav-inactive: #737373;
+  --input-bg: #171717;
+  --input-border: #262626;
+  --input-border-hover: #404040;
+  --input-text: #fafafa;
+  --input-placeholder: #737373;
+  --input-focus-ring: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Светлая тема — Vercel / Geist */
+[data-theme="light"] {
+  --color-bg: #ffffff;
+  --color-bg-elevated: #fafafa;
+  --color-surface: #f5f5f5;
+  --color-border: #e5e5e5;
+  --color-border-hover: #d4d4d4;
+  --color-text: #171717;
+  --color-text-muted: #737373;
+  --color-accent: #0070f3;
+  --color-accent-hover: #0761d1;
+  --color-nav-bg: #ffffff;
+  --color-nav-border: #fafafa;
+  --color-nav-border-top: #e5e5e5;
+  --color-nav-active: #0070f3;
+  --color-nav-inactive: #737373;
+  --input-bg: #ffffff;
+  --input-border: #e5e5e5;
+  --input-border-hover: #d4d4d4;
+  --input-text: #171717;
+  --input-placeholder: #737373;
+  --input-focus-ring: 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
 body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Заголовки в 1.25 раза больше */
-h1, h2, h3, h4, h5, h6 {
-  font-size: calc(1em * 1.25);
+/* Типографика в духе Geist: заголовки с чёткой иерархией */
+h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+h3, h4, h5, h6 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 /* Область контента над нижней навигацией */
@@ -107,4 +141,56 @@ h1, h2, h3, h4, h5, h6 {
 }
 .animate-fade-in {
   animation: fadeIn 0.2s ease-out forwards;
+}
+
+/* Инпуты и текстареи в стиле Next.js (цветовая палитра) */
+.input-next,
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="email"],
+textarea,
+.select-next {
+  background-color: var(--input-bg) !important;
+  border: 1px solid var(--input-border) !important;
+  color: var(--input-text) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input-next::placeholder,
+input[type="text"]::placeholder,
+input[type="number"]::placeholder,
+input[type="email"]::placeholder,
+textarea::placeholder {
+  color: var(--input-placeholder);
+}
+.input-next:hover,
+input[type="text"]:hover,
+input[type="number"]:hover,
+input[type="date"]:hover,
+textarea:hover,
+.select-next:hover {
+  border-color: var(--input-border-hover) !important;
+}
+.input-next:focus,
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="email"]:focus,
+textarea:focus,
+.select-next:focus {
+  outline: none;
+  border-color: var(--input-border-hover) !important;
+  box-shadow: var(--input-focus-ring);
+}
+
+/* Выпадающие списки: без нативного вида, своя стрелка (цвет как в Next.js) */
+.select-next {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 2.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23737373' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1.25rem;
 }

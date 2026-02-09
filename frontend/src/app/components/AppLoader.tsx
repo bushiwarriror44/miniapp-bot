@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
+import logoImg from "@/app/assets/logo.png";
 
 const MIN_LOADING_MS = 400;
 
@@ -19,15 +21,13 @@ export function AppLoader() {
       className="fixed inset-0 z-100 flex flex-col items-center justify-center gap-6 px-8"
       style={{ backgroundColor: "var(--color-bg)" }}
     >
-      {/* Временный блок 100×100 под будущую иконку */}
-      <div
-        className="rounded-xl shrink-0"
-        style={{
-          width: 100,
-          height: 100,
-          backgroundColor: "var(--color-bg-elevated)",
-          border: "2px solid var(--color-border)",
-        }}
+      <Image
+        src={logoImg}
+        alt="TeleDoska"
+        width={120}
+        height={120}
+        className="shrink-0 object-contain"
+        priority
       />
       {/* Горизонтальный прогресс-бар */}
       <div
