@@ -305,3 +305,34 @@ pm2 restart backend bot frontend
 ```
 
 Если что-то пойдёт не так — смотри логи: `pm2 logs` или `pm2 logs backend`, `pm2 logs bot`, `pm2 logs frontend`.
+
+---
+
+## Ошибка 500 на `/_next/static/chunks/...` (в т.ч. turbopack-*.js)
+
+Если в браузере запросы к статике Next.js возвращают **500** и в URL видно **turbopack-*.js** — значит на сервере отдаётся режим **разработки** (`next dev`) или билд не используется. В production должен работать только **собранный** фронт (`next build` + `next start`).
+
+**Что сделать на сервере:**
+
+1. Остановить фронт и сделать чистый production-билд:
+   ```bash
+   cd /var/www/miniapp-bot
+   pm2 stop frontend
+
+   cd frontend
+   rm -rf .next
+   npm ci
+   npm run build
+   ```
+
+2. Запустить именно **production**-сервер (не `npm run dev`):
+   ```bash
+   pm2 start npm --name frontend -- start --prefix /var/www/miniapp-bot/frontend
+   pm2 save
+   ```
+
+3. Проверить, что в PM2 для frontend указана команда **start**, а не **dev**:
+   ```bash
+   pm2 show frontend
+   ```
+   В «script path» должно быть `npm`, в «exec cwd» — путь к `frontend`, аргументы — `start --prefix ...`. Если там было `dev`, перезапусти как в шаге 2.

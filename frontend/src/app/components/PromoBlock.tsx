@@ -53,10 +53,7 @@ export function PromoBlock() {
 						</p>
 					</div>
 
-					{/* Стрелка вправо */}
-					<div className="w-5 h-5 shrink-0 rounded-full bg-white flex items-center justify-center">
-						<FontAwesomeIcon icon={faChevronRight} className="w-2 h-2 text-gray-700" />
-					</div>
+					
 				</article>
 			</div>
 		</section>

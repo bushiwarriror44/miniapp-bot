@@ -50,37 +50,39 @@ export function HotOffersBlock() {
         <FontAwesomeIcon icon={faFire} className="w-4 h-4 shrink-0" />
         Горячие предложения
       </h2>
-      <div className="relative overflow-hidden rounded-xl">
-        <div
-          className="flex transition-transform duration-300 ease-out"
-          style={{
-            width: `${offers.length * 100}%`,
-            transform: `translate3d(-${(activeIndex / offers.length) * 100}%, 0, 0)`,
-          }}
-        >
-          {offers.map((offer) => (
-            <div key={offer.id} className="shrink-0" style={{ width: `${100 / offers.length}%` }}>
-              <OfferSlide offer={offer} />
-            </div>
-          ))}
+      <div className="relative">
+        <div className="overflow-hidden rounded-xl">
+          <div
+            className="flex transition-transform duration-300 ease-out"
+            style={{
+              width: `${offers.length * 100}%`,
+              transform: `translate3d(-${(activeIndex / offers.length) * 100}%, 0, 0)`,
+            }}
+          >
+            {offers.map((offer) => (
+              <div key={offer.id} className="shrink-0" style={{ width: `${100 / offers.length}%` }}>
+                <OfferSlide offer={offer} />
+              </div>
+            ))}
+          </div>
         </div>
         <button
           type="button"
           onClick={goPrev}
-          className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center z-10 transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
+          className="absolute -left-2 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full flex items-center justify-center z-10 transition-opacity hover:opacity-90 shadow-md"
+          style={{ backgroundColor: "var(--color-accent)", color: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}
           aria-label="Предыдущее"
         >
-          <FontAwesomeIcon icon={faChevronLeft} className="w-2 h-2" />
+          <FontAwesomeIcon icon={faChevronLeft} className="w-[6px] h-[6px]" />
         </button>
         <button
           type="button"
           onClick={goNext}
-          className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center z-10 transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
+          className="absolute -right-2 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full flex items-center justify-center z-10 transition-opacity hover:opacity-90 shadow-md"
+          style={{ backgroundColor: "var(--color-accent)", color: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}
           aria-label="Следующее"
         >
-          <FontAwesomeIcon icon={faChevronRight} className="w-2 h-2" />
+          <FontAwesomeIcon icon={faChevronRight} className="w-[6px] h-[6px]" />
         </button>
       </div>
       <div className="flex items-center justify-center gap-2 mt-3">

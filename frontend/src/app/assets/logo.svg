@@ -1,0 +1,19 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="60" y="140" width="340" height="230" rx="15" fill="#3489C5" />
+  <rect x="75" y="155" width="310" height="200" rx="8" stroke="white" stroke-width="10" fill="transparent" />
+  
+  <path d="M120 190 H230 V310 L210 330 H120 V190 Z" fill="white" />
+  <path d="M210 330 V310 H230 L210 330 Z" fill="#CFE4F3" />
+  
+  <g transform="translate(150, 160) rotate(-15)">
+    <rect x="10" y="5" width="30" height="8" rx="4" fill="white" />
+    <path d="M12 13 L8 35 H42 L38 13 H12 Z" fill="white" />
+    <rect x="22" y="35" width="6" height="15" rx="2" fill="white" />
+  </g>
+
+  <g transform="translate(240, 220)">
+    <path d="M10 100 L240 10 L190 220 L125 160 L10 100 Z" fill="#2481CC" />
+    <path d="M125 160 L240 10 L160 165 L125 160 Z" fill="#B0D4ED" />
+    <path d="M125 160 L160 165 L145 200 L125 160 Z" fill="#1D71B8" />
+  </g>
+</svg>

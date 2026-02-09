@@ -1,7 +1,7 @@
 "use client";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faShieldHalved } from "@fortawesome/free-solid-svg-icons";
+import { faShieldHalved, faCoins, faChartColumn } from "@fortawesome/free-solid-svg-icons";
 
 const TG_USERNAME = "autogarant_example";
 const TG_DISPLAY_NAME = "Гарант miniapp-bot";
@@ -16,73 +16,142 @@ const COMMISSION_TIERS = [
 
 export default function AutogarantPage() {
   return (
-    <main className="px-4 py-6">
-      <h1 className="text-2xl font-bold mb-2" style={{ color: "var(--color-text)" }}>
-        Автогарант
-      </h1>
-      <p className="text-sm mb-6" style={{ color: "var(--color-text-muted)" }}>
-        Защита сделок и гарант исполнения.
-      </p>
+		<main className="px-4 py-6">
+			<h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
+				Автогарант
+			</h1>
+			<p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>
+				Защита сделок и гарант исполнения.
+			</p>
 
-      {/* Блок профиля гаранта */}
-      <section
-        className="rounded-xl p-4 mb-4"
-        style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-      >
-        <a
-          href={TG_PROFILE_LINK}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-3 mb-3 no-underline"
-        >
-          <span className="relative w-12 h-12 shrink-0 rounded-full overflow-hidden">
-            <img
-              src={TG_AVATAR_URL}
-              alt={TG_DISPLAY_NAME}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                const target = e.currentTarget;
-                // Fallback на локальную иконку Telegram, если аватар недоступен
-                target.onerror = null;
-                target.src = "/assets/telegram-ico.svg";
-              }}
-            />
-          </span>
-          <div className="min-w-0">
-            <p className="font-semibold text-sm" style={{ color: "var(--color-text)" }}>
-              {TG_DISPLAY_NAME}
-            </p>
-            <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-              @{TG_USERNAME}
-            </p>
-          </div>
-          <span
-            className="ml-auto flex items-center justify-center w-8 h-8 rounded-full shrink-0"
-            style={{ backgroundColor: "var(--color-accent)", color: "white" }}
-          >
-            <FontAwesomeIcon icon={faShieldHalved} className="w-4 h-4" />
-          </span>
-        </a>
+			{/* Блок профиля гаранта */}
+			<section
+				className="rounded-xl p-4 mb-4"
+				style={{
+					backgroundColor: 'var(--color-bg-elevated)',
+					border: '1px solid var(--color-border)',
+				}}>
+				<a
+					href={TG_PROFILE_LINK}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="flex items-center gap-3 mb-3 no-underline">
+					<span className="relative w-12 h-12 shrink-0 rounded-full overflow-hidden">
+						<img
+							src={TG_AVATAR_URL}
+							alt={TG_DISPLAY_NAME}
+							className="w-full h-full object-cover"
+							onError={(e) => {
+								const target = e.currentTarget;
+								// Fallback на локальную иконку Telegram, если аватар недоступен
+								target.onerror = null;
+								target.src = '/assets/telegram-ico.svg';
+							}}
+						/>
+					</span>
+					<div className="min-w-0">
+						<p className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>
+							{TG_DISPLAY_NAME}
+						</p>
+						<p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+							@{TG_USERNAME}
+						</p>
+					</div>
+					<span
+						className="ml-auto flex items-center justify-center w-8 h-8 rounded-full shrink-0"
+						style={{ backgroundColor: 'var(--color-accent)', color: 'white' }}>
+						<FontAwesomeIcon icon={faShieldHalved} className="w-4 h-4" />
+					</span>
+				</a>
 
-        <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Автогарант сейчас находится в разработке, сейчас гарант доступен в ручном режиме.
-        </p>
-      </section>
+				<p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+					Автогарант сейчас находится в разработке, сейчас гарант доступен в ручном режиме.
+				</p>
+			</section>
 
-      {/* Блок с текущей ставкой комиссии */}
-      <section
-        className="rounded-xl p-4"
-        style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-      >
-        <h2 className="font-semibold mb-2" style={{ color: "var(--color-text)" }}>
-          Текущая ставка комиссии по сделкам
-        </h2>
-        <div className="space-y-1 text-sm" style={{ color: "var(--color-text-muted)" }}>
-          {COMMISSION_TIERS.map((item) => (
-            <p key={item}>{item}</p>
-          ))}
-        </div>
-      </section>
-    </main>
-  );
+			{/* Блок с текущей ставкой комиссии */}
+			<section
+				className="rounded-xl p-4 mb-4"
+				style={{
+					backgroundColor: 'var(--color-bg-elevated)',
+					border: '1px solid var(--color-border)',
+				}}>
+				<h2
+					className="font-semibold mb-2 flex items-center gap-2"
+					style={{ color: 'var(--color-text)' }}>
+					<FontAwesomeIcon
+						icon={faCoins}
+						className="w-4 h-4 shrink-0"
+						style={{ color: 'var(--color-accent)' }}
+					/>
+					Текущая ставка комиссии по сделкам
+				</h2>
+				<ul className="space-y-2 text-sm">
+					{COMMISSION_TIERS.map((item, index) => (
+						<li
+							key={item}
+							className="flex items-start gap-3 rounded-lg py-2.5 px-3"
+							style={{
+								backgroundColor: 'var(--color-surface)',
+								borderLeft: '3px solid var(--color-accent)',
+							}}>
+							<span
+								className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 mt-0.5"
+								style={{ backgroundColor: 'var(--color-accent)', color: 'white' }}>
+								{index + 1}
+							</span>
+							<span style={{ color: 'var(--color-text-muted)' }}>
+								{item.replace(/^\d\)\s*/, '')}
+							</span>
+						</li>
+					))}
+				</ul>
+			</section>
+
+			{/* Наша статистика */}
+			<section
+				className="rounded-xl p-4"
+				style={{
+					backgroundColor: 'var(--color-bg-elevated)',
+					border: '1px solid var(--color-border)',
+				}}>
+				<h2
+					className="font-semibold mb-4 flex items-center gap-2"
+					style={{ color: 'var(--color-text)' }}>
+					<FontAwesomeIcon
+						icon={faChartColumn}
+						className="w-4 h-4 shrink-0"
+						style={{ color: 'var(--color-accent)' }}
+					/>
+					Наша статистика
+				</h2>
+				<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+					<div className="flex flex-col">
+						<span className="text-xl font-bold mb-1" style={{ color: 'var(--color-accent)' }}>
+							2023
+						</span>
+						<span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+							гарантируем сделки уже на протяжении длительного времени
+						</span>
+					</div>
+					<div className="flex flex-col">
+						<span className="text-xl font-bold mb-1" style={{ color: 'var(--color-accent)' }}>
+							50+ сделок
+						</span>
+						<span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+							количество сделок, которое было проведено через гаранта
+						</span>
+					</div>
+					<div className="flex flex-col">
+						<span className="text-xl font-bold mb-1" style={{ color: 'var(--color-accent)' }}>
+							10 000 USD
+						</span>
+						<span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+							максимальная сумма сделки, которая проходила через нашу площадку
+						</span>
+					</div>
+				</div>
+			</section>
+		</main>
+	);
 }

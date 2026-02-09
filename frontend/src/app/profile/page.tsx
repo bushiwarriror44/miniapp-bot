@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSun, faMoon, faCheck, faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
+import { faSun, faMoon, faCheck, faStar, faCircleExclamation, faChartLine, faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
 import { useTheme } from "@/shared/theme/ThemeContext";
 
 const USER_USERNAME = "demo_user";
@@ -18,31 +19,12 @@ const USER_RATING = {
   total: 128,
 };
 
-const FAQ_ITEMS: { id: string; title: string; text: string }[] = [
-  {
-    id: "what-is-miniapp",
-    title: "Что такое miniapp-bot?",
-    text: "Это мини‑приложение в Telegram для размещения объявлений, поиска рекламы, работы и услуг, а также безопасных сделок через гаранта.",
-  },
-  {
-    id: "how-guarant-works",
-    title: "Как работает гарант?",
-    text: "Средства блокируются до тех пор, пока обе стороны не подтвердят выполнение условий сделки. Сейчас гарант работает в ручном режиме, автогарант в разработке.",
-  },
-  {
-    id: "how-to-contact-support",
-    title: "Как связаться с поддержкой?",
-    text: "Вы можете написать администратору в Telegram или отправить обращение через форму на этой странице — мы постараемся ответить как можно быстрее.",
-  },
-];
-
 export default function ProfilePage() {
   const { theme, setTheme } = useTheme();
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyPhone, setVerifyPhone] = useState("");
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportText, setSupportText] = useState("");
-  const [openFaqId, setOpenFaqId] = useState<string | null>(FAQ_ITEMS[0]?.id ?? null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const toggleTheme = () => {
@@ -137,15 +119,15 @@ export default function ProfilePage() {
             type="button"
             onClick={() => setShowVerifyModal(true)}
             className="w-full text-left rounded-xl px-4 py-3 flex items-center gap-2"
-            style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+            style={{ backgroundColor: "var(--color-accent)", border: "1px solid var(--color-accent)" }}
           >
             <span
               className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-              style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
+              style={{ backgroundColor: "rgba(255,255,255,0.25)", color: "white" }}
             >
               !
             </span>
-            <p className="text-sm" style={{ color: "var(--color-text)" }}>
+            <p className="text-sm text-white">
               Пройдите верификацию для приоритетного размещения объявлений
             </p>
           </button>
@@ -157,7 +139,8 @@ export default function ProfilePage() {
         className="rounded-xl p-4 mb-4"
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
       >
-        <h2 className="font-semibold mb-2" style={{ color: "var(--color-text)" }}>
+        <h2 className="font-semibold mb-2 flex items-center gap-2" style={{ color: "var(--color-text)" }}>
+          <FontAwesomeIcon icon={faStar} className="w-4 h-4 shrink-0" style={{ color: "var(--color-text)" }} />
           Рейтинг
         </h2>
         <p className="text-sm mb-1" style={{ color: "var(--color-text)" }}>
@@ -175,12 +158,47 @@ export default function ProfilePage() {
         )}
       </section>
 
+      {/* Ссылки на подстраницы: Статистика, Избранное, Частые вопросы */}
+      <div className="space-y-2 mb-4">
+        <Link
+          href="/profile/statistics"
+          className="flex items-center gap-3 rounded-xl px-4 py-3 w-full text-left transition-opacity hover:opacity-90"
+          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+        >
+          <FontAwesomeIcon icon={faChartLine} className="w-5 h-5 shrink-0" style={{ color: "var(--color-accent)" }} />
+          <span className="font-semibold" style={{ color: "var(--color-text)" }}>
+            Статистика
+          </span>
+        </Link>
+        <Link
+          href="/profile/favorites"
+          className="flex items-center gap-3 rounded-xl px-4 py-3 w-full text-left transition-opacity hover:opacity-90"
+          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+        >
+          <FontAwesomeIcon icon={faStar} className="w-5 h-5 shrink-0" style={{ color: "var(--color-accent)" }} />
+          <span className="font-semibold" style={{ color: "var(--color-text)" }}>
+            Избранное
+          </span>
+        </Link>
+        <Link
+          href="/profile/faq"
+          className="flex items-center gap-3 rounded-xl px-4 py-3 w-full text-left transition-opacity hover:opacity-90"
+          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+        >
+          <FontAwesomeIcon icon={faCircleQuestion} className="w-5 h-5 shrink-0" style={{ color: "var(--color-accent)" }} />
+          <span className="font-semibold" style={{ color: "var(--color-text)" }}>
+            Частые вопросы
+          </span>
+        </Link>
+      </div>
+
       {/* Нашли проблему в приложении? */}
       <section
         className="rounded-xl p-4 mb-4"
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
       >
-        <h2 className="font-semibold mb-2" style={{ color: "var(--color-text)" }}>
+        <h2 className="font-semibold mb-2 flex items-center gap-2" style={{ color: "var(--color-text)" }}>
+          <FontAwesomeIcon icon={faCircleExclamation} className="w-4 h-4 shrink-0" style={{ color: "var(--color-text)" }} />
           Нашли проблему в приложении?
         </h2>
         <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>
@@ -205,44 +223,6 @@ export default function ProfilePage() {
           >
             Написать в поддержку
           </button>
-        </div>
-      </section>
-
-      {/* Частые вопросы — аккордеон */}
-      <section
-        className="rounded-xl p-4 mb-4"
-        style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-      >
-        <h2 className="font-semibold mb-2" style={{ color: "var(--color-text)" }}>
-          Частые вопросы
-        </h2>
-        <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
-          {FAQ_ITEMS.map((item) => {
-            const isOpen = openFaqId === item.id;
-            return (
-              <div key={item.id} className="py-2">
-                <button
-                  type="button"
-                  onClick={() => setOpenFaqId(isOpen ? null : item.id)}
-                  className="w-full flex items-center justify-between gap-2 text-left"
-                >
-                  <span className="text-sm font-medium" style={{ color: "var(--color-text)" }}>
-                    {item.title}
-                  </span>
-                  <FontAwesomeIcon
-                    icon={isOpen ? faChevronUp : faChevronDown}
-                    className="w-3.5 h-3.5 shrink-0"
-                    style={{ color: "var(--color-text-muted)" }}
-                  />
-                </button>
-                {isOpen && (
-                  <p className="mt-1 text-xs" style={{ color: "var(--color-text-muted)" }}>
-                    {item.text}
-                  </p>
-                )}
-              </div>
-            );
-          })}
         </div>
       </section>
 
