@@ -1,0 +1,16 @@
+services:
+  admin-api:
+    build:
+      context: ..
+      dockerfile: admin/Dockerfile
+    container_name: miniapp-admin-api
+    restart: unless-stopped
+    environment:
+      - FLASK_DEBUG=False
+      - ALLOWED_ORIGINS=*
+      # Если задан, потребуется заголовок X-Admin-Token для PUT /api/datasets/<name>
+      - ADMIN_API_TOKEN=
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/admin/data

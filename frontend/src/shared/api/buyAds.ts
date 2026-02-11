@@ -1,3 +1,5 @@
+import { fetchDatasetOrFallback } from "./dataSource";
+
 export type BuyAdItem = {
   id: string;
   username: string;
@@ -16,10 +18,9 @@ export type BuyAdsResponse = {
   buyAds: BuyAdItem[];
 };
 
-const LOAD_DELAY_MS = 1200;
-
 export async function fetchBuyAds(): Promise<BuyAdsResponse> {
-  await new Promise((r) => setTimeout(r, LOAD_DELAY_MS));
-  const data = await import("@/shared/data/buyAds.json");
-  return data as BuyAdsResponse;
+  return fetchDatasetOrFallback<BuyAdsResponse>("buyAds", async () => {
+    const data = await import("@/shared/data/buyAds.json");
+    return data as BuyAdsResponse;
+  });
 }

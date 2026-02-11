@@ -1,3 +1,5 @@
+import { fetchDatasetOrFallback } from "./dataSource";
+
 export type HotOffer = {
   id: string;
   title: string;
@@ -10,6 +12,8 @@ export type HotOffersResponse = {
 };
 
 export async function fetchHotOffers(): Promise<HotOffersResponse> {
-  const data = await import("@/shared/data/hot-offers.json");
-  return data as HotOffersResponse;
+  return fetchDatasetOrFallback<HotOffersResponse>("hotOffers", async () => {
+    const data = await import("@/shared/data/hot-offers.json");
+    return data as HotOffersResponse;
+  });
 }

@@ -1,3 +1,5 @@
+import { fetchDatasetOrFallback } from "./dataSource";
+
 export type BuyChannelItem = {
   id: string;
   username: string;
@@ -19,10 +21,12 @@ export type BuyChannelsResponse = {
   buyChannels: BuyChannelItem[];
 };
 
-const LOAD_DELAY_MS = 1200;
-
 export async function fetchBuyChannels(): Promise<BuyChannelsResponse> {
-  await new Promise((r) => setTimeout(r, LOAD_DELAY_MS));
-  const data = await import("@/shared/data/buyChannels.json");
-  return data as BuyChannelsResponse;
+  return fetchDatasetOrFallback<BuyChannelsResponse>(
+    "buyChannels",
+    async () => {
+      const data = await import("@/shared/data/buyChannels.json");
+      return data as BuyChannelsResponse;
+    }
+  );
 }

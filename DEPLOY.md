@@ -308,6 +308,49 @@ pm2 restart backend bot frontend
 
 ---
 
+## Admin API (JSON -> SQLite) через Docker
+
+Для текущего фронтенда данные (`ads`, `jobs`, `services`, и т.д.) теперь могут отдаваться из `admin`-сервиса из БД.
+
+### Запуск
+
+```bash
+cd /var/www/miniapp-bot/admin
+docker compose up -d --build
+```
+
+Проверка:
+
+```bash
+curl http://127.0.0.1:5000/api/health
+curl http://127.0.0.1:5000/api/datasets
+curl http://127.0.0.1:5000/api/datasets/ads
+```
+
+### Как это работает
+
+- При первом запуске сервис создает SQLite в `admin/data/app.db`
+- Автоматически импортирует JSON из `frontend/src/shared/data/*.json` в таблицу `datasets`
+- Дальше фронтенд читает через `GET /api/datasets/<name>`
+
+### Переменная фронтенда
+
+В `frontend/.env.production` добавь:
+
+```env
+NEXT_PUBLIC_CONTENT_API_URL=https://miniapp.ТВОЙ_ДОМЕН.com/api
+```
+
+Для локалки можно:
+
+```env
+NEXT_PUBLIC_CONTENT_API_URL=http://localhost:5000/api
+```
+
+Если API недоступно, фронтенд автоматически использует fallback на локальные JSON.
+
+---
+
 ## Ошибка 500 на `/_next/static/chunks/...` (в т.ч. turbopack-*.js)
 
 Если в браузере запросы к статике Next.js возвращают **500** и в URL видно **turbopack-*.js** — значит на сервере отдаётся режим **разработки** (`next dev`) или билд не используется. В production должен работать только **собранный** фронт (`next build` + `next start`).

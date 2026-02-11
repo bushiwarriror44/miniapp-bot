@@ -1,3 +1,5 @@
+import { fetchDatasetOrFallback } from "./dataSource";
+
 export type OtherItem = {
   id: string;
   username: string;
@@ -12,10 +14,9 @@ export type OtherResponse = {
   other: OtherItem[];
 };
 
-const LOAD_DELAY_MS = 1200;
-
 export async function fetchOther(): Promise<OtherResponse> {
-  await new Promise((r) => setTimeout(r, LOAD_DELAY_MS));
-  const data = await import("@/shared/data/other.json");
-  return data as OtherResponse;
+  return fetchDatasetOrFallback<OtherResponse>("other", async () => {
+    const data = await import("@/shared/data/other.json");
+    return data as OtherResponse;
+  });
 }

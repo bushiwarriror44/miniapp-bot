@@ -1,3 +1,5 @@
+import { fetchDatasetOrFallback } from "./dataSource";
+
 export type WorkType =
   | "editor"
   | "sales"
@@ -34,12 +36,11 @@ export type JobsResponse = {
   jobs: JobItem[];
 };
 
-const LOAD_DELAY_MS = 1200;
-
 export async function fetchJobs(): Promise<JobsResponse> {
-  await new Promise((r) => setTimeout(r, LOAD_DELAY_MS));
-  const data = await import("@/shared/data/jobs.json");
-  return data as JobsResponse;
+  return fetchDatasetOrFallback<JobsResponse>("jobs", async () => {
+    const data = await import("@/shared/data/jobs.json");
+    return data as JobsResponse;
+  });
 }
 
 export const WORK_LABELS: Record<WorkType, string> = {

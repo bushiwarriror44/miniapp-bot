@@ -1,3 +1,5 @@
+import { fetchDatasetOrFallback } from "./dataSource";
+
 export type ServiceItem = {
   id: string;
   title: string;
@@ -13,12 +15,11 @@ export type ServicesResponse = {
   services: ServiceItem[];
 };
 
-const LOAD_DELAY_MS = 1200;
-
 export async function fetchServices(): Promise<ServicesResponse> {
-  await new Promise((r) => setTimeout(r, LOAD_DELAY_MS));
-  const data = await import("@/shared/data/services.json");
-  return data as ServicesResponse;
+  return fetchDatasetOrFallback<ServicesResponse>("services", async () => {
+    const data = await import("@/shared/data/services.json");
+    return data as ServicesResponse;
+  });
 }
 
 export function formatServiceDate(isoDate: string): string {

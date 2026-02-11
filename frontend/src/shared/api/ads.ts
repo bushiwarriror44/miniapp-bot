@@ -1,3 +1,5 @@
+import { fetchDatasetOrFallback } from "./dataSource";
+
 export type AdType = "post_in_channel" | "post_in_chat";
 
 export type PaymentMethod = "card" | "crypto";
@@ -24,12 +26,11 @@ export type AdsResponse = {
   ads: AdItem[];
 };
 
-const LOAD_DELAY_MS = 1200;
-
 export async function fetchAds(): Promise<AdsResponse> {
-  await new Promise((r) => setTimeout(r, LOAD_DELAY_MS));
-  const data = await import("@/shared/data/ads.json");
-  return data as AdsResponse;
+  return fetchDatasetOrFallback<AdsResponse>("ads", async () => {
+    const data = await import("@/shared/data/ads.json");
+    return data as AdsResponse;
+  });
 }
 
 export const AD_TYPE_LABELS: Record<AdType, string> = {

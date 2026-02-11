@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Админ-панель{% endblock %}
+{% block body %}
+  <main class="container">
+    <header class="card" style="padding:14px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;">
+      <div>
+        <h1 style="margin:0;font-size:20px;">Управление данными miniapp</h1>
+        <p class="muted" style="margin:4px 0 0 0;font-size:13px;">CRUD по категориям, поиск пользователей и ручное добавление объявлений.</p>
+      </div>
+      <a href="/admin/logout" class="btn" style="text-decoration:none;">Выйти</a>
+    </header>
+
+    <section class="card" style="margin-top:12px;padding:12px;">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+        <input id="userSearchInput" class="input" placeholder="Поиск по пользователям (username / usernameLink)" />
+        <button id="userSearchBtn" class="btn">Искать</button>
+      </div>
+      <div id="userSearchResults" style="margin-top:10px;"></div>
+    </section>
+
+    <section class="card" style="margin-top:12px;padding:12px;">
+      <h2 style="margin:0 0 8px 0;font-size:16px;">Категории</h2>
+      <div id="categoriesList" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </section>
+
+    <section class="card" style="margin-top:12px;padding:12px;">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;">
+        <h2 id="editorTitle" style="margin:0;font-size:16px;">Выберите категорию</h2>
+        <div style="display:flex;gap:8px;">
+          <button id="addItemBtn" class="btn">Добавить элемент</button>
+          <button id="addAdBtn" class="btn btn-primary" style="display:none;">Добавить объявление вручную</button>
+        </div>
+      </div>
+      <div id="itemsTableWrap" style="margin-top:10px;overflow:auto;"></div>
+    </section>
+  </main>
+
+  <dialog id="itemModal" class="card" style="border:none;max-width:980px;width:calc(100% - 24px);padding:12px;">
+    <h3 id="itemModalTitle" style="margin:0 0 4px 0;">Элемент</h3>
+    <p class="muted" style="margin:0 0 12px 0;font-size:13px;">Редактирование через форму полей (без JSON).</p>
+    <div id="fieldRows" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <button id="addFieldBtn" class="btn" type="button" style="margin-top:10px;">Добавить поле</button>
+    <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
+      <button id="itemCancelBtn" class="btn" type="button">Отмена</button>
+      <button id="itemSaveBtn" class="btn btn-primary" type="button">Сохранить</button>
+    </div>
+  </dialog>
+
+  <dialog id="adModal" class="card" style="border:none;max-width:700px;width:calc(100% - 24px);padding:12px;">
+    <h3 style="margin:0 0 10px 0;">Добавить объявление (ads)</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <input id="adUsername" class="input" placeholder="username" />
+      <input id="adChannelLink" class="input" placeholder="https://t.me/..." />
+      <input id="adPrice" class="input" type="number" placeholder="price" />
+      <input id="adTheme" class="input" placeholder="theme" />
+      <select id="adType" class="select">
+        <option value="post_in_channel">post_in_channel</option>
+        <option value="post_in_chat">post_in_chat</option>
+      </select>
+      <select id="adPayment" class="select">
+        <option value="crypto">crypto</option>
+        <option value="card">card</option>
+      </select>
+      <input id="adPublishTime" class="input" placeholder="publishTime (например: вечер)" />
+      <input id="adPostDuration" class="input" placeholder="postDuration" />
+      <label style="display:flex;gap:8px;align-items:center;"><input id="adVerified" type="checkbox" /> verified</label>
+      <label style="display:flex;gap:8px;align-items:center;"><input id="adPinned" type="checkbox" /> pinned</label>
+      <label style="display:flex;gap:8px;align-items:center;"><input id="adGuarantee" type="checkbox" /> underGuarantee</label>
+    </div>
+    <textarea id="adDescription" class="textarea" style="min-height:120px;margin-top:8px;" placeholder="description"></textarea>
+    <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
+      <button id="adCancelBtn" class="btn" type="button">Отмена</button>
+      <button id="adSaveBtn" class="btn btn-primary" type="button">Сохранить объявление</button>
+    </div>
+  </dialog>
+
+  <script src="/admin-static/js/admin-panel.js"></script>
+{% endblock %}
