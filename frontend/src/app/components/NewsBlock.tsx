@@ -12,15 +12,20 @@ function svgSrc(value: string | { default?: string; src?: string }): string {
 }
 
 export function NewsBlock() {
-  const [channelUrl, setChannelUrl] = useState("https://t.me/your_channel");
+  const [channelUrl, setChannelUrl] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMainPageData()
       .then((data) => {
         const url = data?.news?.channelUrl?.trim();
         if (url) setChannelUrl(url);
+        setLoadError(null);
       })
-      .catch(() => undefined);
+      .catch((error) => {
+        console.error("[ui] Failed to load mainPage.news", error);
+        setLoadError(error instanceof Error ? error.message : "Ошибка загрузки mainPage");
+      })
   }, []);
 
   return (
@@ -35,18 +40,25 @@ export function NewsBlock() {
         <FontAwesomeIcon icon={faNewspaper} className="w-4 h-4 shrink-0" />
         Новости
       </h2>
+      {loadError && (
+        <p className="text-xs mb-3" style={{ color: "#ef4444" }}>
+          Ошибка загрузки: {loadError}
+        </p>
+      )}
       <p className="text-sm mb-4 leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
         Все новости относительно проекта, полезные админские и не только, лайфхаки вы можете найти в
         нашем профессиональном сообществе.
       </p>
       <a
-        href={channelUrl}
+        href={channelUrl || "#"}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 w-full sm:w-auto font-medium text-sm transition-opacity hover:opacity-90"
         style={{
           backgroundColor: "var(--color-accent)",
           color: "white",
+          pointerEvents: channelUrl ? "auto" : "none",
+          opacity: channelUrl ? 1 : 0.5,
         }}
       >
         <img

@@ -30,17 +30,24 @@ function OfferSlide({ offer }: { offer: HotOffer }) {
 export function HotOffersBlock() {
   const [offers, setOffers] = useState<HotOffer[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchHotOffers().then((res) => setOffers(res.offers ?? []));
+    fetchHotOffers()
+      .then((res) => {
+        setOffers(res.offers ?? []);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        console.error("[ui] Failed to load hot offers", error);
+        setOffers([]);
+        setLoadError(error instanceof Error ? error.message : "Ошибка загрузки hot offers");
+      });
   }, []);
 
-  useEffect(() => {
-    if (offers.length && activeIndex >= offers.length) setActiveIndex(Math.max(0, offers.length - 1));
-  }, [offers.length, activeIndex]);
+  if (offers.length === 0 && !loadError) return null;
 
-  if (offers.length === 0) return null;
-
+  const safeActiveIndex = offers.length > 0 ? Math.min(activeIndex, offers.length - 1) : 0;
   const goPrev = () => setActiveIndex((i) => (i - 1 + offers.length) % offers.length);
   const goNext = () => setActiveIndex((i) => (i + 1) % offers.length);
 
@@ -50,57 +57,66 @@ export function HotOffersBlock() {
         <FontAwesomeIcon icon={faFire} className="w-4 h-4 shrink-0" />
         Горячие предложения
       </h2>
-      <div className="relative">
-        <div className="overflow-hidden rounded-xl">
-          <div
-            className="flex transition-transform duration-300 ease-out"
-            style={{
-              width: `${offers.length * 100}%`,
-              transform: `translate3d(-${(activeIndex / offers.length) * 100}%, 0, 0)`,
-            }}
-          >
-            {offers.map((offer) => (
-              <div key={offer.id} className="shrink-0" style={{ width: `${100 / offers.length}%` }}>
-                <OfferSlide offer={offer} />
+      {loadError && (
+        <p className="text-xs mb-3" style={{ color: "#ef4444" }}>
+          Ошибка загрузки: {loadError}
+        </p>
+      )}
+      {offers.length > 0 && (
+        <>
+          <div className="relative">
+            <div className="overflow-hidden rounded-xl">
+              <div
+                className="flex transition-transform duration-300 ease-out"
+                style={{
+                  width: `${offers.length * 100}%`,
+                  transform: `translate3d(-${(safeActiveIndex / offers.length) * 100}%, 0, 0)`,
+                }}
+              >
+                {offers.map((offer) => (
+                  <div key={offer.id} className="shrink-0" style={{ width: `${100 / offers.length}%` }}>
+                    <OfferSlide offer={offer} />
+                  </div>
+                ))}
               </div>
+            </div>
+            <button
+              type="button"
+              onClick={goPrev}
+              className="absolute -left-2 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full flex items-center justify-center z-10 transition-opacity hover:opacity-90 shadow-md"
+              style={{ backgroundColor: "var(--color-accent)", color: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}
+              aria-label="Предыдущее"
+            >
+              <FontAwesomeIcon icon={faChevronLeft} className="w-[6px] h-[6px]" />
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              className="absolute -right-2 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full flex items-center justify-center z-10 transition-opacity hover:opacity-90 shadow-md"
+              style={{ backgroundColor: "var(--color-accent)", color: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}
+              aria-label="Следующее"
+            >
+              <FontAwesomeIcon icon={faChevronRight} className="w-[6px] h-[6px]" />
+            </button>
+          </div>
+          <div className="flex items-center justify-center gap-2 mt-3">
+            {offers.map((_, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => setActiveIndex(index)}
+                className="rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-(--color-accent)"
+                style={{
+                  width: index === safeActiveIndex ? 20 : 8,
+                  height: 8,
+                  backgroundColor: index === safeActiveIndex ? "var(--color-accent)" : "var(--color-border)",
+                }}
+                aria-label={`Слайд ${index + 1}`}
+              />
             ))}
           </div>
-        </div>
-        <button
-          type="button"
-          onClick={goPrev}
-          className="absolute -left-2 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full flex items-center justify-center z-10 transition-opacity hover:opacity-90 shadow-md"
-          style={{ backgroundColor: "var(--color-accent)", color: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}
-          aria-label="Предыдущее"
-        >
-          <FontAwesomeIcon icon={faChevronLeft} className="w-[6px] h-[6px]" />
-        </button>
-        <button
-          type="button"
-          onClick={goNext}
-          className="absolute -right-2 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full flex items-center justify-center z-10 transition-opacity hover:opacity-90 shadow-md"
-          style={{ backgroundColor: "var(--color-accent)", color: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}
-          aria-label="Следующее"
-        >
-          <FontAwesomeIcon icon={faChevronRight} className="w-[6px] h-[6px]" />
-        </button>
-      </div>
-      <div className="flex items-center justify-center gap-2 mt-3">
-        {offers.map((_, index) => (
-          <button
-            key={index}
-            type="button"
-            onClick={() => setActiveIndex(index)}
-            className="rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-(--color-accent)"
-            style={{
-              width: index === activeIndex ? 20 : 8,
-              height: 8,
-              backgroundColor: index === activeIndex ? "var(--color-accent)" : "var(--color-border)",
-            }}
-            aria-label={`Слайд ${index + 1}`}
-          />
-        ))}
-      </div>
+        </>
+      )}
     </section>
   );
 }

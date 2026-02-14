@@ -1,4 +1,4 @@
-import { fetchDatasetOrFallback } from "./dataSource";
+import { fetchDatasetFromApi } from "./dataSource";
 
 export type OtherItem = {
   id: string;
@@ -15,8 +15,9 @@ export type OtherResponse = {
 };
 
 export async function fetchOther(): Promise<OtherResponse> {
-  return fetchDatasetOrFallback<OtherResponse>("other", async () => {
-    const data = await import("@/shared/data/other.json");
-    return data as OtherResponse;
-  });
+  const payload = await fetchDatasetFromApi<OtherResponse>("other");
+  if (!payload) {
+    throw new Error('Failed to load "other" from content API');
+  }
+  return payload;
 }

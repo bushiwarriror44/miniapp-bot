@@ -5,37 +5,30 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faShieldHalved, faCoins, faChartColumn } from "@fortawesome/free-solid-svg-icons";
 import { fetchGuarantConfig, type GuarantConfig } from "@/shared/api/guarant-config";
 
-const DEFAULT_CONFIG: GuarantConfig = {
-  guarantor: {
-    username: "autogarant_example",
-    displayName: "Гарант miniapp-bot",
-    profileLink: "https://t.me/autogarant_example",
-  },
-  commissionTiers: [
-    "До 100 000 ₽ — 5% от суммы сделки",
-    "От 100 000 ₽ до 500 000 ₽ — 4% от суммы сделки",
-    "Свыше 500 000 ₽ — 3% от суммы сделки (обсуждается индивидуально)",
-  ],
-  aboutText: "Автогарант сейчас находится в разработке, сейчас гарант доступен в ручном режиме.",
-};
-
 export default function AutogarantPage() {
-  const [config, setConfig] = useState<GuarantConfig>(DEFAULT_CONFIG);
+  const [config, setConfig] = useState<GuarantConfig | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchGuarantConfig().then(setConfig).catch(() => undefined);
+    fetchGuarantConfig()
+      .then((data) => {
+        setConfig(data);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        console.error("[ui] Failed to load guarantConfig", error);
+        setLoadError(error instanceof Error ? error.message : "Ошибка загрузки guarantConfig");
+      });
   }, []);
 
-  const tgUsername = config.guarantor?.username || DEFAULT_CONFIG.guarantor.username;
-  const tgDisplayName = config.guarantor?.displayName || DEFAULT_CONFIG.guarantor.displayName;
-  const tgProfileLink = config.guarantor?.profileLink || `https://t.me/${tgUsername}`;
+  const tgUsername = config?.guarantor?.username || "";
+  const tgDisplayName = config?.guarantor?.displayName || "";
+  const tgProfileLink = config?.guarantor?.profileLink || "#";
   const tgAvatarUrl = useMemo(
     () => `https://t.me/i/userpic/320/${tgUsername}.jpg`,
     [tgUsername],
   );
-  const commissionTiers = config.commissionTiers?.length
-    ? config.commissionTiers
-    : DEFAULT_CONFIG.commissionTiers;
+  const commissionTiers = config?.commissionTiers || [];
 
   return (
 		<main className="px-4 py-6">
@@ -45,6 +38,11 @@ export default function AutogarantPage() {
 			<p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>
 				Защита сделок и гарант исполнения.
 			</p>
+      {loadError && (
+        <p className="text-xs mb-6" style={{ color: "#ef4444" }}>
+          Ошибка загрузки: {loadError}
+        </p>
+      )}
 
 			{/* Блок профиля гаранта */}
 			<section
@@ -73,10 +71,10 @@ export default function AutogarantPage() {
 					</span>
 					<div className="min-w-0">
 						<p className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>
-							{tgDisplayName}
+							{tgDisplayName || "—"}
 						</p>
 						<p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-							@{tgUsername}
+							{tgUsername ? `@${tgUsername}` : "Профиль не загружен"}
 						</p>
 					</div>
 					<span
@@ -87,7 +85,7 @@ export default function AutogarantPage() {
 				</a>
 
 				<p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-					{config.aboutText || DEFAULT_CONFIG.aboutText}
+					{config?.aboutText || "Нет данных конфигурации гаранта."}
 				</p>
 			</section>
 
@@ -128,6 +126,11 @@ export default function AutogarantPage() {
 						</li>
 					))}
 				</ul>
+        {commissionTiers.length === 0 && (
+          <p className="text-sm mt-2" style={{ color: "var(--color-text-muted)" }}>
+            Условия не загружены.
+          </p>
+        )}
 			</section>
 
 			{/* Наша статистика */}

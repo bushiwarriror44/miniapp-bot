@@ -50,16 +50,26 @@ function SkeletonRow() {
 export function TopUsersBlock() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{ users: TopUser[] } | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    fetchTopUsers().then((res) => {
-      if (!cancelled) {
-        setData(res);
-        setLoading(false);
-      }
-    });
+    fetchTopUsers()
+      .then((res) => {
+        if (!cancelled) {
+          setData(res);
+          setLoadError(null);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("[ui] Failed to load top users", error);
+        if (!cancelled) {
+          setData({ users: [] });
+          setLoadError(error instanceof Error ? error.message : "Ошибка загрузки top users");
+          setLoading(false);
+        }
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -75,6 +85,11 @@ export function TopUsersBlock() {
         <FontAwesomeIcon icon={faTrophy} className="w-4 h-4 shrink-0" />
         Топ пользователей
       </h2>
+      {loadError && (
+        <p className="text-xs mb-3" style={{ color: "#ef4444" }}>
+          Ошибка загрузки: {loadError}
+        </p>
+      )}
       {loading && (
         <div>
           {[1, 2, 3, 4, 5].map((i) => (

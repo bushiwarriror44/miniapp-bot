@@ -4,10 +4,9 @@ const CONTENT_API_BASE =
     ""
   );
 
-export async function fetchDatasetOrFallback<T>(
-  datasetName: string,
-  fallbackLoader: () => Promise<T>
-): Promise<T> {
+export async function fetchDatasetFromApi<T>(
+  datasetName: string
+): Promise<T | null> {
   try {
     const res = await fetch(`${CONTENT_API_BASE}/datasets/${datasetName}`, {
       method: "GET",
@@ -15,16 +14,40 @@ export async function fetchDatasetOrFallback<T>(
     });
 
     if (!res.ok) {
-      throw new Error(`Dataset request failed: ${res.status}`);
+      console.error(
+        `[content-api] Dataset "${datasetName}" request failed: ${res.status}`
+      );
+      return null;
     }
 
     const json = (await res.json()) as { payload?: unknown };
     if (!json || json.payload == null) {
-      throw new Error("Dataset payload is missing");
+      console.error(`[content-api] Dataset "${datasetName}" payload is missing`);
+      return null;
     }
 
     return json.payload as T;
-  } catch {
+  } catch (error) {
+    console.error(`[content-api] Dataset "${datasetName}" request error`, error);
+    return null;
+  }
+}
+
+export async function fetchDatasetOrFallback<T>(
+  datasetName: string,
+  fallbackLoader: () => Promise<T>
+): Promise<T> {
+  const payload = await fetchDatasetFromApi<T>(datasetName);
+  if (payload != null) {
+    return payload;
+  }
+  try {
     return fallbackLoader();
+  } catch (error) {
+    console.error(
+      `[content-api] Fallback failed for dataset "${datasetName}"`,
+      error
+    );
+    throw error;
   }
 }

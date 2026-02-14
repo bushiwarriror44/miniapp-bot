@@ -1,4 +1,4 @@
-import { fetchDatasetOrFallback } from "./dataSource";
+import { fetchDatasetFromApi } from "./dataSource";
 
 export type AdType = "post_in_channel" | "post_in_chat";
 
@@ -27,10 +27,11 @@ export type AdsResponse = {
 };
 
 export async function fetchAds(): Promise<AdsResponse> {
-  return fetchDatasetOrFallback<AdsResponse>("ads", async () => {
-    const data = await import("@/shared/data/ads.json");
-    return data as AdsResponse;
-  });
+  const payload = await fetchDatasetFromApi<AdsResponse>("ads");
+  if (!payload) {
+    throw new Error('Failed to load "ads" from content API');
+  }
+  return payload;
 }
 
 export const AD_TYPE_LABELS: Record<AdType, string> = {

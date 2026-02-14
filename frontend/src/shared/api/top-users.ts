@@ -1,4 +1,4 @@
-import { fetchDatasetOrFallback } from "./dataSource";
+import { fetchDatasetFromApi } from "./dataSource";
 
 export type TopUser = {
   id: string;
@@ -13,8 +13,9 @@ export type TopUsersResponse = {
 };
 
 export async function fetchTopUsers(): Promise<TopUsersResponse> {
-  return fetchDatasetOrFallback<TopUsersResponse>("topUsers", async () => {
-    const data = await import("@/shared/data/top-users.json");
-    return data as TopUsersResponse;
-  });
+  const payload = await fetchDatasetFromApi<TopUsersResponse>("topUsers");
+  if (!payload) {
+    throw new Error('Failed to load "topUsers" from content API');
+  }
+  return payload;
 }

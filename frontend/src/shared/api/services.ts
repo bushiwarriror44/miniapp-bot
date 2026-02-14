@@ -1,4 +1,4 @@
-import { fetchDatasetOrFallback } from "./dataSource";
+import { fetchDatasetFromApi } from "./dataSource";
 
 export type ServiceItem = {
   id: string;
@@ -16,10 +16,11 @@ export type ServicesResponse = {
 };
 
 export async function fetchServices(): Promise<ServicesResponse> {
-  return fetchDatasetOrFallback<ServicesResponse>("services", async () => {
-    const data = await import("@/shared/data/services.json");
-    return data as ServicesResponse;
-  });
+  const payload = await fetchDatasetFromApi<ServicesResponse>("services");
+  if (!payload) {
+    throw new Error('Failed to load "services" from content API');
+  }
+  return payload;
 }
 
 export function formatServiceDate(isoDate: string): string {

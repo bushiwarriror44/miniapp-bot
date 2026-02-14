@@ -1,4 +1,4 @@
-import { fetchDatasetOrFallback } from "./dataSource";
+import { fetchDatasetFromApi } from "./dataSource";
 
 export type SellChannelItem = {
   id: string;
@@ -21,11 +21,9 @@ export type SellChannelsResponse = {
 };
 
 export async function fetchSellChannels(): Promise<SellChannelsResponse> {
-  return fetchDatasetOrFallback<SellChannelsResponse>(
-    "sellChannels",
-    async () => {
-      const data = await import("@/shared/data/sellChannels.json");
-      return data as SellChannelsResponse;
-    }
-  );
+  const payload = await fetchDatasetFromApi<SellChannelsResponse>("sellChannels");
+  if (!payload) {
+    throw new Error('Failed to load "sellChannels" from content API');
+  }
+  return payload;
 }

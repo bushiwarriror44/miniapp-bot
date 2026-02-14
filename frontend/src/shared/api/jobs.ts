@@ -1,4 +1,4 @@
-import { fetchDatasetOrFallback } from "./dataSource";
+import { fetchDatasetFromApi } from "./dataSource";
 
 export type WorkType =
   | "editor"
@@ -37,10 +37,11 @@ export type JobsResponse = {
 };
 
 export async function fetchJobs(): Promise<JobsResponse> {
-  return fetchDatasetOrFallback<JobsResponse>("jobs", async () => {
-    const data = await import("@/shared/data/jobs.json");
-    return data as JobsResponse;
-  });
+  const payload = await fetchDatasetFromApi<JobsResponse>("jobs");
+  if (!payload) {
+    throw new Error('Failed to load "jobs" from content API');
+  }
+  return payload;
 }
 
 export const WORK_LABELS: Record<WorkType, string> = {

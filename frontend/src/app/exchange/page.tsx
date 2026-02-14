@@ -63,6 +63,10 @@ const inputStyleModal = {
   color: "var(--input-text)",
 };
 
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Неизвестная ошибка";
+}
+
 export default function ExchangePage() {
   const [activeSection, setActiveSection] = useState<ExchangeSection>("buy-ads");
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -632,17 +636,28 @@ function SellAdsSection() {
   const [reachFrom, setReachFrom] = useState("");
   const [theme, setTheme] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [ads, setAds] = useState<AdItem[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetchAds().then((res) => {
-      if (!cancelled) {
-        setAds(res.ads ?? []);
-        setLoading(false);
-      }
-    });
+    fetchAds()
+      .then((res) => {
+        if (!cancelled) {
+          setAds(res.ads ?? []);
+          setLoadError(null);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("[ui] Failed to load ads", error);
+        if (!cancelled) {
+          setAds([]);
+          setLoadError(toErrorMessage(error));
+          setLoading(false);
+        }
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -755,6 +770,11 @@ function SellAdsSection() {
       )}
 
       <div className="space-y-3">
+        {loadError && (
+          <p className="text-xs py-2" style={{ color: "#ef4444" }}>
+            Ошибка загрузки: {loadError}
+          </p>
+        )}
         {loading && (
           <div
             className="rounded-xl p-4 min-w-0"
@@ -866,17 +886,28 @@ function BuyAdsSection() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [items, setItems] = useState<BuyAdItem[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetchBuyAds().then((res) => {
-      if (!cancelled) {
-        setItems(res.buyAds ?? []);
-        setLoading(false);
-      }
-    });
+    fetchBuyAds()
+      .then((res) => {
+        if (!cancelled) {
+          setItems(res.buyAds ?? []);
+          setLoadError(null);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("[ui] Failed to load buyAds", error);
+        if (!cancelled) {
+          setItems([]);
+          setLoadError(toErrorMessage(error));
+          setLoading(false);
+        }
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -1039,6 +1070,11 @@ function BuyAdsSection() {
       )}
 
       <div className="space-y-3">
+        {loadError && (
+          <p className="text-xs py-2" style={{ color: "#ef4444" }}>
+            Ошибка загрузки: {loadError}
+          </p>
+        )}
         {loading && (
           <div
             className="rounded-xl p-4 min-w-0"
@@ -1168,17 +1204,28 @@ function JobsSection() {
   const [descriptionSearch, setDescriptionSearch] = useState("");
   const [themeSearch, setThemeSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetchJobs().then((res) => {
-      if (!cancelled) {
-        setJobs(res.jobs ?? []);
-        setLoading(false);
-      }
-    });
+    fetchJobs()
+      .then((res) => {
+        if (!cancelled) {
+          setJobs(res.jobs ?? []);
+          setLoadError(null);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("[ui] Failed to load jobs", error);
+        if (!cancelled) {
+          setJobs([]);
+          setLoadError(toErrorMessage(error));
+          setLoading(false);
+        }
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -1327,6 +1374,11 @@ function JobsSection() {
       <h3 className="font-semibold text-sm mb-2" style={{ color: "var(--color-text)" }}>
         Вакансии
       </h3>
+      {loadError && (
+        <p className="text-xs py-2" style={{ color: "#ef4444" }}>
+          Ошибка загрузки: {loadError}
+        </p>
+      )}
       {loading && (
         <div
           className="rounded-xl p-4 min-w-0"
@@ -1424,17 +1476,28 @@ function DesignersSection() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetchServices().then((res) => {
-      if (!cancelled) {
-        setServices(res.services ?? []);
-        setLoading(false);
-      }
-    });
+    fetchServices()
+      .then((res) => {
+        if (!cancelled) {
+          setServices(res.services ?? []);
+          setLoadError(null);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("[ui] Failed to load services", error);
+        if (!cancelled) {
+          setServices([]);
+          setLoadError(toErrorMessage(error));
+          setLoading(false);
+        }
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -1602,6 +1665,11 @@ function DesignersSection() {
       <h3 className="font-semibold text-sm mb-2" style={{ color: "var(--color-text)" }}>
         Услуги
       </h3>
+      {loadError && (
+        <p className="text-xs py-2" style={{ color: "#ef4444" }}>
+          Ошибка загрузки: {loadError}
+        </p>
+      )}
       {loading && (
         <div
           className="rounded-xl p-4 min-w-0"
@@ -1752,17 +1820,28 @@ function SellChannelSection() {
   const [dateTo, setDateTo] = useState("");
   const [hasPhoto, setHasPhoto] = useState<"" | "yes" | "no">("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [channels, setChannels] = useState<SellChannelItem[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetchSellChannels().then((res) => {
-      if (!cancelled) {
-        setChannels(res.sellChannels ?? []);
-        setLoading(false);
-      }
-    });
+    fetchSellChannels()
+      .then((res) => {
+        if (!cancelled) {
+          setChannels(res.sellChannels ?? []);
+          setLoadError(null);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("[ui] Failed to load sellChannels", error);
+        if (!cancelled) {
+          setChannels([]);
+          setLoadError(toErrorMessage(error));
+          setLoading(false);
+        }
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -2016,6 +2095,11 @@ function SellChannelSection() {
       </div>
       )}
 
+      {loadError && (
+        <p className="text-xs py-2" style={{ color: "#ef4444" }}>
+          Ошибка загрузки: {loadError}
+        </p>
+      )}
       {loading && (
         <div
           className="rounded-xl p-4 min-w-0"
@@ -2137,17 +2221,28 @@ function BuyChannelSection() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [items, setItems] = useState<BuyChannelItem[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetchBuyChannels().then((res) => {
-      if (!cancelled) {
-        setItems(res.buyChannels ?? []);
-        setLoading(false);
-      }
-    });
+    fetchBuyChannels()
+      .then((res) => {
+        if (!cancelled) {
+          setItems(res.buyChannels ?? []);
+          setLoadError(null);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("[ui] Failed to load buyChannels", error);
+        if (!cancelled) {
+          setItems([]);
+          setLoadError(toErrorMessage(error));
+          setLoading(false);
+        }
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -2370,6 +2465,11 @@ function BuyChannelSection() {
       </div>
       )}
 
+      {loadError && (
+        <p className="text-xs py-2" style={{ color: "#ef4444" }}>
+          Ошибка загрузки: {loadError}
+        </p>
+      )}
       {loading && (
         <div
           className="rounded-xl p-4 min-w-0"
@@ -2468,17 +2568,28 @@ function OtherSection() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [items, setItems] = useState<OtherItem[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetchOther().then((res) => {
-      if (!cancelled) {
-        setItems(res.other ?? []);
-        setLoading(false);
-      }
-    });
+    fetchOther()
+      .then((res) => {
+        if (!cancelled) {
+          setItems(res.other ?? []);
+          setLoadError(null);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("[ui] Failed to load other", error);
+        if (!cancelled) {
+          setItems([]);
+          setLoadError(toErrorMessage(error));
+          setLoading(false);
+        }
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -2615,6 +2726,11 @@ function OtherSection() {
       </div>
       )}
 
+      {loadError && (
+        <p className="text-xs py-2" style={{ color: "#ef4444" }}>
+          Ошибка загрузки: {loadError}
+        </p>
+      )}
       {loading && (
         <div
           className="rounded-xl p-4 min-w-0"

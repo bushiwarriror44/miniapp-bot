@@ -1,4 +1,4 @@
-import { fetchDatasetOrFallback } from "./dataSource";
+import { fetchDatasetFromApi } from "./dataSource";
 
 export type BuyAdItem = {
   id: string;
@@ -19,8 +19,9 @@ export type BuyAdsResponse = {
 };
 
 export async function fetchBuyAds(): Promise<BuyAdsResponse> {
-  return fetchDatasetOrFallback<BuyAdsResponse>("buyAds", async () => {
-    const data = await import("@/shared/data/buyAds.json");
-    return data as BuyAdsResponse;
-  });
+  const payload = await fetchDatasetFromApi<BuyAdsResponse>("buyAds");
+  if (!payload) {
+    throw new Error('Failed to load "buyAds" from content API');
+  }
+  return payload;
 }
