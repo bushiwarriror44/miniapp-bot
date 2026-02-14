@@ -9,6 +9,16 @@ let guarantConfig = { guarantor: {}, commissionTiers: [], aboutText: "" };
 let editingHotOfferIndex = null;
 const DEBUG_MODAL = true;
 
+const CATEGORY_LABELS = {
+  ads: "Продам рекламу",
+  buyAds: "Куплю рекламу",
+  buyChannels: "Куплю канал",
+  sellChannels: "Продам канал",
+  services: "Услуги",
+  jobs: "Вакансии",
+  other: "Прочее",
+};
+
 const tabButtons = Array.from(document.querySelectorAll("[data-tab-btn]"));
 const tabViews = Array.from(document.querySelectorAll(".tab-view"));
 
@@ -84,6 +94,10 @@ function debugLog(scope, payload) {
   if (!DEBUG_MODAL) return;
   const timestamp = new Date().toISOString();
   console.log(`[admin-debug][${timestamp}][${scope}]`, payload);
+}
+
+function getCategoryLabel(category) {
+  return CATEGORY_LABELS[category] || category;
 }
 
 function escapeHtml(value) {
@@ -609,15 +623,21 @@ function renderItemsTable() {
 async function loadCategories() {
   const data = await apiGet("/admin/api/categories");
   const categories = data.categories || [];
-  categoriesList.innerHTML = categories.map((c) => `<button class="btn" data-category="${c.name}">${c.name} (${c.count})</button>`).join("");
+  categoriesList.innerHTML = categories
+    .map((c) => {
+      const activeClass = c.name === activeCategory ? "btn-primary" : "";
+      return `<button class="btn ${activeClass}" data-category="${c.name}">${getCategoryLabel(c.name)} (${c.count})</button>`;
+    })
+    .join("");
 }
 
 async function loadCategoryItems(category) {
   activeCategory = category;
-  editorTitle.textContent = `Категория: ${category}`;
+  editorTitle.textContent = `Категория: ${getCategoryLabel(category)}`;
   addAdBtn.style.display = category === "ads" ? "inline-block" : "none";
   const data = await apiGet(`/admin/api/categories/${encodeURIComponent(category)}/items`);
   currentItems = data.items || [];
+  await loadCategories();
   renderItemsTable();
 }
 
