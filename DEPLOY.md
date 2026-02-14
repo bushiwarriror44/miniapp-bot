@@ -365,6 +365,11 @@ curl http://127.0.0.1:5000/api/datasets/ads
 
 - `GET /stats/users-count` — количество уникальных Telegram-пользователей
 - `POST /users/track` — upsert Telegram-пользователя (вызывается фронтендом при открытии miniapp)
+- `GET /users/me/profile?telegramId=...` — профиль пользователя (верификация, рейтинг)
+- `GET /users/me/statistics?telegramId=...` — статистика активности пользователя
+- `GET /users` и `GET /users/:id` — список/карточка пользователей для админки
+- `PATCH /users/:id/rating-manual` — ручная корректировка рейтинга
+- `PATCH /users/:id/verified` — управление верификацией
 
 `admin`:
 
@@ -372,6 +377,10 @@ curl http://127.0.0.1:5000/api/datasets/ads
 - `GET /admin/api/dashboard/main` — KPI для вкладки "Главная страница"
 - `GET/PUT /admin/api/config/main-page` — настройка "Изменение главной страницы"
 - `GET/PUT /admin/api/config/guarant` — настройка вкладки "Гарант"
+- `GET/PUT /admin/api/config/faq` — управление FAQ
+- `GET /admin/api/users` и `GET /admin/api/users/:id` — список/карточка пользователей
+- `PATCH /admin/api/users/:id/rating-manual` — корректировка рейтинга пользователя
+- `PATCH /admin/api/users/:id/verified` — переключение верификации
 
 ### Переменная фронтенда
 
@@ -388,7 +397,7 @@ NEXT_PUBLIC_API_URL=https://api.ТВОЙ_ДОМЕН.com
 NEXT_PUBLIC_CONTENT_API_URL=http://localhost:5000/api
 ```
 
-Если API недоступно, фронтенд автоматически использует fallback на локальные JSON.
+Если API недоступно, фронтенд показывает ошибку загрузки в UI и в консоли (без silent fallback на локальные JSON).
 
 ---
 

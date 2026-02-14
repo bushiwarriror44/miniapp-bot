@@ -16,3 +16,49 @@ export async function trackTelegramUser(payload: TrackTelegramUserPayload): Prom
     body: JSON.stringify(payload),
   });
 }
+
+export type UserProfileResponse = {
+  id: string;
+  telegramId: string;
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  verified: boolean;
+  rating: {
+    auto: number;
+    manualDelta: number;
+    total: number;
+  };
+  statistics: {
+    ads: { active: number; completed: number; hidden: number };
+    deals: { total: number; successful: number; disputed: number };
+    profileViews: { week: number; month: number };
+  };
+  daysInProject: number;
+};
+
+export type UserStatisticsResponse = {
+  ads: { active: number; completed: number; hidden: number };
+  deals: { total: number; successful: number; disputed: number };
+  profileViews: { week: number; month: number };
+};
+
+export async function fetchUserProfile(telegramId: string | number): Promise<UserProfileResponse | null> {
+  const res = await fetch(`${API_BASE}/users/me/profile?telegramId=${encodeURIComponent(String(telegramId))}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load profile: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  return data.profile ?? null;
+}
+
+export async function fetchUserStatistics(
+  telegramId: string | number,
+): Promise<UserStatisticsResponse | null> {
+  const res = await fetch(`${API_BASE}/users/me/statistics?telegramId=${encodeURIComponent(String(telegramId))}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load statistics: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  return data.statistics ?? null;
+}

@@ -2,7 +2,11 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { DealEntity } from './entities/deal.entity';
+import { ProfileViewEntity } from './entities/profile-view.entity';
 import { UserEntity } from './entities/user.entity';
+import { UserActivityEntity } from './entities/user-activity.entity';
+import { UserAdLinkEntity } from './entities/user-ad-link.entity';
 
 @Module({
   imports: [
@@ -16,7 +20,13 @@ import { UserEntity } from './entities/user.entity';
       autoLoadEntities: true,
       synchronize: true,
     }),
-    TypeOrmModule.forFeature([UserEntity]),
+    TypeOrmModule.forFeature([
+      UserEntity,
+      UserActivityEntity,
+      ProfileViewEntity,
+      UserAdLinkEntity,
+      DealEntity,
+    ]),
   ],
   controllers: [AppController],
   providers: [AppService],

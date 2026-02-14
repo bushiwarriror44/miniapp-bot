@@ -16,6 +16,8 @@
         <button class="btn tab-btn" data-tab-btn="main-edit">Изменение главной страницы</button>
         <button class="btn tab-btn" data-tab-btn="exchange">Биржа</button>
         <button class="btn tab-btn" data-tab-btn="guarant">Гарант</button>
+        <button class="btn tab-btn" data-tab-btn="users">Пользователи</button>
+        <button class="btn tab-btn" data-tab-btn="faq">FAQ</button>
       </aside>
 
       <section class="stack">
@@ -94,6 +96,40 @@
             <p class="muted" style="margin:10px 0 6px 0;">Каждое условие с новой строки</p>
             <textarea id="guarantConditionsInput" class="textarea" style="min-height:150px;" placeholder="Условие 1&#10;Условие 2"></textarea>
             <button id="saveGuarantBtn" class="btn btn-primary" style="margin-top:10px;">Сохранить настройки гаранта</button>
+          </section>
+        </section>
+
+        <section id="tab-users" class="tab-view stack" style="display:none;">
+          <section class="card" style="padding:12px;">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+              <input id="adminUsersSearchInput" class="input" placeholder="Поиск по username или telegramId" />
+              <button id="adminUsersSearchBtn" class="btn">Найти пользователей</button>
+            </div>
+            <div id="adminUsersTableWrap" style="margin-top:10px;"></div>
+          </section>
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 8px 0;font-size:16px;">Карточка пользователя</h2>
+            <div id="adminUserDetailsWrap" class="muted">Выберите пользователя в таблице выше.</div>
+          </section>
+        </section>
+
+        <section id="tab-faq" class="tab-view stack" style="display:none;">
+          <section class="card" style="padding:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <h2 style="margin:0;font-size:16px;">Частые вопросы</h2>
+              <button id="addFaqBtn" class="btn">Добавить вопрос</button>
+            </div>
+            <div id="faqTableWrap" style="margin-top:10px;"></div>
+          </section>
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 8px 0;font-size:16px;">Редактор FAQ</h2>
+            <input id="faqIdInput" class="input" placeholder="id (например how-to-buy)" />
+            <input id="faqTitleInput" class="input" placeholder="Заголовок вопроса" style="margin-top:8px;" />
+            <textarea id="faqTextInput" class="textarea" style="min-height:120px;margin-top:8px;" placeholder="Текст ответа"></textarea>
+            <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
+              <button id="faqResetBtn" class="btn">Очистить</button>
+              <button id="saveFaqBtn" class="btn btn-primary">Сохранить FAQ</button>
+            </div>
           </section>
         </section>
       </section>

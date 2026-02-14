@@ -1,13 +1,29 @@
 "use client";
 
 import { useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faChevronDown, faChevronUp, faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
-import { FAQ_ITEMS } from "../profileData";
+import { fetchFaqItems, type FaqItem } from "@/shared/api/faq";
 
 export default function ProfileFaqPage() {
-  const [openFaqId, setOpenFaqId] = useState<string | null>(FAQ_ITEMS[0]?.id ?? null);
+  const [faqItems, setFaqItems] = useState<FaqItem[]>([]);
+  const [openFaqId, setOpenFaqId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchFaqItems()
+      .then((items) => {
+        setFaqItems(items);
+        setOpenFaqId(items[0]?.id ?? null);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        console.error("Failed to load FAQ:", error);
+        setLoadError(error instanceof Error ? error.message : String(error));
+      });
+  }, []);
 
   return (
     <main className="px-4 py-6">
@@ -29,7 +45,7 @@ export default function ProfileFaqPage() {
           Частые вопросы
         </h1>
         <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
-          {FAQ_ITEMS.map((item) => {
+          {faqItems.map((item) => {
             const isOpen = openFaqId === item.id;
             return (
               <div key={item.id} className="py-2">
@@ -56,6 +72,11 @@ export default function ProfileFaqPage() {
             );
           })}
         </div>
+        {loadError && (
+          <p className="mt-3 text-xs" style={{ color: "var(--color-accent)" }}>
+            Ошибка загрузки FAQ: {loadError}
+          </p>
+        )}
       </section>
     </main>
   );

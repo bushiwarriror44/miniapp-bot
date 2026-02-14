@@ -7,6 +7,10 @@ let isAdvancedAdsEdit = false;
 let mainPageConfig = { hotOffers: { offers: [] }, news: { channelUrl: "" } };
 let guarantConfig = { guarantor: {}, commissionTiers: [], aboutText: "" };
 let editingHotOfferIndex = null;
+let faqItems = [];
+let editingFaqId = null;
+let adminUsers = [];
+let selectedAdminUserId = null;
 const DEBUG_MODAL = true;
 
 const CATEGORY_LABELS = {
@@ -85,6 +89,19 @@ const guarantUsernameInput = document.getElementById("guarantUsernameInput");
 const guarantAboutTextInput = document.getElementById("guarantAboutTextInput");
 const guarantConditionsInput = document.getElementById("guarantConditionsInput");
 const saveGuarantBtn = document.getElementById("saveGuarantBtn");
+
+const adminUsersSearchInput = document.getElementById("adminUsersSearchInput");
+const adminUsersSearchBtn = document.getElementById("adminUsersSearchBtn");
+const adminUsersTableWrap = document.getElementById("adminUsersTableWrap");
+const adminUserDetailsWrap = document.getElementById("adminUserDetailsWrap");
+
+const faqTableWrap = document.getElementById("faqTableWrap");
+const addFaqBtn = document.getElementById("addFaqBtn");
+const faqIdInput = document.getElementById("faqIdInput");
+const faqTitleInput = document.getElementById("faqTitleInput");
+const faqTextInput = document.getElementById("faqTextInput");
+const faqResetBtn = document.getElementById("faqResetBtn");
+const saveFaqBtn = document.getElementById("saveFaqBtn");
 
 function notify(text) {
   console.log(text);
@@ -782,6 +799,177 @@ async function saveGuarantConfig() {
   await loadGuarantConfig();
 }
 
+function formatMaybeRating(value) {
+  if (typeof value !== "number" || Number.isNaN(value)) return "-";
+  return String(Math.round(value * 10) / 10);
+}
+
+function renderAdminUsersTable() {
+  const rows = adminUsers
+    .map(
+      (user) => `
+      <tr>
+        <td style="font-family:monospace;">${escapeHtml(user.telegramId || "")}</td>
+        <td>${escapeHtml(user.username || "-")}</td>
+        <td>${escapeHtml(formatMaybeRating(user.ratingTotal))}</td>
+        <td>${user.verified ? "Да" : "Нет"}</td>
+        <td><button class="btn" data-user-select-id="${escapeHtml(user.id)}">Открыть</button></td>
+      </tr>
+    `
+    )
+    .join("");
+  adminUsersTableWrap.innerHTML = `
+    <table class="table">
+      <thead><tr><th>Telegram ID</th><th>Username</th><th>Рейтинг</th><th>Верификация</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" class="muted">Нет пользователей</td></tr>'}</tbody>
+    </table>
+  `;
+}
+
+function renderAdminUserDetails(user, statistics) {
+  if (!user) {
+    adminUserDetailsWrap.innerHTML = '<p class="muted" style="margin:0;">Пользователь не найден.</p>';
+    return;
+  }
+  const rating = user.rating || {};
+  const stats = statistics || user.statistics || {};
+  adminUserDetailsWrap.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div>
+        <p style="margin:0 0 6px 0;"><strong>Username:</strong> ${escapeHtml(user.username || "-")}</p>
+        <p style="margin:0 0 6px 0;"><strong>Telegram ID:</strong> <span style="font-family:monospace;">${escapeHtml(user.telegramId || "")}</span></p>
+        <p style="margin:0 0 6px 0;"><strong>Рейтинг auto:</strong> ${escapeHtml(formatMaybeRating(rating.auto))}</p>
+        <p style="margin:0 0 6px 0;"><strong>Рейтинг total:</strong> ${escapeHtml(formatMaybeRating(rating.total))}</p>
+      </div>
+      <div>
+        <label class="muted" style="display:block;margin-bottom:4px;">Ручная корректировка рейтинга</label>
+        <input id="adminUserRatingDeltaInput" class="input" type="number" step="0.1" value="${escapeHtml(String(rating.manualDelta ?? 0))}" />
+        <button id="adminUserSaveRatingBtn" class="btn btn-primary" style="margin-top:8px;">Сохранить рейтинг</button>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:12px;">
+          <input id="adminUserVerifiedInput" type="checkbox" ${user.verified ? "checked" : ""} />
+          Верифицирован
+        </label>
+        <button id="adminUserSaveVerifiedBtn" class="btn" style="margin-top:8px;">Сохранить верификацию</button>
+      </div>
+    </div>
+    <hr style="margin:12px 0;border:none;border-top:1px solid var(--color-border);" />
+    <h3 style="margin:0 0 8px 0;font-size:14px;">Статистика активности</h3>
+    <div style="display:grid;grid-template-columns:repeat(2, minmax(0,1fr));gap:8px;">
+      <div class="card" style="padding:8px;">
+        <p class="muted" style="margin:0 0 4px 0;">Объявления</p>
+        <p style="margin:0;">active: <strong>${stats?.ads?.active ?? 0}</strong>, completed: <strong>${stats?.ads?.completed ?? 0}</strong>, hidden: <strong>${stats?.ads?.hidden ?? 0}</strong></p>
+      </div>
+      <div class="card" style="padding:8px;">
+        <p class="muted" style="margin:0 0 4px 0;">Сделки</p>
+        <p style="margin:0;">total: <strong>${stats?.deals?.total ?? 0}</strong>, successful: <strong>${stats?.deals?.successful ?? 0}</strong>, disputed: <strong>${stats?.deals?.disputed ?? 0}</strong></p>
+      </div>
+      <div class="card" style="padding:8px;grid-column:1/-1;">
+        <p class="muted" style="margin:0 0 4px 0;">Просмотры профиля</p>
+        <p style="margin:0;">week: <strong>${stats?.profileViews?.week ?? 0}</strong>, month: <strong>${stats?.profileViews?.month ?? 0}</strong></p>
+      </div>
+    </div>
+  `;
+}
+
+async function loadAdminUsers() {
+  const q = adminUsersSearchInput?.value?.trim() || "";
+  const data = await apiGet(`/admin/api/users?q=${encodeURIComponent(q)}`);
+  adminUsers = data.users || [];
+  renderAdminUsersTable();
+  if (selectedAdminUserId) {
+    const stillExists = adminUsers.find((u) => u.id === selectedAdminUserId);
+    if (!stillExists) {
+      selectedAdminUserId = null;
+      adminUserDetailsWrap.innerHTML = '<p class="muted" style="margin:0;">Выберите пользователя в таблице выше.</p>';
+    }
+  }
+}
+
+async function openAdminUserCard(userId) {
+  selectedAdminUserId = userId;
+  const [userData, statisticsData] = await Promise.all([
+    apiGet(`/admin/api/users/${encodeURIComponent(userId)}`),
+    apiGet(`/admin/api/users/${encodeURIComponent(userId)}/statistics`),
+  ]);
+  renderAdminUserDetails(userData.user, statisticsData.statistics);
+}
+
+async function saveAdminUserRating() {
+  if (!selectedAdminUserId) return;
+  const input = document.getElementById("adminUserRatingDeltaInput");
+  const value = Number(input?.value ?? 0);
+  await apiJson(`/admin/api/users/${encodeURIComponent(selectedAdminUserId)}/rating-manual`, "PATCH", {
+    ratingManualDelta: Number.isNaN(value) ? 0 : value,
+  });
+  await loadAdminUsers();
+  await openAdminUserCard(selectedAdminUserId);
+}
+
+async function saveAdminUserVerified() {
+  if (!selectedAdminUserId) return;
+  const input = document.getElementById("adminUserVerifiedInput");
+  const verified = Boolean(input?.checked);
+  await apiJson(`/admin/api/users/${encodeURIComponent(selectedAdminUserId)}/verified`, "PATCH", {
+    verified,
+  });
+  await loadAdminUsers();
+  await openAdminUserCard(selectedAdminUserId);
+}
+
+function resetFaqEditor() {
+  editingFaqId = null;
+  faqIdInput.value = "";
+  faqTitleInput.value = "";
+  faqTextInput.value = "";
+}
+
+function renderFaqTable() {
+  const rows = faqItems
+    .map(
+      (item) => `
+      <tr>
+        <td style="font-family:monospace;">${escapeHtml(item.id || "")}</td>
+        <td>${escapeHtml(item.title || "")}</td>
+        <td>
+          <button class="btn" data-faq-action="edit" data-faq-id="${escapeHtml(item.id || "")}">Редактировать</button>
+          <button class="btn" data-faq-action="delete" data-faq-id="${escapeHtml(item.id || "")}">Удалить</button>
+        </td>
+      </tr>
+    `
+    )
+    .join("");
+  faqTableWrap.innerHTML = `
+    <table class="table">
+      <thead><tr><th>ID</th><th>Вопрос</th><th>Действия</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="3" class="muted">FAQ пуст</td></tr>'}</tbody>
+    </table>
+  `;
+}
+
+async function loadFaqConfig() {
+  const data = await apiGet("/admin/api/config/faq");
+  faqItems = data?.payload?.items || [];
+  renderFaqTable();
+}
+
+async function saveFaqConfig() {
+  const item = {
+    id: faqIdInput.value.trim(),
+    title: faqTitleInput.value.trim(),
+    text: faqTextInput.value.trim(),
+  };
+  if (!item.id || !item.title || !item.text) {
+    alert("Заполните id, заголовок и текст");
+    return;
+  }
+  const idx = faqItems.findIndex((it) => String(it.id) === String(editingFaqId || item.id));
+  if (idx >= 0) faqItems[idx] = item;
+  else faqItems.push(item);
+  await apiJson("/admin/api/config/faq", "PUT", { payload: { items: faqItems } });
+  resetFaqEditor();
+  await loadFaqConfig();
+}
+
 async function switchTab(tabId) {
   activeTab = tabId;
   tabButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.tabBtn === tabId));
@@ -793,6 +981,8 @@ async function switchTab(tabId) {
   if (tabId === "main-edit") await loadMainPageConfig();
   if (tabId === "exchange") await loadCategories();
   if (tabId === "guarant") await loadGuarantConfig();
+  if (tabId === "users") await loadAdminUsers();
+  if (tabId === "faq") await loadFaqConfig();
 }
 
 document.addEventListener("click", async (e) => {
@@ -830,6 +1020,37 @@ document.addEventListener("click", async (e) => {
       openHotOfferModal(mainPageConfig?.hotOffers?.offers?.[index]);
     } else if (hotActionBtn.dataset.hotAction === "delete") {
       deleteHotOffer(index);
+    }
+  }
+
+  const userSelectBtn = e.target.closest("[data-user-select-id]");
+  if (userSelectBtn) {
+    await openAdminUserCard(userSelectBtn.dataset.userSelectId);
+    return;
+  }
+
+  const faqActionBtn = e.target.closest("[data-faq-action]");
+  if (faqActionBtn) {
+    const faqId = faqActionBtn.dataset.faqId;
+    const idx = faqItems.findIndex((item) => String(item.id) === String(faqId));
+    if (idx < 0) return;
+    if (faqActionBtn.dataset.faqAction === "edit") {
+      const item = faqItems[idx];
+      editingFaqId = item.id;
+      faqIdInput.value = item.id || "";
+      faqTitleInput.value = item.title || "";
+      faqTextInput.value = item.text || "";
+      return;
+    }
+    if (faqActionBtn.dataset.faqAction === "delete") {
+      if (!confirm("Удалить FAQ?")) return;
+      faqItems.splice(idx, 1);
+      await apiJson("/admin/api/config/faq", "PUT", { payload: { items: faqItems } });
+      if (editingFaqId && String(editingFaqId) === String(faqId)) {
+        resetFaqEditor();
+      }
+      await loadFaqConfig();
+      return;
     }
   }
 });
@@ -898,6 +1119,13 @@ hotOfferCancelBtn.addEventListener("click", () => {
 });
 hotOfferSaveBtn.addEventListener("click", saveHotOfferFromModal);
 saveGuarantBtn.addEventListener("click", saveGuarantConfig);
+adminUsersSearchBtn?.addEventListener("click", loadAdminUsers);
+adminUsersSearchInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") loadAdminUsers();
+});
+addFaqBtn?.addEventListener("click", resetFaqEditor);
+faqResetBtn?.addEventListener("click", resetFaqEditor);
+saveFaqBtn?.addEventListener("click", saveFaqConfig);
 
 document.addEventListener("DOMContentLoaded", async () => {
   debugLog("DOMContentLoaded:init", {
@@ -925,6 +1153,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (evt.key === "Escape" && adModal?.dataset?.fallbackOpen === "1") {
       debugLog("keydown:escape:fallback-close", { dialogId: "adModal" });
       closeDialogSafe(adModal, adModalFallbackNote, { forceFallback: true });
+    }
+  });
+  document.body.addEventListener("click", async (evt) => {
+    if (evt.target?.id === "adminUserSaveRatingBtn") {
+      await saveAdminUserRating();
+    }
+    if (evt.target?.id === "adminUserSaveVerifiedBtn") {
+      await saveAdminUserVerified();
     }
   });
   await switchTab("home");

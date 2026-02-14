@@ -1,12 +1,23 @@
-const CONTENT_API_BASE =
-  (process.env.NEXT_PUBLIC_CONTENT_API_URL || "http://localhost:5000/api").replace(
-    /\/$/,
-    ""
-  );
+const RAW_CONTENT_API_BASE = process.env.NEXT_PUBLIC_CONTENT_API_URL?.trim() || "";
+const CONTENT_API_BASE = RAW_CONTENT_API_BASE
+  ? RAW_CONTENT_API_BASE.replace(/\/$/, "")
+  : null;
+let hasLoggedMissingContentApiUrl = false;
 
 export async function fetchDatasetFromApi<T>(
   datasetName: string
 ): Promise<T | null> {
+  if (!CONTENT_API_BASE) {
+    if (!hasLoggedMissingContentApiUrl) {
+      hasLoggedMissingContentApiUrl = true;
+      console.error(
+        '[content-api] NEXT_PUBLIC_CONTENT_API_URL is not configured. ' +
+          "Set it in frontend env and rebuild frontend."
+      );
+    }
+    return null;
+  }
+
   try {
     const res = await fetch(`${CONTENT_API_BASE}/datasets/${datasetName}`, {
       method: "GET",

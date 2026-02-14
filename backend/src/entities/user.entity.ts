@@ -1,4 +1,17 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { DealEntity } from './deal.entity';
+import { ProfileViewEntity } from './profile-view.entity';
+import { UserActivityEntity } from './user-activity.entity';
+import { UserAdLinkEntity } from './user-ad-link.entity';
 
 @Entity({ name: 'users' })
 export class UserEntity {
@@ -23,6 +36,30 @@ export class UserEntity {
 
   @Column({ type: 'boolean', default: false })
   isPremium: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  verified: boolean;
+
+  @Column({ type: 'float', default: 0 })
+  ratingManualDelta: number;
+
+  @OneToOne(() => UserActivityEntity, (activity) => activity.user)
+  activity?: UserActivityEntity;
+
+  @OneToMany(() => UserAdLinkEntity, (adLink) => adLink.user)
+  adLinks?: UserAdLinkEntity[];
+
+  @OneToMany(() => ProfileViewEntity, (view) => view.profileUser)
+  profileViews?: ProfileViewEntity[];
+
+  @OneToMany(() => ProfileViewEntity, (view) => view.viewerUser)
+  viewedProfiles?: ProfileViewEntity[];
+
+  @OneToMany(() => DealEntity, (deal) => deal.buyerUser)
+  buyDeals?: DealEntity[];
+
+  @OneToMany(() => DealEntity, (deal) => deal.sellerUser)
+  sellDeals?: DealEntity[];
 
   @CreateDateColumn()
   createdAt: Date;

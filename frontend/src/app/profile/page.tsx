@@ -1,31 +1,58 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSun, faMoon, faCheck, faStar, faCircleExclamation, faChartLine, faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
 import { useTheme } from "@/shared/theme/ThemeContext";
-
-const USER_USERNAME = "demo_user";
-const USER_ID = "ID123456";
-const USER_AVATAR_URL = `https://t.me/i/userpic/320/${USER_USERNAME}.jpg`;
-const USER_VERIFIED = false;
+import { getTelegramWebApp } from "@/shared/api/client";
+import { fetchUserProfile, type UserProfileResponse } from "@/shared/api/users";
 
 const ADMIN_TG_LINK = "https://t.me/miniapp_admin_example";
 
-const USER_RATING = {
-  hasDeals: false,
-  position: 0,
-  total: 128,
+
+type TelegramProfile = {
+  username: string;
+  userId: string;
+  avatarUrl: string;
 };
+
+function getInitialTelegramProfile(): TelegramProfile {
+  const fallback: TelegramProfile = {
+    username: "user",
+    userId: "-",
+    avatarUrl: "/assets/telegram-ico.svg",
+  };
+
+  const telegram = getTelegramWebApp();
+  const user = telegram?.initDataUnsafe?.user;
+  if (!user) return fallback;
+
+  const username = user.username || "";
+  const firstName = user.first_name || "";
+  const displayName = username || firstName || "user";
+  const avatarByUsername = username
+    ? `https://t.me/i/userpic/320/${username}.jpg`
+    : "/assets/telegram-ico.svg";
+
+  return {
+    username: displayName,
+    userId: String(user.id ?? "-"),
+    avatarUrl: user.photo_url || avatarByUsername,
+  };
+}
 
 export default function ProfilePage() {
   const { theme, setTheme } = useTheme();
+  const [{ username: tgUsername, userId: tgUserId, avatarUrl: tgAvatarUrl }] =
+    useState<TelegramProfile>(getInitialTelegramProfile);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyPhone, setVerifyPhone] = useState("");
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportText, setSupportText] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
+  const [profile, setProfile] = useState<UserProfileResponse | null>(null);
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -52,8 +79,18 @@ export default function ProfilePage() {
     );
   };
 
-  const ratingPlace =
-    USER_RATING.hasDeals && USER_RATING.position > 0 ? USER_RATING.position.toString() : "-";
+  useEffect(() => {
+    if (!tgUserId || tgUserId === "-") return;
+    fetchUserProfile(tgUserId)
+      .then((response) => {
+        setProfile(response);
+        setProfileLoadError(null);
+      })
+      .catch((error) => {
+        console.error("Failed to load profile data:", error);
+        setProfileLoadError(error instanceof Error ? error.message : String(error));
+      });
+  }, [tgUserId]);
 
   return (
     <main className="px-4 py-6 relative">
@@ -80,8 +117,8 @@ export default function ProfilePage() {
       <section className="flex flex-col items-center mb-6">
         <div className="w-20 h-20 rounded-full overflow-hidden mb-3">
           <img
-            src={USER_AVATAR_URL}
-            alt={USER_USERNAME}
+            src={tgAvatarUrl}
+            alt={tgUsername || "user"}
             className="w-full h-full object-cover"
             onError={(e) => {
               const target = e.currentTarget;
@@ -91,16 +128,16 @@ export default function ProfilePage() {
           />
         </div>
         <p className="font-semibold text-sm" style={{ color: "var(--color-text)" }}>
-          @{USER_USERNAME}
+          @{tgUsername || "user"}
         </p>
         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-          ID: {USER_ID}
+          ID: {tgUserId}
         </p>
       </section>
 
       {/* Верификация */}
       <section className="mb-4">
-        {USER_VERIFIED ? (
+        {profile?.verified ? (
           <div
             className="rounded-xl px-4 py-3 flex items-center gap-2"
             style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
@@ -144,16 +181,20 @@ export default function ProfilePage() {
           Рейтинг
         </h2>
         <p className="text-sm mb-1" style={{ color: "var(--color-text)" }}>
-          Общее положение в рейтинге:{" "}
-          <span className="font-semibold">{ratingPlace}</span>
-          {USER_RATING.hasDeals && USER_RATING.position > 0 && (
-            <span style={{ color: "var(--color-text-muted)" }}> из {USER_RATING.total}</span>
-          )}
+          Текущий рейтинг:{" "}
+          <span className="font-semibold">
+            {typeof profile?.rating?.total === "number" ? profile.rating.total.toFixed(1) : "-"}
+          </span>
         </p>
-        {!USER_RATING.hasDeals && (
-          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-            У вас пока не было активных сделок и оценок. Как только появятся первые сделки, мы покажем
-            ваше место в рейтинге.
+        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+          Авто-рейтинг:{" "}
+          {typeof profile?.rating?.auto === "number" ? profile.rating.auto.toFixed(1) : "-"}, ручная
+          корректировка:{" "}
+          {typeof profile?.rating?.manualDelta === "number" ? profile.rating.manualDelta.toFixed(1) : "-"}
+        </p>
+        {profileLoadError && (
+          <p className="text-xs mt-2" style={{ color: "var(--color-accent)" }}>
+            Ошибка загрузки профиля: {profileLoadError}
           </p>
         )}
       </section>

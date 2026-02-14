@@ -1,8 +1,9 @@
 import json
 import os
 from functools import wraps
-from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 from uuid import uuid4
 
 from flask import (
@@ -81,6 +82,27 @@ def _get_users_count():
             return int(data.get("usersCount", 0))
     except (URLError, ValueError, TimeoutError):
         return 0
+
+
+def _backend_get_json(path, query_params=None):
+    url = f"{BACKEND_API_URL.rstrip('/')}/{path.lstrip('/')}"
+    if query_params:
+        url = f"{url}?{urlencode(query_params)}"
+    with urlopen(url, timeout=5) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def _backend_json(path, method, payload):
+    url = f"{BACKEND_API_URL.rstrip('/')}/{path.lstrip('/')}"
+    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    req = Request(
+        url,
+        data=data,
+        method=method,
+        headers={"Content-Type": "application/json"},
+    )
+    with urlopen(req, timeout=5) as response:
+        return json.loads(response.read().decode("utf-8"))
 
 
 def _get_active_ads_total():
@@ -323,3 +345,103 @@ def put_guarant_config():
         return jsonify({"error": "Body must contain object field 'payload'"}), 400
     row = _upsert_dataset("guarantConfig", payload)
     return jsonify({"ok": True, "updatedAt": row.updated_at.isoformat() if row.updated_at else None})
+
+
+@admin_bp.route("/admin/api/config/faq", methods=["GET"])
+@require_login
+def get_faq_config():
+    row = Dataset.query.filter_by(name="faq").first()
+    payload = _dataset_payload(row) if row else {"items": []}
+    return jsonify({"name": "faq", "payload": payload})
+
+
+@admin_bp.route("/admin/api/config/faq", methods=["PUT"])
+@require_login
+def put_faq_config():
+    body = request.get_json(silent=True) or {}
+    payload = body.get("payload")
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Body must contain object field 'payload'"}), 400
+    if not isinstance(payload.get("items"), list):
+        return jsonify({"error": "payload.items must be an array"}), 400
+    row = _upsert_dataset("faq", payload)
+    return jsonify({"ok": True, "updatedAt": row.updated_at.isoformat() if row.updated_at else None})
+
+
+@admin_bp.route("/admin/api/users", methods=["GET"])
+@require_login
+def admin_users_list():
+    q = (request.args.get("q") or "").strip()
+    try:
+        data = _backend_get_json("/users", {"q": q})
+        return jsonify({"users": data.get("users", [])})
+    except (HTTPError, URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to fetch users from backend: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/users/<user_id>", methods=["GET"])
+@require_login
+def admin_users_get(user_id):
+    try:
+        data = _backend_get_json(f"/users/{user_id}")
+        return jsonify(data)
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to fetch user: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/users/<user_id>/statistics", methods=["GET"])
+@require_login
+def admin_users_get_statistics(user_id):
+    try:
+        data = _backend_get_json(f"/users/{user_id}/statistics")
+        return jsonify(data)
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to fetch statistics: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/users/<user_id>/rating-manual", methods=["PATCH"])
+@require_login
+def admin_users_patch_rating(user_id):
+    body = request.get_json(silent=True) or {}
+    rating_manual_delta = body.get("ratingManualDelta")
+    if not isinstance(rating_manual_delta, (int, float)):
+        return jsonify({"error": "ratingManualDelta must be a number"}), 400
+    try:
+        data = _backend_json(
+            f"/users/{user_id}/rating-manual",
+            "PATCH",
+            {"ratingManualDelta": float(rating_manual_delta)},
+        )
+        return jsonify(data)
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to update rating: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/users/<user_id>/verified", methods=["PATCH"])
+@require_login
+def admin_users_patch_verified(user_id):
+    body = request.get_json(silent=True) or {}
+    verified = body.get("verified")
+    if not isinstance(verified, bool):
+        return jsonify({"error": "verified must be boolean"}), 400
+    try:
+        data = _backend_json(
+            f"/users/{user_id}/verified",
+            "PATCH",
+            {"verified": verified},
+        )
+        return jsonify(data)
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to update verification: {exc}"}), 502

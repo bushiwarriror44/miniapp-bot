@@ -1,11 +1,44 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faChartLine } from "@fortawesome/free-solid-svg-icons";
-import { USER_ACTIVITY } from "../profileData";
+import { getTelegramWebApp } from "@/shared/api/client";
+import { fetchUserStatistics, type UserStatisticsResponse } from "@/shared/api/users";
 
 export default function ProfileStatisticsPage() {
+  const [statistics, setStatistics] = useState<UserStatisticsResponse | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const telegramId = useMemo(() => {
+    const telegram = getTelegramWebApp();
+    const userId = telegram?.initDataUnsafe?.user?.id;
+    return userId ? String(userId) : "";
+  }, []);
+
+  useEffect(() => {
+    if (!telegramId) {
+      setLoadError("Telegram user id is missing.");
+      return;
+    }
+    fetchUserStatistics(telegramId)
+      .then((response) => {
+        setStatistics(response);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        console.error("Failed to load statistics:", error);
+        setLoadError(error instanceof Error ? error.message : String(error));
+      });
+  }, [telegramId]);
+
+  const stats = statistics ?? {
+    ads: { active: 0, completed: 0, hidden: 0 },
+    deals: { total: 0, successful: 0, disputed: 0 },
+    profileViews: { week: 0, month: 0 },
+  };
+
   return (
     <main className="px-4 py-6">
       <Link
@@ -35,19 +68,19 @@ export default function ProfileStatisticsPage() {
                 className="rounded-lg px-3 py-1.5"
                 style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
               >
-                активные: <strong>{USER_ACTIVITY.ads.active}</strong>
+                активные: <strong>{stats.ads.active}</strong>
               </span>
               <span
                 className="rounded-lg px-3 py-1.5"
                 style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
               >
-                завершённые: <strong>{USER_ACTIVITY.ads.completed}</strong>
+                завершённые: <strong>{stats.ads.completed}</strong>
               </span>
               <span
                 className="rounded-lg px-3 py-1.5"
                 style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
               >
-                скрытые: <strong>{USER_ACTIVITY.ads.hidden}</strong>
+                скрытые: <strong>{stats.ads.hidden}</strong>
               </span>
             </div>
           </div>
@@ -60,19 +93,19 @@ export default function ProfileStatisticsPage() {
                 className="rounded-lg px-3 py-1.5"
                 style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
               >
-                всего совершено: <strong>{USER_ACTIVITY.deals.total}</strong>
+                всего совершено: <strong>{stats.deals.total}</strong>
               </span>
               <span
                 className="rounded-lg px-3 py-1.5"
                 style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
               >
-                успешных: <strong>{USER_ACTIVITY.deals.successful}</strong>
+                успешных: <strong>{stats.deals.successful}</strong>
               </span>
               <span
                 className="rounded-lg px-3 py-1.5"
                 style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
               >
-                спорных: <strong>{USER_ACTIVITY.deals.disputed}</strong>
+                спорных: <strong>{stats.deals.disputed}</strong>
               </span>
             </div>
           </div>
@@ -83,7 +116,7 @@ export default function ProfileStatisticsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-xl font-bold mb-0.5" style={{ color: "var(--color-text)" }}>
-                  {USER_ACTIVITY.profileViews.week}
+                  {stats.profileViews.week}
                 </p>
                 <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
                   просмотров профиля за неделю
@@ -91,7 +124,7 @@ export default function ProfileStatisticsPage() {
               </div>
               <div>
                 <p className="text-xl font-bold mb-0.5" style={{ color: "var(--color-text)" }}>
-                  {USER_ACTIVITY.profileViews.month}
+                  {stats.profileViews.month}
                 </p>
                 <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
                   просмотров профиля за месяц
@@ -99,6 +132,11 @@ export default function ProfileStatisticsPage() {
               </div>
             </div>
           </div>
+          {loadError && (
+            <p className="text-xs" style={{ color: "var(--color-accent)" }}>
+              Ошибка загрузки статистики: {loadError}
+            </p>
+          )}
         </div>
       </section>
     </main>
