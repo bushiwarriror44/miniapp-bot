@@ -121,11 +121,13 @@ WEBAPP_URL=https://miniapp.ТВОЙ_ДОМЕН.com
 
 ```env
 NEXT_PUBLIC_API_URL=https://api.ТВОЙ_ДОМЕН.com
+NEXT_PUBLIC_CONTENT_API_URL=https://admin.ТВОЙ_ДОМЕН.com/api
 ```
 
 Замени `ТВОЙ_ДОМЕН.com` на реальный домен (например `mybot.com`). Тогда:
 - mini app: `https://miniapp.mybot.com`
 - API: `https://api.mybot.com`
+- content/admin API: `https://admin.mybot.com/api`
 
 ### Если нет домена (только IP сервера)
 
@@ -200,7 +202,7 @@ pm2 logs
 
 ## 8. Nginx: домены и SSL
 
-Замени `miniapp.example.com` и `api.example.com` на свои домены.
+Замени `miniapp.example.com`, `api.example.com` и `admin.example.com` на свои домены.
 
 **Mini App (frontend):**
 
@@ -220,6 +222,27 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+**Admin API + админ-панель:**
+
+```bash
+sudo nano /etc/nginx/sites-available/admin
+```
+
+```nginx
+server {
+    listen 80;
+    server_name admin.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -254,10 +277,11 @@ server {
 ```bash
 sudo ln -s /etc/nginx/sites-available/miniapp /etc/nginx/sites-enabled/
 sudo ln -s /etc/nginx/sites-available/api /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/admin /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 
-sudo certbot --nginx -d miniapp.example.com -d api.example.com
+sudo certbot --nginx -d miniapp.example.com -d api.example.com -d admin.example.com
 ```
 
 Certbot сам настроит HTTPS и редиректы.
@@ -284,9 +308,10 @@ Certbot сам настроит HTTPS и редиректы.
 - [ ] Проект загружен, создан `backend/.env`, выполнен `./deploy/setup-postgres.sh` (PostgreSQL и пользователь созданы из .env)
 - [ ] Проект загружен в `/var/www/miniapp-bot`
 - [ ] В `backend/.env`, `bot/.env`, `frontend/.env.production` указаны правильные значения и домены
+- [ ] В `frontend/.env.production` указаны `NEXT_PUBLIC_API_URL` и `NEXT_PUBLIC_CONTENT_API_URL`
 - [ ] Выполнены `npm ci` и `npm run build` в `backend`, `bot`, `frontend`
 - [ ] Запущены процессы через PM2, `pm2 save` и `pm2 startup`
-- [ ] В Nginx созданы конфиги для `miniapp.example.com` и `api.example.com`, запущен `certbot`
+- [ ] В Nginx созданы конфиги для `miniapp`, `api`, `admin`, запущен `certbot`
 - [ ] В BotFather заданы `/setdomain` и `/setmenubutton` с твоим доменом
 
 ---
@@ -331,14 +356,30 @@ curl http://127.0.0.1:5000/api/datasets/ads
 
 - При первом запуске сервис создает SQLite в `admin/data/app.db`
 - Автоматически импортирует JSON из `frontend/src/shared/data/*.json` в таблицу `datasets`
+- Также создает datasets `mainPage` и `guarantConfig` для новых вкладок админки
 - Дальше фронтенд читает через `GET /api/datasets/<name>`
+
+### Новые endpoints
+
+`backend`:
+
+- `GET /stats/users-count` — количество уникальных Telegram-пользователей
+- `POST /users/track` — upsert Telegram-пользователя (вызывается фронтендом при открытии miniapp)
+
+`admin`:
+
+- `GET /api/stats/active-ads-total` — агрегат активных объявлений по всем категориям биржи
+- `GET /admin/api/dashboard/main` — KPI для вкладки "Главная страница"
+- `GET/PUT /admin/api/config/main-page` — настройка "Изменение главной страницы"
+- `GET/PUT /admin/api/config/guarant` — настройка вкладки "Гарант"
 
 ### Переменная фронтенда
 
 В `frontend/.env.production` добавь:
 
 ```env
-NEXT_PUBLIC_CONTENT_API_URL=https://miniapp.ТВОЙ_ДОМЕН.com/api
+NEXT_PUBLIC_CONTENT_API_URL=https://admin.ТВОЙ_ДОМЕН.com/api
+NEXT_PUBLIC_API_URL=https://api.ТВОЙ_ДОМЕН.com
 ```
 
 Для локалки можно:
@@ -379,3 +420,25 @@ NEXT_PUBLIC_CONTENT_API_URL=http://localhost:5000/api
    pm2 show frontend
    ```
    В «script path» должно быть `npm`, в «exec cwd» — путь к `frontend`, аргументы — `start --prefix ...`. Если там было `dev`, перезапусти как в шаге 2.
+
+---
+
+## E2E-проверка после обновления админки
+
+1. Проверить API:
+   ```bash
+   curl https://api.example.com/stats/users-count
+   curl https://admin.example.com/api/stats/active-ads-total
+   ```
+
+2. Проверить вкладки админки:
+   - `https://admin.example.com/admin/login`
+   - Главная страница: отображаются `usersCount` и `activeAdsTotal`
+   - Изменение главной страницы: сохраняются hot offers и ссылка новостей
+   - Биржа: работает CRUD категорий и ручное добавление `ads`
+   - Гарант: сохраняются ссылка гаранта и условия
+
+3. Проверить фронтенд:
+   - главная читает `hot offers` и ссылку новостей из `mainPage`
+   - `/autogarant` читает настройки из `guarantConfig`
+   - после открытия miniapp увеличивается `usersCount`

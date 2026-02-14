@@ -1,17 +1,28 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faNewspaper } from "@fortawesome/free-solid-svg-icons";
 import telegramIco from "@/app/assets/telegram-ico.svg";
+import { fetchMainPageData } from "@/shared/api/main-page";
 
 function svgSrc(value: string | { default?: string; src?: string }): string {
   if (typeof value === "string") return value;
   return value.default ?? value.src ?? "";
 }
 
-const TELEGRAM_URL = "https://t.me/your_channel"; // TODO: подставить ссылку на сообщество
-
 export function NewsBlock() {
+  const [channelUrl, setChannelUrl] = useState("https://t.me/your_channel");
+
+  useEffect(() => {
+    fetchMainPageData()
+      .then((data) => {
+        const url = data?.news?.channelUrl?.trim();
+        if (url) setChannelUrl(url);
+      })
+      .catch(() => undefined);
+  }, []);
+
   return (
     <section
       className="mb-6 rounded-xl p-4"
@@ -29,7 +40,7 @@ export function NewsBlock() {
         нашем профессиональном сообществе.
       </p>
       <a
-        href={TELEGRAM_URL}
+        href={channelUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 w-full sm:w-auto font-medium text-sm transition-opacity hover:opacity-90"

@@ -60,6 +60,47 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
       .muted { color: var(--muted); }
+      .layout {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 14px;
+      }
+      .sidebar {
+        padding: 12px;
+        position: sticky;
+        top: 12px;
+        height: fit-content;
+      }
+      .tab-btn {
+        width: 100%;
+        text-align: left;
+        margin-bottom: 8px;
+      }
+      .tab-btn.active {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .stack { display: flex; flex-direction: column; gap: 12px; }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      .table th, .table td {
+        text-align: left;
+        padding: 8px;
+        border-bottom: 1px solid var(--border);
+      }
+      @media (max-width: 980px) {
+        .layout { grid-template-columns: 1fr; }
+        .sidebar { position: static; }
+        .grid-2 { grid-template-columns: 1fr; }
+      }
     </style>
     {% block head %}{% endblock %}
   </head>

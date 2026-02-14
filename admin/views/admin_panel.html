@@ -5,35 +5,113 @@
     <header class="card" style="padding:14px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;">
       <div>
         <h1 style="margin:0;font-size:20px;">Управление данными miniapp</h1>
-        <p class="muted" style="margin:4px 0 0 0;font-size:13px;">CRUD по категориям, поиск пользователей и ручное добавление объявлений.</p>
+        <p class="muted" style="margin:4px 0 0 0;font-size:13px;">Управление KPI, главной страницей, биржей и гарантом.</p>
       </div>
       <a href="/admin/logout" class="btn" style="text-decoration:none;">Выйти</a>
     </header>
 
-    <section class="card" style="margin-top:12px;padding:12px;">
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
-        <input id="userSearchInput" class="input" placeholder="Поиск по пользователям (username / usernameLink)" />
-        <button id="userSearchBtn" class="btn">Искать</button>
-      </div>
-      <div id="userSearchResults" style="margin-top:10px;"></div>
-    </section>
+    <div class="layout" style="margin-top:12px;">
+      <aside class="card sidebar">
+        <button class="btn tab-btn active" data-tab-btn="home">Главная страница</button>
+        <button class="btn tab-btn" data-tab-btn="main-edit">Изменение главной страницы</button>
+        <button class="btn tab-btn" data-tab-btn="exchange">Биржа</button>
+        <button class="btn tab-btn" data-tab-btn="guarant">Гарант</button>
+      </aside>
 
-    <section class="card" style="margin-top:12px;padding:12px;">
-      <h2 style="margin:0 0 8px 0;font-size:16px;">Категории</h2>
-      <div id="categoriesList" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-    </section>
+      <section class="stack">
+        <section id="tab-home" class="tab-view stack">
+          <div class="grid-2">
+            <article class="card" style="padding:14px;">
+              <p class="muted" style="margin:0 0 6px 0;">Количество пользователей</p>
+              <h2 id="kpiUsersCount" style="margin:0;font-size:30px;">0</h2>
+            </article>
+            <article class="card" style="padding:14px;">
+              <p class="muted" style="margin:0 0 6px 0;">Суммарно активных объявлений</p>
+              <h2 id="kpiActiveAdsTotal" style="margin:0;font-size:30px;">0</h2>
+            </article>
+          </div>
+          <div class="card" style="padding:12px;display:flex;justify-content:space-between;align-items:center;">
+            <span class="muted" id="kpiUpdatedAt">Обновлено: -</span>
+            <button id="refreshKpiBtn" class="btn">Обновить KPI</button>
+          </div>
+        </section>
 
-    <section class="card" style="margin-top:12px;padding:12px;">
-      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;">
-        <h2 id="editorTitle" style="margin:0;font-size:16px;">Выберите категорию</h2>
-        <div style="display:flex;gap:8px;">
-          <button id="addItemBtn" class="btn">Добавить элемент</button>
-          <button id="addAdBtn" class="btn btn-primary" style="display:none;">Добавить объявление вручную</button>
-        </div>
-      </div>
-      <div id="itemsTableWrap" style="margin-top:10px;overflow:auto;"></div>
-    </section>
+        <section id="tab-main-edit" class="tab-view stack" style="display:none;">
+          <div class="card" style="padding:12px;">
+            <h2 style="margin:0 0 10px 0;font-size:16px;">Ссылка кнопки новостей</h2>
+            <div class="grid-2">
+              <input id="newsChannelUrlInput" class="input" placeholder="https://t.me/..." />
+              <button id="saveMainPageBtn" class="btn btn-primary">Сохранить изменения главной</button>
+            </div>
+          </div>
+          <div class="card" style="padding:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <h2 style="margin:0;font-size:16px;">Горячие предложения</h2>
+              <button id="addHotOfferBtn" class="btn">Добавить предложение</button>
+            </div>
+            <div id="hotOffersTableWrap" style="margin-top:10px;overflow:auto;"></div>
+          </div>
+        </section>
+
+        <section id="tab-exchange" class="tab-view stack" style="display:none;">
+          <section class="card" style="padding:12px;">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+              <input id="userSearchInput" class="input" placeholder="Поиск по пользователям (username / usernameLink)" />
+              <button id="userSearchBtn" class="btn">Искать</button>
+            </div>
+            <div id="userSearchResults" style="margin-top:10px;"></div>
+          </section>
+
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 8px 0;font-size:16px;">Категории биржи</h2>
+            <div id="categoriesList" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+          </section>
+
+          <section class="card" style="padding:12px;">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;">
+              <h2 id="editorTitle" style="margin:0;font-size:16px;">Выберите категорию</h2>
+              <div style="display:flex;gap:8px;">
+                <button id="addItemBtn" class="btn">Добавить элемент</button>
+                <button id="addAdBtn" class="btn btn-primary" style="display:none;">Добавить объявление вручную</button>
+              </div>
+            </div>
+            <div id="itemsTableWrap" style="margin-top:10px;overflow:auto;"></div>
+          </section>
+        </section>
+
+        <section id="tab-guarant" class="tab-view stack" style="display:none;">
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 10px 0;font-size:16px;">Ссылка на гаранта</h2>
+            <div class="grid-2">
+              <input id="guarantProfileLinkInput" class="input" placeholder="https://t.me/..." />
+              <input id="guarantDisplayNameInput" class="input" placeholder="Отображаемое имя гаранта" />
+            </div>
+            <input id="guarantUsernameInput" class="input" style="margin-top:8px;" placeholder="username гаранта" />
+          </section>
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 10px 0;font-size:16px;">Условия гаранта</h2>
+            <textarea id="guarantAboutTextInput" class="textarea" style="min-height:100px;" placeholder="Описание"></textarea>
+            <p class="muted" style="margin:10px 0 6px 0;">Каждое условие с новой строки</p>
+            <textarea id="guarantConditionsInput" class="textarea" style="min-height:150px;" placeholder="Условие 1&#10;Условие 2"></textarea>
+            <button id="saveGuarantBtn" class="btn btn-primary" style="margin-top:10px;">Сохранить настройки гаранта</button>
+          </section>
+        </section>
+      </section>
+    </div>
   </main>
+
+  <dialog id="hotOfferModal" class="card" style="border:none;max-width:620px;width:calc(100% - 24px);padding:12px;">
+    <h3 id="hotOfferModalTitle" style="margin:0 0 10px 0;">Горячее предложение</h3>
+    <div class="stack">
+      <input id="hotOfferTitleInput" class="input" placeholder="Заголовок" />
+      <input id="hotOfferPriceInput" class="input" placeholder="Цена (например 97 250)" />
+      <input id="hotOfferSubtitleInput" class="input" placeholder="Подзаголовок" />
+    </div>
+    <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
+      <button id="hotOfferCancelBtn" class="btn" type="button">Отмена</button>
+      <button id="hotOfferSaveBtn" class="btn btn-primary" type="button">Сохранить</button>
+    </div>
+  </dialog>
 
   <dialog id="itemModal" class="card" style="border:none;max-width:980px;width:calc(100% - 24px);padding:12px;">
     <h3 id="itemModalTitle" style="margin:0 0 4px 0;">Элемент</h3>

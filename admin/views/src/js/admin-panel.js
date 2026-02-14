@@ -1,6 +1,31 @@
+let activeTab = "home";
 let activeCategory = null;
 let currentItems = [];
 let editingItemId = null;
+let mainPageConfig = { hotOffers: { offers: [] }, news: { channelUrl: "" } };
+let guarantConfig = { guarantor: {}, commissionTiers: [], aboutText: "" };
+let editingHotOfferIndex = null;
+
+const tabButtons = Array.from(document.querySelectorAll("[data-tab-btn]"));
+const tabViews = Array.from(document.querySelectorAll(".tab-view"));
+
+const kpiUsersCount = document.getElementById("kpiUsersCount");
+const kpiActiveAdsTotal = document.getElementById("kpiActiveAdsTotal");
+const kpiUpdatedAt = document.getElementById("kpiUpdatedAt");
+const refreshKpiBtn = document.getElementById("refreshKpiBtn");
+
+const newsChannelUrlInput = document.getElementById("newsChannelUrlInput");
+const saveMainPageBtn = document.getElementById("saveMainPageBtn");
+const hotOffersTableWrap = document.getElementById("hotOffersTableWrap");
+const addHotOfferBtn = document.getElementById("addHotOfferBtn");
+
+const hotOfferModal = document.getElementById("hotOfferModal");
+const hotOfferModalTitle = document.getElementById("hotOfferModalTitle");
+const hotOfferTitleInput = document.getElementById("hotOfferTitleInput");
+const hotOfferPriceInput = document.getElementById("hotOfferPriceInput");
+const hotOfferSubtitleInput = document.getElementById("hotOfferSubtitleInput");
+const hotOfferCancelBtn = document.getElementById("hotOfferCancelBtn");
+const hotOfferSaveBtn = document.getElementById("hotOfferSaveBtn");
 
 const categoriesList = document.getElementById("categoriesList");
 const itemsTableWrap = document.getElementById("itemsTableWrap");
@@ -23,9 +48,24 @@ const userSearchInput = document.getElementById("userSearchInput");
 const userSearchBtn = document.getElementById("userSearchBtn");
 const userSearchResults = document.getElementById("userSearchResults");
 
+const guarantProfileLinkInput = document.getElementById("guarantProfileLinkInput");
+const guarantDisplayNameInput = document.getElementById("guarantDisplayNameInput");
+const guarantUsernameInput = document.getElementById("guarantUsernameInput");
+const guarantAboutTextInput = document.getElementById("guarantAboutTextInput");
+const guarantConditionsInput = document.getElementById("guarantConditionsInput");
+const saveGuarantBtn = document.getElementById("saveGuarantBtn");
+
 function notify(text) {
-  // простой UI-feedback без внешних зависимостей
   console.log(text);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 async function apiGet(url) {
@@ -45,16 +85,114 @@ async function apiJson(url, method, body) {
   return res.json();
 }
 
+async function loadDashboard() {
+  const data = await apiGet("/admin/api/dashboard/main");
+  kpiUsersCount.textContent = String(data.usersCount ?? 0);
+  kpiActiveAdsTotal.textContent = String(data.activeAdsTotal ?? 0);
+  kpiUpdatedAt.textContent = `Обновлено: ${new Date().toLocaleString("ru-RU")}`;
+}
+
+function renderHotOffersTable() {
+  const offers = mainPageConfig?.hotOffers?.offers || [];
+  const rows = offers
+    .map(
+      (offer, index) => `
+      <tr>
+        <td>${escapeHtml(offer.id || index + 1)}</td>
+        <td>${escapeHtml(offer.title || "")}</td>
+        <td>${escapeHtml(offer.price || "")}</td>
+        <td>${escapeHtml(offer.subtitle || "")}</td>
+        <td>
+          <button class="btn" data-hot-action="edit" data-hot-index="${index}">Редактировать</button>
+          <button class="btn" data-hot-action="delete" data-hot-index="${index}">Удалить</button>
+        </td>
+      </tr>
+    `
+    )
+    .join("");
+
+  hotOffersTableWrap.innerHTML = `
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Заголовок</th>
+          <th>Цена</th>
+          <th>Подзаголовок</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody>${rows || '<tr><td colspan="5" class="muted">Пусто</td></tr>'}</tbody>
+    </table>
+  `;
+}
+
+async function loadMainPageConfig() {
+  const data = await apiGet("/admin/api/config/main-page");
+  mainPageConfig = data.payload || { hotOffers: { offers: [] }, news: { channelUrl: "" } };
+  newsChannelUrlInput.value = mainPageConfig?.news?.channelUrl || "";
+  renderHotOffersTable();
+}
+
+async function saveMainPageConfig() {
+  const payload = {
+    hotOffers: {
+      offers: Array.isArray(mainPageConfig?.hotOffers?.offers) ? mainPageConfig.hotOffers.offers : [],
+    },
+    news: {
+      channelUrl: newsChannelUrlInput.value.trim(),
+    },
+  };
+  await apiJson("/admin/api/config/main-page", "PUT", { payload });
+  notify("Главная страница обновлена");
+  await loadMainPageConfig();
+}
+
+function openHotOfferModal(offer) {
+  hotOfferModalTitle.textContent = editingHotOfferIndex == null ? "Новое горячее предложение" : "Редактирование предложения";
+  hotOfferTitleInput.value = offer?.title || "";
+  hotOfferPriceInput.value = offer?.price || "";
+  hotOfferSubtitleInput.value = offer?.subtitle || "";
+  hotOfferModal.showModal();
+}
+
+function saveHotOfferFromModal() {
+  const title = hotOfferTitleInput.value.trim();
+  const price = hotOfferPriceInput.value.trim();
+  const subtitle = hotOfferSubtitleInput.value.trim();
+  if (!title || !price) {
+    alert("Заполните минимум заголовок и цену");
+    return;
+  }
+
+  const offers = Array.isArray(mainPageConfig?.hotOffers?.offers) ? [...mainPageConfig.hotOffers.offers] : [];
+  const record = {
+    id: editingHotOfferIndex == null ? String(Date.now()) : String(offers[editingHotOfferIndex]?.id || Date.now()),
+    title,
+    price,
+    subtitle,
+  };
+
+  if (editingHotOfferIndex == null) offers.push(record);
+  else offers[editingHotOfferIndex] = record;
+
+  mainPageConfig.hotOffers = { offers };
+  hotOfferModal.close();
+  editingHotOfferIndex = null;
+  renderHotOffersTable();
+}
+
+function deleteHotOffer(index) {
+  if (!confirm("Удалить предложение?")) return;
+  const offers = Array.isArray(mainPageConfig?.hotOffers?.offers) ? [...mainPageConfig.hotOffers.offers] : [];
+  offers.splice(index, 1);
+  mainPageConfig.hotOffers = { offers };
+  renderHotOffersTable();
+}
+
 function itemSummary(item) {
   if (!item || typeof item !== "object") return "";
-  return (
-    item.username ||
-    item.title ||
-    item.name ||
-    item.theme ||
-    item.usernameLink ||
-    JSON.stringify(item).slice(0, 40)
-  );
+  return item.username || item.title || item.name || item.theme || item.usernameLink || JSON.stringify(item).slice(0, 40);
 }
 
 function inferType(value) {
@@ -131,7 +269,6 @@ function createFieldRow(field = {}) {
 
   typeSelect.addEventListener("change", renderValueInput);
   renderValueInput();
-
   row.appendChild(keyInput);
   row.appendChild(typeSelect);
   row.appendChild(valueWrap);
@@ -143,18 +280,9 @@ function fillFormFromItem(item) {
   fieldRows.innerHTML = "";
   Object.entries(item || {}).forEach(([key, value]) => {
     if (value && typeof value === "object") return;
-    fieldRows.appendChild(
-      createFieldRow({
-        key,
-        type: inferType(value),
-        value,
-        locked: key === "id" && editingItemId !== null,
-      })
-    );
+    fieldRows.appendChild(createFieldRow({ key, type: inferType(value), value, locked: key === "id" && editingItemId !== null }));
   });
-  if (!fieldRows.children.length) {
-    fieldRows.appendChild(createFieldRow());
-  }
+  if (!fieldRows.children.length) fieldRows.appendChild(createFieldRow());
 }
 
 function readItemFromForm() {
@@ -164,56 +292,40 @@ function readItemFromForm() {
     const key = row.querySelector('[data-role="field-key"]').value.trim();
     const type = row.querySelector('[data-role="field-type"]').value;
     if (!key) continue;
-
     if (type === "boolean") {
-      const checked = row.querySelector('[data-role="field-value-bool"]').checked;
-      result[key] = checked;
+      result[key] = row.querySelector('[data-role="field-value-bool"]').checked;
       continue;
     }
-
     const raw = row.querySelector('[data-role="field-value"]').value;
-    if (type === "number") {
-      result[key] = raw === "" ? 0 : Number(raw);
-    } else {
-      result[key] = raw;
-    }
+    result[key] = type === "number" ? (raw === "" ? 0 : Number(raw)) : raw;
   }
   return result;
 }
 
 function renderItemsTable() {
   if (!activeCategory) {
-    itemsTableWrap.innerHTML = `<p class="muted">Сначала выберите категорию.</p>`;
+    itemsTableWrap.innerHTML = '<p class="muted">Сначала выберите категорию.</p>';
     return;
   }
-
   const rows = currentItems
     .map((item) => {
       const id = String(item.id ?? "");
-      const summary = itemSummary(item);
       return `
         <tr>
-          <td style="padding:8px;border-bottom:1px solid #262626;font-family:monospace;">${id}</td>
-          <td style="padding:8px;border-bottom:1px solid #262626;">${summary}</td>
-          <td style="padding:8px;border-bottom:1px solid #262626;white-space:nowrap;">
-            <button class="btn" data-action="edit" data-id="${id}">Редактировать</button>
-            <button class="btn" data-action="delete" data-id="${id}">Удалить</button>
+          <td style="font-family:monospace;">${escapeHtml(id)}</td>
+          <td>${escapeHtml(itemSummary(item))}</td>
+          <td>
+            <button class="btn" data-action="edit" data-id="${escapeHtml(id)}">Редактировать</button>
+            <button class="btn" data-action="delete" data-id="${escapeHtml(id)}">Удалить</button>
           </td>
         </tr>
       `;
     })
     .join("");
-
   itemsTableWrap.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:14px;">
-      <thead>
-        <tr>
-          <th style="text-align:left;padding:8px;border-bottom:1px solid #262626;">ID</th>
-          <th style="text-align:left;padding:8px;border-bottom:1px solid #262626;">Кратко</th>
-          <th style="text-align:left;padding:8px;border-bottom:1px solid #262626;">Действия</th>
-        </tr>
-      </thead>
-      <tbody>${rows || `<tr><td colspan="3" style="padding:12px;" class="muted">Пусто</td></tr>`}</tbody>
+    <table class="table">
+      <thead><tr><th>ID</th><th>Кратко</th><th>Действия</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="3" class="muted">Пусто</td></tr>'}</tbody>
     </table>
   `;
 }
@@ -221,15 +333,7 @@ function renderItemsTable() {
 async function loadCategories() {
   const data = await apiGet("/admin/api/categories");
   const categories = data.categories || [];
-  categoriesList.innerHTML = categories
-    .map(
-      (c) => `
-      <button class="btn" data-category="${c.name}">
-        ${c.name} (${c.count})
-      </button>
-    `
-    )
-    .join("");
+  categoriesList.innerHTML = categories.map((c) => `<button class="btn" data-category="${c.name}">${c.name} (${c.count})</button>`).join("");
 }
 
 async function loadCategoryItems(category) {
@@ -250,48 +354,29 @@ function openItemModal(title, item) {
 async function saveItemModal() {
   if (!activeCategory) return;
   const parsed = readItemFromForm();
-  if (!parsed.id && editingItemId) {
-    parsed.id = editingItemId;
-  }
+  if (!parsed.id && editingItemId) parsed.id = editingItemId;
   if (!parsed.id && activeCategory !== "ads") {
     alert("Укажите поле id");
     return;
   }
-
   if (editingItemId) {
-    await apiJson(
-      `/admin/api/categories/${encodeURIComponent(activeCategory)}/items/${encodeURIComponent(editingItemId)}`,
-      "PUT",
-      { item: parsed }
-    );
-    notify("Элемент обновлен");
+    await apiJson(`/admin/api/categories/${encodeURIComponent(activeCategory)}/items/${encodeURIComponent(editingItemId)}`, "PUT", { item: parsed });
   } else {
-    await apiJson(`/admin/api/categories/${encodeURIComponent(activeCategory)}/items`, "POST", {
-      item: parsed,
-    });
-    notify("Элемент добавлен");
+    await apiJson(`/admin/api/categories/${encodeURIComponent(activeCategory)}/items`, "POST", { item: parsed });
   }
   itemModal.close();
   editingItemId = null;
   await loadCategoryItems(activeCategory);
   await loadCategories();
+  await loadDashboard();
 }
 
 async function deleteItem(id) {
-  if (!activeCategory) return;
-  if (!confirm("Удалить элемент?")) return;
-  await apiJson(
-    `/admin/api/categories/${encodeURIComponent(activeCategory)}/items/${encodeURIComponent(id)}`,
-    "DELETE",
-    {}
-  );
-  notify("Элемент удален");
+  if (!activeCategory || !confirm("Удалить элемент?")) return;
+  await apiJson(`/admin/api/categories/${encodeURIComponent(activeCategory)}/items/${encodeURIComponent(id)}`, "DELETE", {});
   await loadCategoryItems(activeCategory);
   await loadCategories();
-}
-
-function openAddAdModal() {
-  adModal.showModal();
+  await loadDashboard();
 }
 
 function readManualAd() {
@@ -320,17 +405,17 @@ async function saveManualAd() {
     alert("Заполните минимум username и ссылку");
     return;
   }
-  await apiJson(`/admin/api/categories/ads/items`, "POST", { item: ad });
+  await apiJson("/admin/api/categories/ads/items", "POST", { item: ad });
   adModal.close();
-  notify("Объявление добавлено");
   if (activeCategory === "ads") await loadCategoryItems("ads");
   await loadCategories();
+  await loadDashboard();
 }
 
 async function doUserSearch() {
   const q = userSearchInput.value.trim();
   if (q.length < 2) {
-    userSearchResults.innerHTML = `<p class="muted" style="margin:0;">Введите минимум 2 символа.</p>`;
+    userSearchResults.innerHTML = '<p class="muted" style="margin:0;">Введите минимум 2 символа.</p>';
     return;
   }
   const res = await apiGet(`/admin/api/search/users?q=${encodeURIComponent(q)}`);
@@ -338,30 +423,70 @@ async function doUserSearch() {
     .map(
       (r) => `
       <tr>
-        <td style="padding:8px;border-bottom:1px solid #262626;">${r.category}</td>
-        <td style="padding:8px;border-bottom:1px solid #262626;font-family:monospace;">${r.id ?? ""}</td>
-        <td style="padding:8px;border-bottom:1px solid #262626;">${r.username || ""}</td>
-        <td style="padding:8px;border-bottom:1px solid #262626;">${r.usernameLink || ""}</td>
+        <td>${escapeHtml(r.category)}</td>
+        <td style="font-family:monospace;">${escapeHtml(r.id ?? "")}</td>
+        <td>${escapeHtml(r.username || "")}</td>
+        <td>${escapeHtml(r.usernameLink || "")}</td>
       </tr>
     `
     )
     .join("");
   userSearchResults.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead>
-        <tr>
-          <th style="text-align:left;padding:8px;border-bottom:1px solid #262626;">Категория</th>
-          <th style="text-align:left;padding:8px;border-bottom:1px solid #262626;">ID</th>
-          <th style="text-align:left;padding:8px;border-bottom:1px solid #262626;">Username</th>
-          <th style="text-align:left;padding:8px;border-bottom:1px solid #262626;">Username link</th>
-        </tr>
-      </thead>
-      <tbody>${rows || `<tr><td colspan="4" style="padding:8px;" class="muted">Ничего не найдено</td></tr>`}</tbody>
+    <table class="table">
+      <thead><tr><th>Категория</th><th>ID</th><th>Username</th><th>Username link</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="4" class="muted">Ничего не найдено</td></tr>'}</tbody>
     </table>
   `;
 }
 
+async function loadGuarantConfig() {
+  const data = await apiGet("/admin/api/config/guarant");
+  guarantConfig = data.payload || { guarantor: {}, commissionTiers: [], aboutText: "" };
+  guarantProfileLinkInput.value = guarantConfig?.guarantor?.profileLink || "";
+  guarantDisplayNameInput.value = guarantConfig?.guarantor?.displayName || "";
+  guarantUsernameInput.value = guarantConfig?.guarantor?.username || "";
+  guarantAboutTextInput.value = guarantConfig?.aboutText || "";
+  guarantConditionsInput.value = (guarantConfig?.commissionTiers || []).join("\n");
+}
+
+async function saveGuarantConfig() {
+  const payload = {
+    guarantor: {
+      profileLink: guarantProfileLinkInput.value.trim(),
+      displayName: guarantDisplayNameInput.value.trim(),
+      username: guarantUsernameInput.value.trim(),
+    },
+    aboutText: guarantAboutTextInput.value.trim(),
+    commissionTiers: guarantConditionsInput.value
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean),
+  };
+  await apiJson("/admin/api/config/guarant", "PUT", { payload });
+  notify("Настройки гаранта обновлены");
+  await loadGuarantConfig();
+}
+
+async function switchTab(tabId) {
+  activeTab = tabId;
+  tabButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.tabBtn === tabId));
+  tabViews.forEach((view) => {
+    view.style.display = view.id === `tab-${tabId}` ? "" : "none";
+  });
+
+  if (tabId === "home") await loadDashboard();
+  if (tabId === "main-edit") await loadMainPageConfig();
+  if (tabId === "exchange") await loadCategories();
+  if (tabId === "guarant") await loadGuarantConfig();
+}
+
 document.addEventListener("click", async (e) => {
+  const tabBtn = e.target.closest("[data-tab-btn]");
+  if (tabBtn) {
+    await switchTab(tabBtn.dataset.tabBtn);
+    return;
+  }
+
   const catBtn = e.target.closest("[data-category]");
   if (catBtn) {
     await loadCategoryItems(catBtn.dataset.category);
@@ -376,9 +501,20 @@ document.addEventListener("click", async (e) => {
       if (!item) return;
       editingItemId = id;
       openItemModal(`Редактирование ID: ${id}`, item);
-    }
-    if (actionBtn.dataset.action === "delete") {
+    } else if (actionBtn.dataset.action === "delete") {
       await deleteItem(id);
+    }
+    return;
+  }
+
+  const hotActionBtn = e.target.closest("[data-hot-action]");
+  if (hotActionBtn) {
+    const index = Number(hotActionBtn.dataset.hotIndex);
+    if (hotActionBtn.dataset.hotAction === "edit") {
+      editingHotOfferIndex = index;
+      openHotOfferModal(mainPageConfig?.hotOffers?.offers?.[index]);
+    } else if (hotActionBtn.dataset.hotAction === "delete") {
+      deleteHotOffer(index);
     }
   }
 });
@@ -388,7 +524,7 @@ addItemBtn.addEventListener("click", () => {
   editingItemId = null;
   openItemModal("Новый элемент", { id: "" });
 });
-addAdBtn.addEventListener("click", openAddAdModal);
+addAdBtn.addEventListener("click", () => adModal.showModal());
 itemSaveBtn.addEventListener("click", saveItemModal);
 itemCancelBtn.addEventListener("click", () => itemModal.close());
 adSaveBtn.addEventListener("click", saveManualAd);
@@ -405,7 +541,19 @@ userSearchBtn.addEventListener("click", doUserSearch);
 userSearchInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") doUserSearch();
 });
+refreshKpiBtn.addEventListener("click", loadDashboard);
+saveMainPageBtn.addEventListener("click", saveMainPageConfig);
+addHotOfferBtn.addEventListener("click", () => {
+  editingHotOfferIndex = null;
+  openHotOfferModal(null);
+});
+hotOfferCancelBtn.addEventListener("click", () => {
+  editingHotOfferIndex = null;
+  hotOfferModal.close();
+});
+hotOfferSaveBtn.addEventListener("click", saveHotOfferFromModal);
+saveGuarantBtn.addEventListener("click", saveGuarantConfig);
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await loadCategories();
+  await switchTab("home");
 });

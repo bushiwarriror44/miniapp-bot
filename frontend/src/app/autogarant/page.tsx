@@ -1,20 +1,42 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faShieldHalved, faCoins, faChartColumn } from "@fortawesome/free-solid-svg-icons";
+import { fetchGuarantConfig, type GuarantConfig } from "@/shared/api/guarant-config";
 
-const TG_USERNAME = "autogarant_example";
-const TG_DISPLAY_NAME = "Гарант miniapp-bot";
-const TG_PROFILE_LINK = `https://t.me/${TG_USERNAME}`;
-const TG_AVATAR_URL = `https://t.me/i/userpic/320/${TG_USERNAME}.jpg`;
-
-const COMMISSION_TIERS = [
-  "1) До 100 000 ₽ — 5% от суммы сделки",
-  "2) От 100 000 ₽ до 500 000 ₽ — 4% от суммы сделки",
-  "3) Свыше 500 000 ₽ — 3% от суммы сделки (обсуждается индивидуально)",
-];
+const DEFAULT_CONFIG: GuarantConfig = {
+  guarantor: {
+    username: "autogarant_example",
+    displayName: "Гарант miniapp-bot",
+    profileLink: "https://t.me/autogarant_example",
+  },
+  commissionTiers: [
+    "До 100 000 ₽ — 5% от суммы сделки",
+    "От 100 000 ₽ до 500 000 ₽ — 4% от суммы сделки",
+    "Свыше 500 000 ₽ — 3% от суммы сделки (обсуждается индивидуально)",
+  ],
+  aboutText: "Автогарант сейчас находится в разработке, сейчас гарант доступен в ручном режиме.",
+};
 
 export default function AutogarantPage() {
+  const [config, setConfig] = useState<GuarantConfig>(DEFAULT_CONFIG);
+
+  useEffect(() => {
+    fetchGuarantConfig().then(setConfig).catch(() => undefined);
+  }, []);
+
+  const tgUsername = config.guarantor?.username || DEFAULT_CONFIG.guarantor.username;
+  const tgDisplayName = config.guarantor?.displayName || DEFAULT_CONFIG.guarantor.displayName;
+  const tgProfileLink = config.guarantor?.profileLink || `https://t.me/${tgUsername}`;
+  const tgAvatarUrl = useMemo(
+    () => `https://t.me/i/userpic/320/${tgUsername}.jpg`,
+    [tgUsername],
+  );
+  const commissionTiers = config.commissionTiers?.length
+    ? config.commissionTiers
+    : DEFAULT_CONFIG.commissionTiers;
+
   return (
 		<main className="px-4 py-6">
 			<h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>
@@ -32,14 +54,14 @@ export default function AutogarantPage() {
 					border: '1px solid var(--color-border)',
 				}}>
 				<a
-					href={TG_PROFILE_LINK}
+					href={tgProfileLink}
 					target="_blank"
 					rel="noopener noreferrer"
 					className="flex items-center gap-3 mb-3 no-underline">
 					<span className="relative w-12 h-12 shrink-0 rounded-full overflow-hidden">
 						<img
-							src={TG_AVATAR_URL}
-							alt={TG_DISPLAY_NAME}
+							src={tgAvatarUrl}
+							alt={tgDisplayName}
 							className="w-full h-full object-cover"
 							onError={(e) => {
 								const target = e.currentTarget;
@@ -51,10 +73,10 @@ export default function AutogarantPage() {
 					</span>
 					<div className="min-w-0">
 						<p className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>
-							{TG_DISPLAY_NAME}
+							{tgDisplayName}
 						</p>
 						<p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-							@{TG_USERNAME}
+							@{tgUsername}
 						</p>
 					</div>
 					<span
@@ -65,7 +87,7 @@ export default function AutogarantPage() {
 				</a>
 
 				<p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-					Автогарант сейчас находится в разработке, сейчас гарант доступен в ручном режиме.
+					{config.aboutText || DEFAULT_CONFIG.aboutText}
 				</p>
 			</section>
 
@@ -87,7 +109,7 @@ export default function AutogarantPage() {
 					Текущая ставка комиссии по сделкам
 				</h2>
 				<ul className="space-y-2 text-sm">
-					{COMMISSION_TIERS.map((item, index) => (
+					{commissionTiers.map((item, index) => (
 						<li
 							key={item}
 							className="flex items-start gap-3 rounded-lg py-2.5 px-3"

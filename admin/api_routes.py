@@ -3,9 +3,19 @@ import os
 
 from flask import Blueprint, jsonify, request
 
-from models import DATASET_FILES, Dataset, db
+from models import DATASET_FILES, DEFAULT_DATASETS, Dataset, db
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
+
+EXCHANGE_DATASETS = [
+    "ads",
+    "buyAds",
+    "jobs",
+    "services",
+    "sellChannels",
+    "buyChannels",
+    "other",
+]
 
 @api_bp.route('/health', methods=['GET'])
 def healthcheck():
@@ -77,4 +87,35 @@ def upsert_dataset(dataset_name):
 
 @api_bp.route('/seed/defaults', methods=['GET'])
 def seed_defaults_info():
-    return jsonify({'supportedDatasetNames': sorted(DATASET_FILES.keys())})
+    names = set(DATASET_FILES.keys()) | set(DEFAULT_DATASETS.keys())
+    return jsonify({'supportedDatasetNames': sorted(names)})
+
+
+@api_bp.route('/stats/active-ads-total', methods=['GET'])
+def active_ads_total():
+    total = 0
+    per_category = {}
+
+    for dataset_name in EXCHANGE_DATASETS:
+        row = Dataset.query.filter_by(name=dataset_name).first()
+        if not row:
+            per_category[dataset_name] = 0
+            continue
+
+        try:
+            payload = json.loads(row.payload)
+        except json.JSONDecodeError:
+            per_category[dataset_name] = 0
+            continue
+
+        items_count = 0
+        if isinstance(payload, dict):
+            for value in payload.values():
+                if isinstance(value, list):
+                    items_count = len(value)
+                    break
+
+        per_category[dataset_name] = items_count
+        total += items_count
+
+    return jsonify({'activeAdsTotal': total, 'perCategory': per_category})
