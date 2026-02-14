@@ -212,6 +212,8 @@ export class AppService {
       firstName: user.firstName,
       lastName: user.lastName,
       verified: user.verified,
+      isScam: user.isScam,
+      isBlocked: user.isBlocked,
       rating: {
         auto: ratingAuto,
         manualDelta: user.ratingManualDelta || 0,
@@ -266,6 +268,8 @@ export class AppService {
           telegramId: user.telegramId,
           username: user.username,
           verified: user.verified,
+          isScam: user.isScam,
+          isBlocked: user.isBlocked,
           ratingTotal: profile.rating.total,
           ratingAuto: profile.rating.auto,
           ratingManualDelta: profile.rating.manualDelta,
@@ -301,6 +305,26 @@ export class AppService {
       return null;
     }
     user.verified = Boolean(verified);
+    await this.usersRepository.save(user);
+    return this.buildUserProfile(user);
+  }
+
+  async setUserScam(userId: string, isScam: boolean) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      return null;
+    }
+    user.isScam = Boolean(isScam);
+    await this.usersRepository.save(user);
+    return this.buildUserProfile(user);
+  }
+
+  async setUserBlocked(userId: string, isBlocked: boolean) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      return null;
+    }
+    user.isBlocked = Boolean(isBlocked);
     await this.usersRepository.save(user);
     return this.buildUserProfile(user);
   }

@@ -40,6 +40,12 @@ export class UserEntity {
   @Column({ type: 'boolean', default: false })
   verified: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  isScam: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  isBlocked: boolean;
+
   @Column({ type: 'float', default: 0 })
   ratingManualDelta: number;
 

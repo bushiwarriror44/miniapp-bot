@@ -42,6 +42,8 @@ export type UserProfileResponse = {
   firstName: string | null;
   lastName: string | null;
   verified: boolean;
+  isScam: boolean;
+  isBlocked: boolean;
   rating: {
     auto: number;
     manualDelta: number;

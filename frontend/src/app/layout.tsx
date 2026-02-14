@@ -5,6 +5,7 @@ import { GeistMono } from "geist/font/mono";
 import { Providers } from "./providers";
 import { BottomNav } from "./components/BottomNav";
 import { AppLoader } from "./components/AppLoader";
+import { AppBlockGuard } from "./components/AppBlockGuard";
 
 export const metadata: Metadata = {
   title: "Telegram Mini App",
@@ -21,8 +22,10 @@ export default function RootLayout({
       <body className="min-h-screen antialiased font-sans" style={{ backgroundColor: "var(--color-bg)", color: "var(--color-text)" }} suppressHydrationWarning>
         <Providers>
           <AppLoader />
-          <div className="main-content">{children}</div>
-          <BottomNav />
+          <AppBlockGuard>
+            <div className="main-content">{children}</div>
+            <BottomNav />
+          </AppBlockGuard>
         </Providers>
       </body>
     </html>

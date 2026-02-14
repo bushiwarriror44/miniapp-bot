@@ -11,7 +11,7 @@ let faqItems = [];
 let editingFaqId = null;
 let adminUsers = [];
 let selectedAdminUserId = null;
-let botConfig = { welcomeMessage: "", welcomePhotoUrl: null };
+let botConfig = { welcomeMessage: "", welcomePhotoUrl: null, supportLink: "" };
 const DEBUG_MODAL = true;
 
 const CATEGORY_LABELS = {
@@ -108,6 +108,7 @@ const botWelcomePhotoInput = document.getElementById("botWelcomePhotoInput");
 const botWelcomePhotoPreviewWrap = document.getElementById("botWelcomePhotoPreviewWrap");
 const uploadBotPhotoBtn = document.getElementById("uploadBotPhotoBtn");
 const saveBotConfigBtn = document.getElementById("saveBotConfigBtn");
+const botSupportLinkInput = document.getElementById("botSupportLinkInput");
 const botMessageTelegramIdInput = document.getElementById("botMessageTelegramIdInput");
 const botMessageSendAllInput = document.getElementById("botMessageSendAllInput");
 const botMessageTextInput = document.getElementById("botMessageTextInput");
@@ -824,6 +825,8 @@ function renderAdminUsersTable() {
         <td>${escapeHtml(user.username || "-")}</td>
         <td>${escapeHtml(formatMaybeRating(user.ratingTotal))}</td>
         <td>${user.verified ? "Да" : "Нет"}</td>
+        <td>${user.isScam ? "SCAM!" : "-"}</td>
+        <td>${user.isBlocked ? "Заблокирован" : "-"}</td>
         <td><button class="btn" data-user-select-id="${escapeHtml(user.id)}">Открыть</button></td>
       </tr>
     `
@@ -831,8 +834,8 @@ function renderAdminUsersTable() {
     .join("");
   adminUsersTableWrap.innerHTML = `
     <table class="table">
-      <thead><tr><th>Telegram ID</th><th>Username</th><th>Рейтинг</th><th>Верификация</th><th></th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="5" class="muted">Нет пользователей</td></tr>'}</tbody>
+      <thead><tr><th>Telegram ID</th><th>Username</th><th>Рейтинг</th><th>Верификация</th><th>SCAM</th><th>Блок</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="7" class="muted">Нет пользователей</td></tr>'}</tbody>
     </table>
   `;
 }
@@ -861,6 +864,16 @@ function renderAdminUserDetails(user, statistics) {
           Верифицирован
         </label>
         <button id="adminUserSaveVerifiedBtn" class="btn" style="margin-top:8px;">Сохранить верификацию</button>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:12px;">
+          <input id="adminUserScamInput" type="checkbox" ${user.isScam ? "checked" : ""} />
+          SCAM!
+        </label>
+        <button id="adminUserSaveScamBtn" class="btn" style="margin-top:8px;">Сохранить метку SCAM</button>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:12px;">
+          <input id="adminUserBlockedInput" type="checkbox" ${user.isBlocked ? "checked" : ""} />
+          Заблокирован
+        </label>
+        <button id="adminUserSaveBlockedBtn" class="btn" style="margin-top:8px;">Сохранить блокировку</button>
       </div>
     </div>
     <hr style="margin:12px 0;border:none;border-top:1px solid var(--color-border);" />
@@ -922,6 +935,28 @@ async function saveAdminUserVerified() {
   const verified = Boolean(input?.checked);
   await apiJson(`/admin/api/users/${encodeURIComponent(selectedAdminUserId)}/verified`, "PATCH", {
     verified,
+  });
+  await loadAdminUsers();
+  await openAdminUserCard(selectedAdminUserId);
+}
+
+async function saveAdminUserScam() {
+  if (!selectedAdminUserId) return;
+  const input = document.getElementById("adminUserScamInput");
+  const isScam = Boolean(input?.checked);
+  await apiJson(`/admin/api/users/${encodeURIComponent(selectedAdminUserId)}/scam`, "PATCH", {
+    isScam,
+  });
+  await loadAdminUsers();
+  await openAdminUserCard(selectedAdminUserId);
+}
+
+async function saveAdminUserBlocked() {
+  if (!selectedAdminUserId) return;
+  const input = document.getElementById("adminUserBlockedInput");
+  const isBlocked = Boolean(input?.checked);
+  await apiJson(`/admin/api/users/${encodeURIComponent(selectedAdminUserId)}/blocked`, "PATCH", {
+    isBlocked,
   });
   await loadAdminUsers();
   await openAdminUserCard(selectedAdminUserId);
@@ -996,8 +1031,9 @@ function renderBotPhotoPreview() {
 
 async function loadBotConfig() {
   const data = await apiGet("/admin/api/config/bot");
-  botConfig = data?.payload || { welcomeMessage: "", welcomePhotoUrl: null };
+  botConfig = data?.payload || { welcomeMessage: "", welcomePhotoUrl: null, supportLink: "" };
   if (botWelcomeMessageInput) botWelcomeMessageInput.value = botConfig.welcomeMessage || "";
+  if (botSupportLinkInput) botSupportLinkInput.value = botConfig.supportLink || "";
   renderBotPhotoPreview();
 }
 
@@ -1027,6 +1063,7 @@ async function saveBotConfig() {
   const payload = {
     welcomeMessage: (botWelcomeMessageInput?.value || "").trim(),
     welcomePhotoUrl: botConfig?.welcomePhotoUrl || null,
+    supportLink: (botSupportLinkInput?.value || "").trim() || null,
   };
   await apiJson("/admin/api/config/bot", "PUT", { payload });
   notify("Настройки бота сохранены");
@@ -1259,6 +1296,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (evt.target?.id === "adminUserSaveVerifiedBtn") {
       await saveAdminUserVerified();
+    }
+    if (evt.target?.id === "adminUserSaveScamBtn") {
+      await saveAdminUserScam();
+    }
+    if (evt.target?.id === "adminUserSaveBlockedBtn") {
+      await saveAdminUserBlocked();
     }
   });
   await switchTab("home");

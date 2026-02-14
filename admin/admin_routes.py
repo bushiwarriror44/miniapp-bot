@@ -399,7 +399,11 @@ def put_faq_config():
 @require_login
 def get_bot_config():
     row = Dataset.query.filter_by(name="botConfig").first()
-    payload = _dataset_payload(row) if row else {"welcomeMessage": "", "welcomePhotoUrl": None}
+    payload = _dataset_payload(row) if row else {
+        "welcomeMessage": "",
+        "welcomePhotoUrl": None,
+        "supportLink": "https://t.me/miniapp_admin_example",
+    }
     return jsonify({"name": "botConfig", "payload": payload})
 
 
@@ -414,6 +418,8 @@ def put_bot_config():
         return jsonify({"error": "payload.welcomeMessage must be a string"}), 400
     if payload.get("welcomePhotoUrl") is not None and not isinstance(payload.get("welcomePhotoUrl"), str):
         return jsonify({"error": "payload.welcomePhotoUrl must be null or string"}), 400
+    if payload.get("supportLink") is not None and not isinstance(payload.get("supportLink"), str):
+        return jsonify({"error": "payload.supportLink must be null or string"}), 400
     row = _upsert_dataset("botConfig", payload)
     return jsonify({"ok": True, "updatedAt": row.updated_at.isoformat() if row.updated_at else None})
 
@@ -563,3 +569,45 @@ def admin_users_patch_verified(user_id):
         return jsonify({"error": f"Backend returned {status}"}), status
     except (URLError, ValueError) as exc:
         return jsonify({"error": f"Failed to update verification: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/users/<user_id>/scam", methods=["PATCH"])
+@require_login
+def admin_users_patch_scam(user_id):
+    body = request.get_json(silent=True) or {}
+    is_scam = body.get("isScam")
+    if not isinstance(is_scam, bool):
+        return jsonify({"error": "isScam must be boolean"}), 400
+    try:
+        data = _backend_json(
+            f"/users/{user_id}/scam",
+            "PATCH",
+            {"isScam": is_scam},
+        )
+        return jsonify(data)
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to update SCAM flag: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/users/<user_id>/blocked", methods=["PATCH"])
+@require_login
+def admin_users_patch_blocked(user_id):
+    body = request.get_json(silent=True) or {}
+    is_blocked = body.get("isBlocked")
+    if not isinstance(is_blocked, bool):
+        return jsonify({"error": "isBlocked must be boolean"}), 400
+    try:
+        data = _backend_json(
+            f"/users/{user_id}/blocked",
+            "PATCH",
+            {"isBlocked": is_blocked},
+        )
+        return jsonify(data)
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to update blocked flag: {exc}"}), 502

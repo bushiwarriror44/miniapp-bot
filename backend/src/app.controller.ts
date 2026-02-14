@@ -29,6 +29,14 @@ type UpdateVerifiedRequest = {
   verified?: boolean;
 };
 
+type UpdateScamRequest = {
+  isScam?: boolean;
+};
+
+type UpdateBlockedRequest = {
+  isBlocked?: boolean;
+};
+
 type ProfileViewRequest = {
   viewerTelegramId?: string | number;
 };
@@ -168,6 +176,36 @@ export class AppController {
       throw new HttpException('verified must be boolean', HttpStatus.BAD_REQUEST);
     }
     const user = await this.appService.setUserVerified(id, body.verified);
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    return { ok: true, user };
+  }
+
+  @Patch('users/:id/scam')
+  async updateUserScam(
+    @Param('id') id: string,
+    @Body() body: UpdateScamRequest,
+  ) {
+    if (typeof body?.isScam !== 'boolean') {
+      throw new HttpException('isScam must be boolean', HttpStatus.BAD_REQUEST);
+    }
+    const user = await this.appService.setUserScam(id, body.isScam);
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    return { ok: true, user };
+  }
+
+  @Patch('users/:id/blocked')
+  async updateUserBlocked(
+    @Param('id') id: string,
+    @Body() body: UpdateBlockedRequest,
+  ) {
+    if (typeof body?.isBlocked !== 'boolean') {
+      throw new HttpException('isBlocked must be boolean', HttpStatus.BAD_REQUEST);
+    }
+    const user = await this.appService.setUserBlocked(id, body.isBlocked);
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }

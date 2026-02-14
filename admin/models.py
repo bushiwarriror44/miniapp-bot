@@ -119,6 +119,7 @@ DEFAULT_DATASETS = {
     "botConfig": {
         "welcomeMessage": "Привет! Это Telegram Mini App бот. Нажми кнопку ниже, чтобы открыть мини‑приложение.",
         "welcomePhotoUrl": None,
+        "supportLink": "https://t.me/miniapp_admin_example",
     },
 }
 
