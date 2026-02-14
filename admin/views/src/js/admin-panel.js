@@ -12,6 +12,8 @@ let editingFaqId = null;
 let adminUsers = [];
 let selectedAdminUserId = null;
 let botConfig = { welcomeMessage: "", welcomePhotoUrl: null, supportLink: "" };
+let moderationRequests = [];
+let selectedModerationRequestId = null;
 const DEBUG_MODAL = true;
 
 const CATEGORY_LABELS = {
@@ -95,6 +97,10 @@ const adminUsersSearchInput = document.getElementById("adminUsersSearchInput");
 const adminUsersSearchBtn = document.getElementById("adminUsersSearchBtn");
 const adminUsersTableWrap = document.getElementById("adminUsersTableWrap");
 const adminUserDetailsWrap = document.getElementById("adminUserDetailsWrap");
+const moderationStatusFilter = document.getElementById("moderationStatusFilter");
+const moderationRefreshBtn = document.getElementById("moderationRefreshBtn");
+const moderationRequestsTableWrap = document.getElementById("moderationRequestsTableWrap");
+const moderationRequestDetailsWrap = document.getElementById("moderationRequestDetailsWrap");
 
 const faqTableWrap = document.getElementById("faqTableWrap");
 const addFaqBtn = document.getElementById("addFaqBtn");
@@ -962,6 +968,133 @@ async function saveAdminUserBlocked() {
   await openAdminUserCard(selectedAdminUserId);
 }
 
+function renderModerationRequestsTable() {
+  const rows = moderationRequests
+    .map(
+      (req) => `
+      <tr>
+        <td style="font-family:monospace;">${escapeHtml(req.id || "")}</td>
+        <td>${escapeHtml(req.section || "")}</td>
+        <td>${escapeHtml(req.telegramId || "")}</td>
+        <td>${escapeHtml(req.status || "")}</td>
+        <td>${escapeHtml(req.createdAt ? new Date(req.createdAt).toLocaleString("ru-RU") : "-")}</td>
+        <td><button class="btn" data-mod-request-id="${escapeHtml(req.id || "")}">Открыть</button></td>
+      </tr>
+    `
+    )
+    .join("");
+  moderationRequestsTableWrap.innerHTML = `
+    <table class="table">
+      <thead><tr><th>ID</th><th>Раздел</th><th>Telegram ID</th><th>Статус</th><th>Создано</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6" class="muted">Нет заявок</td></tr>'}</tbody>
+    </table>
+  `;
+}
+
+function renderModerationRequestDetails(requestItem) {
+  if (!requestItem) {
+    moderationRequestDetailsWrap.innerHTML = '<p class="muted" style="margin:0;">Заявка не найдена.</p>';
+    return;
+  }
+  const formData = requestItem.formData || {};
+  const fieldsHtml = Object.entries(formData)
+    .map(
+      ([key, value]) => `
+      <div style="display:grid;grid-template-columns:220px 1fr;gap:8px;align-items:center;">
+        <label class="muted">${escapeHtml(key)}</label>
+        <input class="input" data-mod-field="${escapeHtml(key)}" value="${escapeHtml(value == null ? "" : String(value))}" />
+      </div>
+    `
+    )
+    .join("");
+
+  moderationRequestDetailsWrap.innerHTML = `
+    <div class="stack">
+      <p style="margin:0;"><strong>ID:</strong> <span style="font-family:monospace;">${escapeHtml(requestItem.id || "")}</span></p>
+      <p style="margin:0;"><strong>Раздел:</strong> ${escapeHtml(requestItem.section || "-")}</p>
+      <p style="margin:0;"><strong>Статус:</strong> ${escapeHtml(requestItem.status || "-")}</p>
+      <label class="muted">Комментарий администратора</label>
+      <textarea id="moderationAdminNoteInput" class="textarea" style="min-height:90px;">${escapeHtml(requestItem.adminNote || "")}</textarea>
+      <h3 style="margin:6px 0 0 0;font-size:14px;">Поля заявки</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${fieldsHtml || '<p class="muted" style="margin:0;">Нет полей для редактирования</p>'}
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px;">
+        <button id="moderationSaveBtn" class="btn">Сохранить изменения</button>
+        <button id="moderationRejectBtn" class="btn">Отклонить</button>
+        <button id="moderationApproveBtn" class="btn btn-primary">Принять и опубликовать</button>
+      </div>
+      <div id="moderationActionResult" class="muted"></div>
+    </div>
+  `;
+}
+
+function collectModerationFormData(baseFormData) {
+  const result = { ...(baseFormData || {}) };
+  const inputs = moderationRequestDetailsWrap.querySelectorAll("[data-mod-field]");
+  inputs.forEach((input) => {
+    const key = input.getAttribute("data-mod-field");
+    if (!key) return;
+    result[key] = input.value;
+  });
+  return result;
+}
+
+async function loadModerationRequests() {
+  const status = moderationStatusFilter?.value || "pending";
+  const data = await apiGet(`/admin/api/moderation/requests?status=${encodeURIComponent(status)}`);
+  moderationRequests = data.requests || [];
+  renderModerationRequestsTable();
+}
+
+async function openModerationRequest(requestId) {
+  selectedModerationRequestId = requestId;
+  const data = await apiGet(`/admin/api/moderation/requests/${encodeURIComponent(requestId)}`);
+  renderModerationRequestDetails(data.request);
+}
+
+async function saveModerationRequest() {
+  if (!selectedModerationRequestId) return;
+  const selected = moderationRequests.find((x) => x.id === selectedModerationRequestId);
+  const formData = collectModerationFormData(selected?.formData || {});
+  const adminNote = document.getElementById("moderationAdminNoteInput")?.value || "";
+  await apiJson(`/admin/api/moderation/requests/${encodeURIComponent(selectedModerationRequestId)}`, "PATCH", {
+    formData,
+    adminNote,
+  });
+  const result = document.getElementById("moderationActionResult");
+  if (result) result.textContent = "Изменения сохранены.";
+  await loadModerationRequests();
+  await openModerationRequest(selectedModerationRequestId);
+}
+
+async function rejectModerationRequest() {
+  if (!selectedModerationRequestId) return;
+  const adminNote = document.getElementById("moderationAdminNoteInput")?.value || "";
+  await apiJson(`/admin/api/moderation/requests/${encodeURIComponent(selectedModerationRequestId)}/reject`, "PATCH", {
+    adminNote,
+  });
+  const result = document.getElementById("moderationActionResult");
+  if (result) result.textContent = "Заявка отклонена.";
+  await loadModerationRequests();
+  await openModerationRequest(selectedModerationRequestId);
+}
+
+async function approveModerationRequest() {
+  if (!selectedModerationRequestId) return;
+  const selected = moderationRequests.find((x) => x.id === selectedModerationRequestId);
+  const formData = collectModerationFormData(selected?.formData || {});
+  const adminNote = document.getElementById("moderationAdminNoteInput")?.value || "";
+  await apiJson(`/admin/api/moderation/requests/${encodeURIComponent(selectedModerationRequestId)}/approve`, "PATCH", {
+    formData,
+    adminNote,
+  });
+  const result = document.getElementById("moderationActionResult");
+  if (result) result.textContent = "Заявка принята и опубликована.";
+  await loadModerationRequests();
+  await openModerationRequest(selectedModerationRequestId);
+}
+
 function resetFaqEditor() {
   editingFaqId = null;
   faqIdInput.value = "";
@@ -1095,6 +1228,7 @@ async function switchTab(tabId) {
   if (tabId === "exchange") await loadCategories();
   if (tabId === "guarant") await loadGuarantConfig();
   if (tabId === "users") await loadAdminUsers();
+  if (tabId === "moderation") await loadModerationRequests();
   if (tabId === "faq") await loadFaqConfig();
   if (tabId === "bot") await loadBotConfig();
 }
@@ -1166,6 +1300,12 @@ document.addEventListener("click", async (e) => {
       await loadFaqConfig();
       return;
     }
+  }
+
+  const moderationRequestBtn = e.target.closest("[data-mod-request-id]");
+  if (moderationRequestBtn) {
+    await openModerationRequest(moderationRequestBtn.dataset.modRequestId);
+    return;
   }
 });
 
@@ -1240,6 +1380,8 @@ adminUsersSearchInput?.addEventListener("keydown", (e) => {
 addFaqBtn?.addEventListener("click", resetFaqEditor);
 faqResetBtn?.addEventListener("click", resetFaqEditor);
 saveFaqBtn?.addEventListener("click", saveFaqConfig);
+moderationRefreshBtn?.addEventListener("click", loadModerationRequests);
+moderationStatusFilter?.addEventListener("change", loadModerationRequests);
 uploadBotPhotoBtn?.addEventListener("click", async () => {
   try {
     await uploadBotPhoto();
@@ -1302,6 +1444,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (evt.target?.id === "adminUserSaveBlockedBtn") {
       await saveAdminUserBlocked();
+    }
+    if (evt.target?.id === "moderationSaveBtn") {
+      await saveModerationRequest();
+    }
+    if (evt.target?.id === "moderationRejectBtn") {
+      await rejectModerationRequest();
+    }
+    if (evt.target?.id === "moderationApproveBtn") {
+      await approveModerationRequest();
     }
   });
   await switchTab("home");

@@ -25,6 +25,8 @@ import {
 import { fetchSellChannels, type SellChannelItem } from "@/shared/api/sellChannels";
 import { fetchBuyChannels, type BuyChannelItem } from "@/shared/api/buyChannels";
 import { fetchOther, type OtherItem } from "@/shared/api/other";
+import { getTelegramWebApp } from "@/shared/api/client";
+import { submitModerationRequest } from "@/shared/api/moderation";
 import {
   faBullhorn,
   faBriefcase,
@@ -73,6 +75,8 @@ export default function ExchangePage() {
   const [submitSection, setSubmitSection] = useState<SubmitFormSection>("buy-ads");
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [showSuccessNotice, setShowSuccessNotice] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   const openSubmitModal = () => {
     setShowSubmitModal(true);
@@ -86,11 +90,35 @@ export default function ExchangePage() {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmitRequest = () => {
-    setShowSubmitModal(false);
-    setShowSuccessNotice(true);
-    setFormData({});
-    setTimeout(() => setShowSuccessNotice(false), 6000);
+  const handleSubmitRequest = async () => {
+    const tg = getTelegramWebApp();
+    const telegramId = tg?.initDataUnsafe?.user?.id;
+    if (!telegramId) {
+      setSubmitError("Не удалось определить Telegram ID пользователя.");
+      return;
+    }
+    if (!Object.keys(formData).length) {
+      setSubmitError("Заполните хотя бы одно поле заявки.");
+      return;
+    }
+    setSubmitLoading(true);
+    setSubmitError(null);
+    try {
+      await submitModerationRequest({
+        telegramId: String(telegramId),
+        section: submitSection,
+        formData,
+      });
+      setShowSubmitModal(false);
+      setShowSuccessNotice(true);
+      setFormData({});
+      setTimeout(() => setShowSuccessNotice(false), 6000);
+    } catch (error) {
+      console.error("Failed to submit moderation request:", error);
+      setSubmitError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSubmitLoading(false);
+    }
   };
 
   return (
@@ -116,7 +144,7 @@ export default function ExchangePage() {
       {/* Уведомление об отправке заявки */}
       {showSuccessNotice && (
         <div
-          className="fixed left-4 right-4 bottom-6 z-[100] rounded-xl p-4 shadow-lg animate-fade-in"
+          className="fixed left-4 right-4 bottom-6 z-100 rounded-xl p-4 shadow-lg animate-fade-in"
           style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
           role="alert"
         >
@@ -182,11 +210,21 @@ export default function ExchangePage() {
             <button
               type="button"
               onClick={handleSubmitRequest}
+              disabled={submitLoading}
               className="w-full rounded-xl py-3 text-sm font-medium mt-4"
-              style={{ backgroundColor: "var(--color-accent)", color: "white" }}
+              style={{
+                backgroundColor: "var(--color-accent)",
+                color: "white",
+                opacity: submitLoading ? 0.7 : 1,
+              }}
             >
-              Отправить
+              {submitLoading ? "Отправка..." : "Отправить"}
             </button>
+            {submitError && (
+              <p className="text-xs mt-3" style={{ color: "var(--color-accent)" }}>
+                Ошибка отправки заявки: {submitError}
+              </p>
+            )}
           </div>
         </div>
       )}

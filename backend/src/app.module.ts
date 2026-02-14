@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DealEntity } from './entities/deal.entity';
+import { ModerationRequestEntity } from './entities/moderation-request.entity';
 import { ProfileViewEntity } from './entities/profile-view.entity';
 import { UserEntity } from './entities/user.entity';
 import { UserActivityEntity } from './entities/user-activity.entity';
@@ -26,6 +27,7 @@ import { UserAdLinkEntity } from './entities/user-ad-link.entity';
       ProfileViewEntity,
       UserAdLinkEntity,
       DealEntity,
+      ModerationRequestEntity,
     ]),
   ],
   controllers: [AppController],

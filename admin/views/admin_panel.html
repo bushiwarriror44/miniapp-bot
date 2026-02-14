@@ -17,6 +17,7 @@
         <button class="btn tab-btn" data-tab-btn="exchange">Биржа</button>
         <button class="btn tab-btn" data-tab-btn="guarant">Гарант</button>
         <button class="btn tab-btn" data-tab-btn="users">Пользователи</button>
+        <button class="btn tab-btn" data-tab-btn="moderation">Модерация</button>
         <button class="btn tab-btn" data-tab-btn="faq">FAQ</button>
         <button class="btn tab-btn" data-tab-btn="bot">Бот</button>
       </aside>
@@ -111,6 +112,29 @@
           <section class="card" style="padding:12px;">
             <h2 style="margin:0 0 8px 0;font-size:16px;">Карточка пользователя</h2>
             <div id="adminUserDetailsWrap" class="muted">Выберите пользователя в таблице выше.</div>
+          </section>
+        </section>
+
+        <section id="tab-moderation" class="tab-view stack" style="display:none;">
+          <section class="card" style="padding:12px;">
+            <div class="grid-2">
+              <div>
+                <label class="muted" style="display:block;margin-bottom:4px;">Статус заявок</label>
+                <select id="moderationStatusFilter" class="select">
+                  <option value="pending">pending</option>
+                  <option value="approved">approved</option>
+                  <option value="rejected">rejected</option>
+                </select>
+              </div>
+              <div style="display:flex;align-items:end;">
+                <button id="moderationRefreshBtn" class="btn">Обновить</button>
+              </div>
+            </div>
+            <div id="moderationRequestsTableWrap" style="margin-top:10px;"></div>
+          </section>
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 8px 0;font-size:16px;">Карточка заявки</h2>
+            <div id="moderationRequestDetailsWrap" class="muted">Выберите заявку в таблице выше.</div>
           </section>
         </section>
 

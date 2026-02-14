@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime
 from pathlib import Path
 from functools import wraps
 from uuid import uuid4
@@ -34,6 +35,15 @@ EXCHANGE_CATEGORIES = [
     "buyChannels",
     "other",
 ]
+MODERATION_SECTION_TO_DATASET = {
+    "buy-ads": "buyAds",
+    "sell-ads": "ads",
+    "jobs": "jobs",
+    "designers": "services",
+    "sell-channel": "sellChannels",
+    "buy-channel": "buyChannels",
+    "other": "other",
+}
 
 
 def is_logged_in():
@@ -148,6 +158,119 @@ def _build_admin_public_url(path):
     if not base:
         base = request.host_url.rstrip("/")
     return f"{base}{path}"
+
+
+def _to_bool(value, default=False):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        val = value.strip().lower()
+        if val in {"yes", "true", "1", "да"}:
+            return True
+        if val in {"no", "false", "0", "нет"}:
+            return False
+    return default
+
+
+def _to_number(value, default=0):
+    try:
+        if value is None or value == "":
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _normalize_item_for_dataset(section, form_data):
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    if section == "buy-ads":
+        return {
+            "id": str(uuid4()),
+            "username": str(form_data.get("username") or "").lstrip("@"),
+            "priceRange": str(form_data.get("priceRange") or ""),
+            "viewsRange": str(form_data.get("viewsRange") or ""),
+            "theme": str(form_data.get("theme") or ""),
+            "description": str(form_data.get("description") or ""),
+        }
+    if section == "sell-ads":
+        return {
+            "id": str(uuid4()),
+            "adType": str(form_data.get("adType") or "post_in_channel"),
+            "channelOrChatLink": str(form_data.get("channelOrChatLink") or ""),
+            "imageUrl": None,
+            "verified": _to_bool(form_data.get("verified"), False),
+            "username": str(form_data.get("username") or "").lstrip("@"),
+            "price": _to_number(form_data.get("price"), 0),
+            "pinned": _to_bool(form_data.get("pinned"), False),
+            "underGuarantee": _to_bool(form_data.get("underGuarantee"), False),
+            "publishTime": str(form_data.get("publishTime") or "-"),
+            "postDuration": str(form_data.get("postDuration") or "-"),
+            "paymentMethod": str(form_data.get("paymentMethod") or "card"),
+            "theme": str(form_data.get("theme") or ""),
+            "description": str(form_data.get("description") or ""),
+            "publishedAt": today,
+        }
+    if section == "jobs":
+        return {
+            "id": str(uuid4()),
+            "offerType": str(form_data.get("offerType") or "looking_for_work"),
+            "work": str(form_data.get("work") or "other"),
+            "usernameLink": str(form_data.get("usernameLink") or ""),
+            "portfolioUrl": str(form_data.get("portfolioUrl") or ""),
+            "employmentType": str(form_data.get("employmentType") or "project"),
+            "paymentCurrency": str(form_data.get("paymentCurrency") or "rub"),
+            "paymentAmount": str(form_data.get("paymentAmount") or ""),
+            "theme": str(form_data.get("theme") or ""),
+            "description": str(form_data.get("description") or ""),
+        }
+    if section == "designers":
+        return {
+            "id": str(uuid4()),
+            "title": str(form_data.get("title") or ""),
+            "username": str(form_data.get("username") or "").lstrip("@"),
+            "price": _to_number(form_data.get("price"), 0),
+            "theme": str(form_data.get("theme") or ""),
+            "description": str(form_data.get("description") or ""),
+            "publishedAt": today,
+        }
+    if section == "sell-channel":
+        return {
+            "id": str(uuid4()),
+            "name": str(form_data.get("name") or ""),
+            "username": str(form_data.get("username") or "").lstrip("@"),
+            "usernameLink": str(form_data.get("usernameLink") or ""),
+            "subscribers": int(_to_number(form_data.get("subscribers"), 0)),
+            "reach": int(_to_number(form_data.get("reach"), 0)),
+            "price": _to_number(form_data.get("price"), 0),
+            "viaGuarantor": _to_bool(form_data.get("viaGuarantor"), False),
+            "theme": str(form_data.get("theme") or ""),
+            "description": str(form_data.get("description") or ""),
+        }
+    if section == "buy-channel":
+        return {
+            "id": str(uuid4()),
+            "username": str(form_data.get("username") or "").lstrip("@"),
+            "usernameLink": str(form_data.get("usernameLink") or ""),
+            "priceMin": _to_number(form_data.get("priceMin"), 0),
+            "priceMax": _to_number(form_data.get("priceMax"), 0),
+            "reachMin": int(_to_number(form_data.get("reachMin"), 0)),
+            "reachMax": int(_to_number(form_data.get("reachMax"), 0)),
+            "subscribersMin": int(_to_number(form_data.get("subscribersMin"), 0)),
+            "subscribersMax": int(_to_number(form_data.get("subscribersMax"), 0)),
+            "viaGuarantor": _to_bool(form_data.get("viaGuarantor"), False),
+            "theme": str(form_data.get("theme") or ""),
+            "description": str(form_data.get("description") or ""),
+        }
+    if section == "other":
+        return {
+            "id": str(uuid4()),
+            "username": str(form_data.get("username") or "").lstrip("@"),
+            "usernameLink": str(form_data.get("usernameLink") or ""),
+            "verified": _to_bool(form_data.get("verified"), False),
+            "price": _to_number(form_data.get("price"), 0),
+            "description": str(form_data.get("description") or ""),
+        }
+    raise ValueError("Unsupported moderation section")
 
 
 @admin_bp.route("/admin")
@@ -611,3 +734,131 @@ def admin_users_patch_blocked(user_id):
         return jsonify({"error": f"Backend returned {status}"}), status
     except (URLError, ValueError) as exc:
         return jsonify({"error": f"Failed to update blocked flag: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/moderation/requests", methods=["GET"])
+@require_login
+def admin_moderation_list():
+    status = (request.args.get("status") or "").strip()
+    query = {"status": status} if status else None
+    try:
+        data = _backend_get_json("/moderation/requests", query)
+        return jsonify({"requests": data.get("requests", [])})
+    except (HTTPError, URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to load moderation requests: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/moderation/requests/<request_id>", methods=["GET"])
+@require_login
+def admin_moderation_get(request_id):
+    try:
+        data = _backend_get_json(f"/moderation/requests/{request_id}")
+        return jsonify(data)
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to load moderation request: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/moderation/requests/<request_id>", methods=["PATCH"])
+@require_login
+def admin_moderation_update(request_id):
+    body = request.get_json(silent=True) or {}
+    payload = {}
+    if "formData" in body:
+        if not isinstance(body.get("formData"), dict):
+            return jsonify({"error": "formData must be object"}), 400
+        payload["formData"] = body.get("formData")
+    if "adminNote" in body:
+        note = body.get("adminNote")
+        if note is not None and not isinstance(note, str):
+            return jsonify({"error": "adminNote must be null or string"}), 400
+        payload["adminNote"] = note
+    try:
+        data = _backend_json(f"/moderation/requests/{request_id}", "PATCH", payload)
+        return jsonify(data)
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to update moderation request: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/moderation/requests/<request_id>/reject", methods=["PATCH"])
+@require_login
+def admin_moderation_reject(request_id):
+    body = request.get_json(silent=True) or {}
+    payload = {"adminNote": body.get("adminNote")}
+    try:
+        data = _backend_json(f"/moderation/requests/{request_id}/reject", "PATCH", payload)
+        return jsonify(data)
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to reject moderation request: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/moderation/requests/<request_id>/approve", methods=["PATCH"])
+@require_login
+def admin_moderation_approve(request_id):
+    body = request.get_json(silent=True) or {}
+    form_data = body.get("formData")
+    admin_note = body.get("adminNote")
+
+    try:
+        current = _backend_get_json(f"/moderation/requests/{request_id}").get("request", {})
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to load moderation request: {exc}"}), 502
+
+    if current.get("status") == "approved" and current.get("publishedItemId"):
+        return jsonify({"ok": True, "request": current, "alreadyApproved": True})
+
+    if form_data is not None:
+        if not isinstance(form_data, dict):
+            return jsonify({"error": "formData must be object"}), 400
+        try:
+            _backend_json(
+                f"/moderation/requests/{request_id}",
+                "PATCH",
+                {"formData": form_data, "adminNote": admin_note},
+            )
+            current = _backend_get_json(f"/moderation/requests/{request_id}").get("request", current)
+        except HTTPError as exc:
+            status = exc.code if exc.code else 502
+            return jsonify({"error": f"Backend returned {status}"}), status
+        except (URLError, ValueError) as exc:
+            return jsonify({"error": f"Failed to update moderation request before publish: {exc}"}), 502
+
+    section = current.get("section")
+    dataset_name = MODERATION_SECTION_TO_DATASET.get(section)
+    if not dataset_name:
+        return jsonify({"error": f"Unsupported moderation section: {section}"}), 400
+    if not isinstance(current.get("formData"), dict):
+        return jsonify({"error": "Request formData is invalid"}), 400
+
+    row = Dataset.query.filter_by(name=dataset_name).first()
+    if not row:
+        return jsonify({"error": f"Dataset '{dataset_name}' not found"}), 404
+    payload = _dataset_payload(row)
+    list_key, items = _extract_items(payload)
+    new_item = _normalize_item_for_dataset(section, current.get("formData"))
+    items.append(new_item)
+    _save_dataset_items(row, list_key, items)
+
+    try:
+        approved = _backend_json(
+            f"/moderation/requests/{request_id}/approve",
+            "PATCH",
+            {"publishedItemId": new_item.get("id"), "adminNote": admin_note},
+        )
+        return jsonify({"ok": True, "publishedItem": new_item, "request": approved.get("request")})
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to approve moderation request: {exc}"}), 502

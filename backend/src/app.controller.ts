@@ -11,6 +11,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { AppService } from './app.service';
+import type { ModerationSection, ModerationStatus } from './entities/moderation-request.entity';
 
 type TrackUserRequest = {
   telegramId?: string | number;
@@ -39,6 +40,26 @@ type UpdateBlockedRequest = {
 
 type ProfileViewRequest = {
   viewerTelegramId?: string | number;
+};
+
+type CreateModerationRequest = {
+  telegramId?: string | number;
+  section?: ModerationSection;
+  formData?: Record<string, unknown>;
+};
+
+type UpdateModerationRequest = {
+  formData?: Record<string, unknown>;
+  adminNote?: string | null;
+};
+
+type ApproveModerationRequest = {
+  publishedItemId?: string;
+  adminNote?: string | null;
+};
+
+type RejectModerationRequest = {
+  adminNote?: string | null;
 };
 
 @Controller()
@@ -210,5 +231,97 @@ export class AppController {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
     return { ok: true, user };
+  }
+
+  @Post('moderation/requests')
+  @HttpCode(201)
+  async createModeration(@Body() body: CreateModerationRequest) {
+    if (!body?.telegramId) {
+      throw new HttpException('telegramId is required', HttpStatus.BAD_REQUEST);
+    }
+    if (!body?.section) {
+      throw new HttpException('section is required', HttpStatus.BAD_REQUEST);
+    }
+    if (!body?.formData || typeof body.formData !== 'object') {
+      throw new HttpException('formData must be object', HttpStatus.BAD_REQUEST);
+    }
+    try {
+      const requestEntity = await this.appService.createModerationRequest({
+        telegramId: body.telegramId,
+        section: body.section,
+        formData: body.formData,
+      });
+      return { ok: true, request: requestEntity };
+    } catch (error) {
+      throw new HttpException(
+        error instanceof Error ? error.message : 'Failed to create moderation request',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('moderation/requests')
+  async listModeration(@Query('status') status?: ModerationStatus) {
+    const requests = await this.appService.listModerationRequests(status);
+    return { requests };
+  }
+
+  @Get('moderation/requests/:id')
+  async getModerationById(@Param('id') id: string) {
+    const requestEntity = await this.appService.getModerationRequestById(id);
+    if (!requestEntity) {
+      throw new HttpException('Moderation request not found', HttpStatus.NOT_FOUND);
+    }
+    return { request: requestEntity };
+  }
+
+  @Patch('moderation/requests/:id')
+  async updateModerationById(
+    @Param('id') id: string,
+    @Body() body: UpdateModerationRequest,
+  ) {
+    try {
+      const requestEntity = await this.appService.updateModerationRequest(id, body);
+      if (!requestEntity) {
+        throw new HttpException('Moderation request not found', HttpStatus.NOT_FOUND);
+      }
+      return { ok: true, request: requestEntity };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        error instanceof Error ? error.message : 'Failed to update moderation request',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Patch('moderation/requests/:id/approve')
+  async approveModerationById(
+    @Param('id') id: string,
+    @Body() body: ApproveModerationRequest,
+  ) {
+    const requestEntity = await this.appService.approveModerationRequest(
+      id,
+      body?.publishedItemId,
+      body?.adminNote,
+    );
+    if (!requestEntity) {
+      throw new HttpException('Moderation request not found', HttpStatus.NOT_FOUND);
+    }
+    return { ok: true, request: requestEntity };
+  }
+
+  @Patch('moderation/requests/:id/reject')
+  async rejectModerationById(
+    @Param('id') id: string,
+    @Body() body: RejectModerationRequest,
+  ) {
+    const requestEntity = await this.appService.rejectModerationRequest(id, body?.adminNote);
+    if (!requestEntity) {
+      throw new HttpException('Moderation request not found', HttpStatus.NOT_FOUND);
+    }
+    return { ok: true, request: requestEntity };
   }
 }

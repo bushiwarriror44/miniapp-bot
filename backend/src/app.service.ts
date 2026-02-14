@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThanOrEqual, Repository } from 'typeorm';
 import { DealEntity } from './entities/deal.entity';
+import {
+  ModerationRequestEntity,
+  type ModerationSection,
+  type ModerationStatus,
+} from './entities/moderation-request.entity';
 import { ProfileViewEntity } from './entities/profile-view.entity';
 import { UserEntity } from './entities/user.entity';
 import { UserActivityEntity } from './entities/user-activity.entity';
@@ -51,6 +56,27 @@ type FavoriteAdItem = {
   publishedAt: string;
 };
 
+type SubmitModerationRequestPayload = {
+  telegramId: string | number;
+  section: ModerationSection;
+  formData: Record<string, unknown>;
+};
+
+type UpdateModerationRequestPayload = {
+  formData?: Record<string, unknown>;
+  adminNote?: string | null;
+};
+
+const ALLOWED_MODERATION_SECTIONS: ModerationSection[] = [
+  'buy-ads',
+  'sell-ads',
+  'jobs',
+  'designers',
+  'sell-channel',
+  'buy-channel',
+  'other',
+];
+
 @Injectable()
 export class AppService {
   constructor(
@@ -64,6 +90,8 @@ export class AppService {
     private readonly userAdLinksRepository: Repository<UserAdLinkEntity>,
     @InjectRepository(DealEntity)
     private readonly dealsRepository: Repository<DealEntity>,
+    @InjectRepository(ModerationRequestEntity)
+    private readonly moderationRequestsRepository: Repository<ModerationRequestEntity>,
   ) {}
 
   getHello(): string {
@@ -390,5 +418,98 @@ export class AppService {
         ? new Date(link.createdAt).toISOString().slice(0, 10)
         : new Date().toISOString().slice(0, 10),
     }));
+  }
+
+  private validateModerationSection(section: string): section is ModerationSection {
+    return ALLOWED_MODERATION_SECTIONS.includes(section as ModerationSection);
+  }
+
+  private ensureObject(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+  }
+
+  async createModerationRequest(payload: SubmitModerationRequestPayload) {
+    const telegramId = String(payload.telegramId || '').trim();
+    if (!telegramId) {
+      throw new Error('telegramId is required');
+    }
+    if (!this.validateModerationSection(payload.section)) {
+      throw new Error('invalid section');
+    }
+    if (!this.ensureObject(payload.formData) || Object.keys(payload.formData).length === 0) {
+      throw new Error('formData must be non-empty object');
+    }
+
+    const user = await this.usersRepository.findOne({ where: { telegramId } });
+    const entity = this.moderationRequestsRepository.create({
+      telegramId,
+      userId: user?.id ?? null,
+      section: payload.section,
+      formData: payload.formData,
+      status: 'pending',
+      adminNote: null,
+      publishedItemId: null,
+      processedAt: null,
+    });
+    return this.moderationRequestsRepository.save(entity);
+  }
+
+  async listModerationRequests(status?: ModerationStatus) {
+    const where = status ? { status } : {};
+    return this.moderationRequestsRepository.find({
+      where,
+      order: { createdAt: 'DESC' },
+      take: 300,
+    });
+  }
+
+  async getModerationRequestById(id: string) {
+    return this.moderationRequestsRepository.findOne({ where: { id } });
+  }
+
+  async updateModerationRequest(id: string, payload: UpdateModerationRequestPayload) {
+    const entity = await this.moderationRequestsRepository.findOne({ where: { id } });
+    if (!entity) {
+      return null;
+    }
+    if (entity.status !== 'pending') {
+      throw new Error('only pending requests can be edited');
+    }
+    if (payload.formData != null) {
+      if (!this.ensureObject(payload.formData) || Object.keys(payload.formData).length === 0) {
+        throw new Error('formData must be non-empty object');
+      }
+      entity.formData = payload.formData;
+    }
+    if (payload.adminNote !== undefined) {
+      entity.adminNote = payload.adminNote;
+    }
+    return this.moderationRequestsRepository.save(entity);
+  }
+
+  async approveModerationRequest(id: string, publishedItemId?: string, adminNote?: string | null) {
+    const entity = await this.moderationRequestsRepository.findOne({ where: { id } });
+    if (!entity) {
+      return null;
+    }
+    if (entity.status === 'approved' && entity.publishedItemId) {
+      return entity;
+    }
+    entity.status = 'approved';
+    entity.publishedItemId = publishedItemId || entity.publishedItemId || null;
+    entity.adminNote = adminNote ?? entity.adminNote;
+    entity.processedAt = new Date();
+    return this.moderationRequestsRepository.save(entity);
+  }
+
+  async rejectModerationRequest(id: string, adminNote?: string | null) {
+    const entity = await this.moderationRequestsRepository.findOne({ where: { id } });
+    if (!entity) {
+      return null;
+    }
+    entity.status = 'rejected';
+    entity.adminNote = adminNote ?? entity.adminNote;
+    entity.processedAt = new Date();
+    return this.moderationRequestsRepository.save(entity);
   }
 }
