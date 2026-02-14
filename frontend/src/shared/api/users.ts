@@ -9,6 +9,24 @@ type TrackTelegramUserPayload = {
   isPremium?: boolean;
 };
 
+export type FavoriteAdItem = {
+  id: string;
+  adType: "post_in_channel" | "post_in_chat";
+  channelOrChatLink: string;
+  imageUrl: string | null;
+  verified: boolean;
+  username: string;
+  price: number;
+  pinned: boolean;
+  underGuarantee: boolean;
+  publishTime: string;
+  postDuration: string;
+  paymentMethod: "card" | "crypto";
+  theme: string;
+  description: string;
+  publishedAt: string;
+};
+
 export async function trackTelegramUser(payload: TrackTelegramUserPayload): Promise<void> {
   await fetch(`${API_BASE}/users/track`, {
     method: "POST",
@@ -61,4 +79,15 @@ export async function fetchUserStatistics(
   }
   const data = await res.json();
   return data.statistics ?? null;
+}
+
+export async function fetchUserFavorites(
+  telegramId: string | number,
+): Promise<FavoriteAdItem[]> {
+  const res = await fetch(`${API_BASE}/users/me/favorites?telegramId=${encodeURIComponent(String(telegramId))}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load favorites: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  return Array.isArray(data.favorites) ? data.favorites : [];
 }

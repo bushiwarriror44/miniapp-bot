@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faStar, faCheck, faExternalLink } from "@fortawesome/free-solid-svg-icons";
 import { AD_TYPE_LABELS, PAYMENT_LABELS, type AdItem } from "@/shared/api/ads";
 import { formatServiceDate } from "@/shared/api/services";
-import { FAVORITE_ADS } from "../profileData";
+import { getTelegramWebApp } from "@/shared/api/client";
+import { fetchUserFavorites } from "@/shared/api/users";
 
 function FavoriteAdCard({ ad }: { ad: AdItem }) {
   return (
@@ -90,6 +92,30 @@ function FavoriteAdCard({ ad }: { ad: AdItem }) {
 }
 
 export default function ProfileFavoritesPage() {
+  const [favoriteAds, setFavoriteAds] = useState<AdItem[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const telegramId = useMemo(() => {
+    const telegram = getTelegramWebApp();
+    const userId = telegram?.initDataUnsafe?.user?.id;
+    return userId ? String(userId) : "";
+  }, []);
+
+  useEffect(() => {
+    if (!telegramId) {
+      return;
+    }
+    fetchUserFavorites(telegramId)
+      .then((items) => {
+        setFavoriteAds(items as AdItem[]);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        console.error("Failed to load favorites:", error);
+        setFavoriteAds([]);
+        setLoadError(error instanceof Error ? error.message : String(error));
+      });
+  }, [telegramId]);
+
   return (
     <main className="px-4 py-6">
       <Link
@@ -109,15 +135,20 @@ export default function ProfileFavoritesPage() {
           <FontAwesomeIcon icon={faStar} className="w-4 h-4 shrink-0" style={{ color: "var(--color-accent)" }} />
           Избранное
         </h1>
-        {FAVORITE_ADS.length > 0 ? (
+        {favoriteAds.length > 0 ? (
           <div className="space-y-3">
-            {FAVORITE_ADS.map((ad) => (
+            {favoriteAds.map((ad) => (
               <FavoriteAdCard key={ad.id} ad={ad} />
             ))}
           </div>
         ) : (
           <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-            Пока нет объявлений в избранном. Добавляйте их на бирже, нажимая на звёздочку.
+            В избранном пока ничего нет.
+          </p>
+        )}
+        {loadError && (
+          <p className="text-xs mt-2" style={{ color: "var(--color-accent)" }}>
+            Ошибка загрузки избранного: {loadError}
           </p>
         )}
       </section>

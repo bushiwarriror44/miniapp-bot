@@ -33,6 +33,24 @@ type UserStatistics = {
   };
 };
 
+type FavoriteAdItem = {
+  id: string;
+  adType: 'post_in_channel' | 'post_in_chat';
+  channelOrChatLink: string;
+  imageUrl: string | null;
+  verified: boolean;
+  username: string;
+  price: number;
+  pinned: boolean;
+  underGuarantee: boolean;
+  publishTime: string;
+  postDuration: string;
+  paymentMethod: 'card' | 'crypto';
+  theme: string;
+  description: string;
+  publishedAt: string;
+};
+
 @Injectable()
 export class AppService {
   constructor(
@@ -311,5 +329,42 @@ export class AppService {
     });
     await this.profileViewsRepository.save(entry);
     return { ok: true };
+  }
+
+  async getUserFavoritesByTelegramId(
+    telegramId: string | number,
+  ): Promise<FavoriteAdItem[] | null> {
+    const normalized = String(telegramId || '').trim();
+    if (!normalized) {
+      throw new Error('telegramId is required');
+    }
+    const user = await this.usersRepository.findOne({ where: { telegramId: normalized } });
+    if (!user) {
+      return null;
+    }
+    const links = await this.userAdLinksRepository.find({
+      where: [{ userId: user.id, status: 'favorite' }, { userId: user.id, status: 'bookmarked' }],
+      order: { createdAt: 'DESC' },
+    });
+
+    return links.map((link) => ({
+      id: String(link.adId),
+      adType: 'post_in_channel',
+      channelOrChatLink: '',
+      imageUrl: null,
+      verified: user.verified,
+      username: user.username || 'user',
+      price: Number(link.priceCache || 0),
+      pinned: false,
+      underGuarantee: false,
+      publishTime: '-',
+      postDuration: '-',
+      paymentMethod: 'card',
+      theme: link.titleCache || 'Объявление из избранного',
+      description: '',
+      publishedAt: link.createdAt
+        ? new Date(link.createdAt).toISOString().slice(0, 10)
+        : new Date().toISOString().slice(0, 10),
+    }));
   }
 }

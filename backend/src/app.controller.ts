@@ -95,6 +95,18 @@ export class AppController {
     return { statistics };
   }
 
+  @Get('users/me/favorites')
+  async getMyFavorites(@Query('telegramId') telegramId?: string) {
+    if (!telegramId) {
+      throw new HttpException('telegramId is required', HttpStatus.BAD_REQUEST);
+    }
+    const favorites = await this.appService.getUserFavoritesByTelegramId(telegramId);
+    if (!favorites) {
+      return { favorites: [] };
+    }
+    return { favorites };
+  }
+
   @Post('users/:telegramId/profile-view')
   @HttpCode(200)
   async createProfileView(

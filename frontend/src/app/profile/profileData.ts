@@ -1,38 +1,3 @@
 import type { AdItem } from "@/shared/api/ads";
 
-export const FAVORITE_ADS: AdItem[] = [
-  {
-    id: "fav-1",
-    adType: "post_in_channel",
-    channelOrChatLink: "https://t.me/crypto_news",
-    imageUrl: null,
-    verified: true,
-    username: "crypto_seller",
-    price: 1500,
-    pinned: true,
-    underGuarantee: true,
-    publishTime: "вечер",
-    postDuration: "1 час топа и 24 часа в ленте",
-    paymentMethod: "crypto",
-    theme: "криптовалюты, трейдинг",
-    description: "Крипто-канал, аудитория 15k. Готов к долгосрочному сотрудничеству.",
-    publishedAt: "2025-02-01",
-  },
-  {
-    id: "fav-2",
-    adType: "post_in_channel",
-    channelOrChatLink: "https://t.me/design_channel",
-    imageUrl: null,
-    verified: true,
-    username: "design_ch",
-    price: 2200,
-    pinned: true,
-    underGuarantee: true,
-    publishTime: "день",
-    postDuration: "2 часа топа, 48 часов в ленте",
-    paymentMethod: "crypto",
-    theme: "дизайн, креатив",
-    description: "Канал про дизайн. Верифицированный продавец. Залив под гарант.",
-    publishedAt: "2025-02-02",
-  },
-];
+export const FAVORITE_ADS: AdItem[] = [];
