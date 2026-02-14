@@ -1,14 +1,16 @@
 import json
 import os
+from pathlib import Path
 from functools import wraps
+from uuid import uuid4
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
-from uuid import uuid4
 
 from flask import (
     Blueprint,
     jsonify,
+    current_app,
     redirect,
     render_template,
     request,
@@ -128,6 +130,26 @@ def _upsert_dataset(name, payload):
     return row
 
 
+def _uploads_dir():
+    db_path = current_app.config.get("SQLALCHEMY_DATABASE_URI", "")
+    # sqlite:////app/admin/data/app.db -> /app/admin/data
+    if db_path.startswith("sqlite:///"):
+        abs_db = db_path.replace("sqlite:///", "", 1)
+        base_dir = Path(abs_db).resolve().parent
+    else:
+        base_dir = Path(os.getcwd())
+    uploads_dir = base_dir / "bot_uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    return uploads_dir
+
+
+def _build_admin_public_url(path):
+    base = os.getenv("ADMIN_PUBLIC_BASE_URL", "").strip().rstrip("/")
+    if not base:
+        base = request.host_url.rstrip("/")
+    return f"{base}{path}"
+
+
 @admin_bp.route("/admin")
 @admin_bp.route("/admin/")
 def admin_root():
@@ -141,6 +163,11 @@ def admin_static(filename):
     base = os.path.dirname(os.path.abspath(__file__))
     static_dir = os.path.join(base, "views", "src")
     return send_from_directory(static_dir, filename)
+
+
+@admin_bp.route("/admin/uploads/<path:filename>")
+def admin_uploads(filename):
+    return send_from_directory(str(_uploads_dir()), filename)
 
 
 @admin_bp.route("/admin/login", methods=["GET", "POST"])
@@ -366,6 +393,97 @@ def put_faq_config():
         return jsonify({"error": "payload.items must be an array"}), 400
     row = _upsert_dataset("faq", payload)
     return jsonify({"ok": True, "updatedAt": row.updated_at.isoformat() if row.updated_at else None})
+
+
+@admin_bp.route("/admin/api/config/bot", methods=["GET"])
+@require_login
+def get_bot_config():
+    row = Dataset.query.filter_by(name="botConfig").first()
+    payload = _dataset_payload(row) if row else {"welcomeMessage": "", "welcomePhotoUrl": None}
+    return jsonify({"name": "botConfig", "payload": payload})
+
+
+@admin_bp.route("/admin/api/config/bot", methods=["PUT"])
+@require_login
+def put_bot_config():
+    body = request.get_json(silent=True) or {}
+    payload = body.get("payload")
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Body must contain object field 'payload'"}), 400
+    if not isinstance(payload.get("welcomeMessage"), str):
+        return jsonify({"error": "payload.welcomeMessage must be a string"}), 400
+    if payload.get("welcomePhotoUrl") is not None and not isinstance(payload.get("welcomePhotoUrl"), str):
+        return jsonify({"error": "payload.welcomePhotoUrl must be null or string"}), 400
+    row = _upsert_dataset("botConfig", payload)
+    return jsonify({"ok": True, "updatedAt": row.updated_at.isoformat() if row.updated_at else None})
+
+
+@admin_bp.route("/admin/api/config/bot/upload-photo", methods=["POST"])
+@require_login
+def upload_bot_welcome_photo():
+    file = request.files.get("photo")
+    if not file or not file.filename:
+        return jsonify({"error": "Photo file is required"}), 400
+
+    suffix = Path(file.filename).suffix.lower()
+    if suffix not in {".jpg", ".jpeg", ".png", ".webp"}:
+        return jsonify({"error": "Only jpg/jpeg/png/webp are supported"}), 400
+
+    filename = f"{uuid4().hex}{suffix}"
+    destination = _uploads_dir() / filename
+    file.save(destination)
+    public_url = _build_admin_public_url(f"/admin/uploads/{filename}")
+    return jsonify({"ok": True, "url": public_url, "filename": filename})
+
+
+@admin_bp.route("/admin/api/bot/send-message", methods=["POST"])
+@require_login
+def send_bot_message():
+    token = os.getenv("BOT_TOKEN", "").strip()
+    if not token:
+        return jsonify({"error": "BOT_TOKEN is not configured on admin service"}), 500
+
+    body = request.get_json(silent=True) or {}
+    message = str(body.get("message") or "").strip()
+    telegram_id = str(body.get("telegramId") or "").strip()
+    send_to_all = bool(body.get("sendToAll"))
+
+    if not message:
+        return jsonify({"error": "message is required"}), 400
+
+    targets = []
+    if send_to_all:
+        try:
+            users_data = _backend_get_json("/users")
+            targets = [str(user.get("telegramId")) for user in users_data.get("users", []) if user.get("telegramId")]
+        except Exception as exc:  # noqa: BLE001
+            return jsonify({"error": f"Failed to load users list from backend: {exc}"}), 502
+    elif telegram_id:
+        targets = [telegram_id]
+    else:
+        return jsonify({"error": "telegramId is required when sendToAll=false"}), 400
+
+    sent = 0
+    failed = []
+    for chat_id in sorted(set(targets)):
+        payload = json.dumps({"chat_id": chat_id, "text": message}, ensure_ascii=False).encode("utf-8")
+        req = Request(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            data=payload,
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            with urlopen(req, timeout=10) as response:
+                response_data = json.loads(response.read().decode("utf-8"))
+                if response_data.get("ok"):
+                    sent += 1
+                else:
+                    failed.append({"telegramId": chat_id, "error": response_data})
+        except Exception as exc:  # noqa: BLE001
+            failed.append({"telegramId": chat_id, "error": str(exc)})
+
+    return jsonify({"ok": True, "sent": sent, "failed": failed, "total": len(set(targets))})
 
 
 @admin_bp.route("/admin/api/users", methods=["GET"])

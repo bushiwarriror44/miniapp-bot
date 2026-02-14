@@ -378,6 +378,9 @@ curl http://127.0.0.1:5000/api/datasets/ads
 - `GET/PUT /admin/api/config/main-page` — настройка "Изменение главной страницы"
 - `GET/PUT /admin/api/config/guarant` — настройка вкладки "Гарант"
 - `GET/PUT /admin/api/config/faq` — управление FAQ
+- `GET/PUT /admin/api/config/bot` — настройки приветствия бота
+- `POST /admin/api/config/bot/upload-photo` — загрузка фото приветствия (хранится в `admin/data`, не теряется при redeploy)
+- `POST /admin/api/bot/send-message` — отправка сообщений через Telegram-бота
 - `GET /admin/api/users` и `GET /admin/api/users/:id` — список/карточка пользователей
 - `PATCH /admin/api/users/:id/rating-manual` — корректировка рейтинга пользователя
 - `PATCH /admin/api/users/:id/verified` — переключение верификации
@@ -396,6 +399,12 @@ NEXT_PUBLIC_API_URL=https://api.ТВОЙ_ДОМЕН.com
 ```env
 NEXT_PUBLIC_CONTENT_API_URL=http://localhost:5000/api
 ```
+
+Для вкладки `Бот` в админке:
+
+- в `admin` сервисе должен быть доступен `BOT_TOKEN` (через env),
+- при необходимости укажи `ADMIN_PUBLIC_BASE_URL` (например `https://admin.example.com`) для корректного публичного URL загруженной фотографии,
+- для бота можно задать `BOT_CONFIG_API_URL` (по умолчанию `http://127.0.0.1:5000/api/datasets/botConfig`).
 
 Если API недоступно, фронтенд показывает ошибку загрузки в UI и в консоли (без silent fallback на локальные JSON).
 

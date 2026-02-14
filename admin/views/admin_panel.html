@@ -18,6 +18,7 @@
         <button class="btn tab-btn" data-tab-btn="guarant">Гарант</button>
         <button class="btn tab-btn" data-tab-btn="users">Пользователи</button>
         <button class="btn tab-btn" data-tab-btn="faq">FAQ</button>
+        <button class="btn tab-btn" data-tab-btn="bot">Бот</button>
       </aside>
 
       <section class="stack">
@@ -130,6 +131,39 @@
               <button id="faqResetBtn" class="btn">Очистить</button>
               <button id="saveFaqBtn" class="btn btn-primary">Сохранить FAQ</button>
             </div>
+          </section>
+        </section>
+
+        <section id="tab-bot" class="tab-view stack" style="display:none;">
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 8px 0;font-size:16px;">Приветствие в боте (/start)</h2>
+            <label class="muted" style="display:block;margin-bottom:6px;">Текст приветствия</label>
+            <textarea id="botWelcomeMessageInput" class="textarea" style="min-height:120px;" placeholder="Приветственное сообщение для пользователя"></textarea>
+            <div style="margin-top:10px;">
+              <label class="muted" style="display:block;margin-bottom:6px;">Фотография приветствия</label>
+              <input id="botWelcomePhotoInput" type="file" accept="image/png,image/jpeg,image/webp" />
+              <div id="botWelcomePhotoPreviewWrap" style="margin-top:8px;"></div>
+            </div>
+            <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
+              <button id="uploadBotPhotoBtn" class="btn">Загрузить фото</button>
+              <button id="saveBotConfigBtn" class="btn btn-primary">Сохранить настройки бота</button>
+            </div>
+          </section>
+
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 8px 0;font-size:16px;">Отправка сообщений через бота</h2>
+            <div class="grid-2">
+              <input id="botMessageTelegramIdInput" class="input" placeholder="Telegram ID пользователя (если не рассылка)" />
+              <label style="display:flex;align-items:center;gap:8px;">
+                <input id="botMessageSendAllInput" type="checkbox" />
+                Отправить всем пользователям из базы
+              </label>
+            </div>
+            <textarea id="botMessageTextInput" class="textarea" style="min-height:120px;margin-top:8px;" placeholder="Текст сообщения"></textarea>
+            <div style="margin-top:10px;display:flex;justify-content:flex-end;">
+              <button id="sendBotMessageBtn" class="btn btn-primary">Отправить в бота</button>
+            </div>
+            <div id="botMessageResult" class="muted" style="margin-top:8px;"></div>
           </section>
         </section>
       </section>

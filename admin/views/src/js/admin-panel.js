@@ -11,6 +11,7 @@ let faqItems = [];
 let editingFaqId = null;
 let adminUsers = [];
 let selectedAdminUserId = null;
+let botConfig = { welcomeMessage: "", welcomePhotoUrl: null };
 const DEBUG_MODAL = true;
 
 const CATEGORY_LABELS = {
@@ -102,6 +103,16 @@ const faqTitleInput = document.getElementById("faqTitleInput");
 const faqTextInput = document.getElementById("faqTextInput");
 const faqResetBtn = document.getElementById("faqResetBtn");
 const saveFaqBtn = document.getElementById("saveFaqBtn");
+const botWelcomeMessageInput = document.getElementById("botWelcomeMessageInput");
+const botWelcomePhotoInput = document.getElementById("botWelcomePhotoInput");
+const botWelcomePhotoPreviewWrap = document.getElementById("botWelcomePhotoPreviewWrap");
+const uploadBotPhotoBtn = document.getElementById("uploadBotPhotoBtn");
+const saveBotConfigBtn = document.getElementById("saveBotConfigBtn");
+const botMessageTelegramIdInput = document.getElementById("botMessageTelegramIdInput");
+const botMessageSendAllInput = document.getElementById("botMessageSendAllInput");
+const botMessageTextInput = document.getElementById("botMessageTextInput");
+const sendBotMessageBtn = document.getElementById("sendBotMessageBtn");
+const botMessageResult = document.getElementById("botMessageResult");
 
 function notify(text) {
   console.log(text);
@@ -970,6 +981,71 @@ async function saveFaqConfig() {
   await loadFaqConfig();
 }
 
+function renderBotPhotoPreview() {
+  if (!botWelcomePhotoPreviewWrap) return;
+  const url = botConfig?.welcomePhotoUrl;
+  if (!url) {
+    botWelcomePhotoPreviewWrap.innerHTML = '<p class="muted" style="margin:0;">Фото не загружено.</p>';
+    return;
+  }
+  botWelcomePhotoPreviewWrap.innerHTML = `
+    <img src="${escapeHtml(url)}" alt="welcome photo" style="max-width:220px;border-radius:8px;border:1px solid var(--color-border);" />
+    <p class="muted" style="margin:6px 0 0 0;word-break:break-all;">${escapeHtml(url)}</p>
+  `;
+}
+
+async function loadBotConfig() {
+  const data = await apiGet("/admin/api/config/bot");
+  botConfig = data?.payload || { welcomeMessage: "", welcomePhotoUrl: null };
+  if (botWelcomeMessageInput) botWelcomeMessageInput.value = botConfig.welcomeMessage || "";
+  renderBotPhotoPreview();
+}
+
+async function uploadBotPhoto() {
+  const file = botWelcomePhotoInput?.files?.[0];
+  if (!file) {
+    alert("Сначала выберите фото");
+    return;
+  }
+  const formData = new FormData();
+  formData.append("photo", file);
+  const res = await fetch("/admin/api/config/bot/upload-photo", {
+    method: "POST",
+    credentials: "same-origin",
+    body: formData,
+  });
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+  const data = await res.json();
+  botConfig.welcomePhotoUrl = data.url;
+  renderBotPhotoPreview();
+  notify("Фото загружено");
+}
+
+async function saveBotConfig() {
+  const payload = {
+    welcomeMessage: (botWelcomeMessageInput?.value || "").trim(),
+    welcomePhotoUrl: botConfig?.welcomePhotoUrl || null,
+  };
+  await apiJson("/admin/api/config/bot", "PUT", { payload });
+  notify("Настройки бота сохранены");
+  await loadBotConfig();
+}
+
+async function sendBotMessage() {
+  const payload = {
+    telegramId: (botMessageTelegramIdInput?.value || "").trim(),
+    sendToAll: Boolean(botMessageSendAllInput?.checked),
+    message: (botMessageTextInput?.value || "").trim(),
+  };
+  const result = await apiJson("/admin/api/bot/send-message", "POST", payload);
+  const failedCount = Array.isArray(result.failed) ? result.failed.length : 0;
+  botMessageResult.innerHTML = `Отправлено: <strong>${result.sent || 0}</strong> из <strong>${result.total || 0}</strong>${
+    failedCount ? `, ошибок: <strong>${failedCount}</strong>` : ""
+  }`;
+}
+
 async function switchTab(tabId) {
   activeTab = tabId;
   tabButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.tabBtn === tabId));
@@ -983,6 +1059,7 @@ async function switchTab(tabId) {
   if (tabId === "guarant") await loadGuarantConfig();
   if (tabId === "users") await loadAdminUsers();
   if (tabId === "faq") await loadFaqConfig();
+  if (tabId === "bot") await loadBotConfig();
 }
 
 document.addEventListener("click", async (e) => {
@@ -1126,6 +1203,27 @@ adminUsersSearchInput?.addEventListener("keydown", (e) => {
 addFaqBtn?.addEventListener("click", resetFaqEditor);
 faqResetBtn?.addEventListener("click", resetFaqEditor);
 saveFaqBtn?.addEventListener("click", saveFaqConfig);
+uploadBotPhotoBtn?.addEventListener("click", async () => {
+  try {
+    await uploadBotPhoto();
+  } catch (error) {
+    alert(error instanceof Error ? error.message : String(error));
+  }
+});
+saveBotConfigBtn?.addEventListener("click", async () => {
+  try {
+    await saveBotConfig();
+  } catch (error) {
+    alert(error instanceof Error ? error.message : String(error));
+  }
+});
+sendBotMessageBtn?.addEventListener("click", async () => {
+  try {
+    await sendBotMessage();
+  } catch (error) {
+    botMessageResult.textContent = `Ошибка отправки: ${error instanceof Error ? error.message : String(error)}`;
+  }
+});
 
 document.addEventListener("DOMContentLoaded", async () => {
   debugLog("DOMContentLoaded:init", {
