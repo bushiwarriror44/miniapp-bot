@@ -112,9 +112,14 @@ function isDialogSupported(dialogEl) {
 function openDialogSafe(dialogEl, fallbackNoteEl) {
   if (!dialogEl) return;
   if (isDialogSupported(dialogEl)) {
-    if (!dialogEl.open) dialogEl.showModal();
-    if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
-    return;
+    try {
+      if (!dialogEl.open) dialogEl.showModal();
+      if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
+      return;
+    } catch (error) {
+      console.error("showModal failed, fallback to non-modal open:", error);
+      // Continue to fallback mode below.
+    }
   }
 
   dialogEl.setAttribute("open", "");
@@ -130,9 +135,14 @@ function openDialogSafe(dialogEl, fallbackNoteEl) {
 function closeDialogSafe(dialogEl, fallbackNoteEl) {
   if (!dialogEl) return;
   if (isDialogSupported(dialogEl)) {
-    if (dialogEl.open) dialogEl.close();
-    if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
-    return;
+    try {
+      if (dialogEl.open) dialogEl.close();
+      if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
+      return;
+    } catch (error) {
+      console.error("dialog close failed, forcing fallback close:", error);
+      // Continue to fallback mode below.
+    }
   }
 
   dialogEl.removeAttribute("open");
