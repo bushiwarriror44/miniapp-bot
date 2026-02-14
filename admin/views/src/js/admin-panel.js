@@ -116,6 +116,35 @@ function isDialogSupported(dialogEl) {
   return Boolean(dialogEl && typeof dialogEl.showModal === "function" && typeof dialogEl.close === "function");
 }
 
+function isDialogActuallyVisible(dialogEl) {
+  if (!dialogEl) return false;
+  const rect = dialogEl.getBoundingClientRect();
+  const styles = window.getComputedStyle(dialogEl);
+  return (
+    dialogEl.open &&
+    styles.display !== "none" &&
+    styles.visibility !== "hidden" &&
+    Number(styles.opacity || "1") > 0 &&
+    rect.width > 0 &&
+    rect.height > 0
+  );
+}
+
+function applyForcedDialogVisibility(dialogEl, fallbackNoteEl) {
+  if (!dialogEl) return;
+  dialogEl.setAttribute("open", "");
+  dialogEl.style.position = "fixed";
+  dialogEl.style.left = "50%";
+  dialogEl.style.top = "50%";
+  dialogEl.style.transform = "translate(-50%, -50%)";
+  dialogEl.style.zIndex = "9999";
+  dialogEl.style.display = "block";
+  dialogEl.style.visibility = "visible";
+  dialogEl.style.opacity = "1";
+  dialogEl.style.pointerEvents = "auto";
+  if (fallbackNoteEl) fallbackNoteEl.style.display = "block";
+}
+
 function openDialogSafe(dialogEl, fallbackNoteEl) {
   debugLog("openDialogSafe:start", {
     hasDialog: Boolean(dialogEl),
@@ -127,12 +156,42 @@ function openDialogSafe(dialogEl, fallbackNoteEl) {
   if (!dialogEl) return;
   if (isDialogSupported(dialogEl)) {
     try {
+      // Reset any stale inline styles from previous fallback opens.
+      dialogEl.style.display = "";
+      dialogEl.style.visibility = "";
+      dialogEl.style.opacity = "";
+      dialogEl.style.pointerEvents = "";
+
       if (!dialogEl.open) dialogEl.showModal();
       if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
       debugLog("openDialogSafe:showModal:success", {
         dialogId: dialogEl.id,
         currentlyOpen: Boolean(dialogEl.open),
       });
+
+      // In some embedded/webview environments dialog reports "open"
+      // but is not actually painted. Force fallback visibility if needed.
+      if (!isDialogActuallyVisible(dialogEl)) {
+        const rect = dialogEl.getBoundingClientRect();
+        const styles = window.getComputedStyle(dialogEl);
+        debugLog("openDialogSafe:showModal:not-visible", {
+          dialogId: dialogEl.id,
+          open: Boolean(dialogEl.open),
+          rect: { width: rect.width, height: rect.height, x: rect.x, y: rect.y },
+          computed: {
+            display: styles.display,
+            visibility: styles.visibility,
+            opacity: styles.opacity,
+            position: styles.position,
+            zIndex: styles.zIndex,
+          },
+        });
+        applyForcedDialogVisibility(dialogEl, fallbackNoteEl);
+        debugLog("openDialogSafe:forced-visible:applied", {
+          dialogId: dialogEl.id,
+          open: Boolean(dialogEl.open),
+        });
+      }
       return;
     } catch (error) {
       console.error("showModal failed, fallback to non-modal open:", error);
@@ -145,14 +204,7 @@ function openDialogSafe(dialogEl, fallbackNoteEl) {
     }
   }
 
-  dialogEl.setAttribute("open", "");
-  dialogEl.style.position = "fixed";
-  dialogEl.style.left = "50%";
-  dialogEl.style.top = "50%";
-  dialogEl.style.transform = "translate(-50%, -50%)";
-  dialogEl.style.zIndex = "9999";
-  dialogEl.style.display = "block";
-  if (fallbackNoteEl) fallbackNoteEl.style.display = "block";
+  applyForcedDialogVisibility(dialogEl, fallbackNoteEl);
   debugLog("openDialogSafe:fallback:opened", {
     dialogId: dialogEl.id,
     currentlyOpen: Boolean(dialogEl.open),
@@ -190,6 +242,9 @@ function closeDialogSafe(dialogEl, fallbackNoteEl) {
 
   dialogEl.removeAttribute("open");
   dialogEl.style.display = "none";
+  dialogEl.style.visibility = "";
+  dialogEl.style.opacity = "";
+  dialogEl.style.pointerEvents = "";
   if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
   debugLog("closeDialogSafe:fallback:closed", {
     dialogId: dialogEl.id,
