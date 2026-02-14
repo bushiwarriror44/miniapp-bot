@@ -115,12 +115,76 @@
 
   <dialog id="itemModal" class="card" style="border:none;max-width:980px;width:calc(100% - 24px);padding:12px;">
     <h3 id="itemModalTitle" style="margin:0 0 4px 0;">Элемент</h3>
-    <p class="muted" style="margin:0 0 12px 0;font-size:13px;">Редактирование через форму полей (без JSON).</p>
-    <div id="fieldRows" style="display:flex;flex-direction:column;gap:8px;"></div>
-    <button id="addFieldBtn" class="btn" type="button" style="margin-top:10px;">Добавить поле</button>
+    <div class="modal-toggle-row">
+      <p class="muted" style="margin:0;font-size:13px;">Редактирование через форму полей (без JSON).</p>
+      <button id="toggleAdvancedEditBtn" class="btn" type="button" style="display:none;">Показать расширенное отображение</button>
+    </div>
+
+    <section id="simpleAdEditor" style="display:none;">
+      <div class="simple-form-grid">
+        <div class="simple-form-row">
+          <label class="simple-form-label" for="simpleAdTheme">Тема/заголовок</label>
+          <input id="simpleAdTheme" class="input" placeholder="криптовалюты, трейдинг" />
+        </div>
+        <div class="simple-form-row">
+          <label class="simple-form-label" for="simpleAdPrice">Цена</label>
+          <input id="simpleAdPrice" class="input" type="number" placeholder="1500" />
+        </div>
+        <div class="simple-form-row">
+          <label class="simple-form-label" for="simpleAdDescription">Текст объявления</label>
+          <textarea id="simpleAdDescription" class="textarea" style="min-height:100px;" placeholder="Описание объявления"></textarea>
+        </div>
+        <div class="simple-form-row">
+          <label class="simple-form-label" for="simpleAdUsername">Username</label>
+          <input id="simpleAdUsername" class="input" placeholder="crypto_seller" />
+        </div>
+        <div class="simple-form-row">
+          <label class="simple-form-label" for="simpleAdChannelLink">Ссылка канала/чата</label>
+          <input id="simpleAdChannelLink" class="input" placeholder="https://t.me/..." />
+        </div>
+        <div class="simple-form-row">
+          <label class="simple-form-label" for="simpleAdType">Тип объявления</label>
+          <select id="simpleAdType" class="select">
+            <option value="post_in_channel">post_in_channel</option>
+            <option value="post_in_chat">post_in_chat</option>
+          </select>
+        </div>
+        <div class="simple-form-row">
+          <label class="simple-form-label" for="simpleAdPayment">Метод оплаты</label>
+          <select id="simpleAdPayment" class="select">
+            <option value="crypto">crypto</option>
+            <option value="card">card</option>
+          </select>
+        </div>
+        <div class="simple-form-row">
+          <label class="simple-form-label" for="simpleAdPublishTime">Время публикации</label>
+          <input id="simpleAdPublishTime" class="input" placeholder="вечер" />
+        </div>
+        <div class="simple-form-row">
+          <label class="simple-form-label" for="simpleAdPostDuration">Длительность</label>
+          <input id="simpleAdPostDuration" class="input" placeholder="1 час топа и 24 часа в ленте" />
+        </div>
+        <div class="simple-form-row">
+          <span class="simple-form-label">Параметры</span>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;">
+            <label style="display:flex;gap:8px;align-items:center;"><input id="simpleAdVerified" type="checkbox" /> verified</label>
+            <label style="display:flex;gap:8px;align-items:center;"><input id="simpleAdPinned" type="checkbox" /> pinned</label>
+            <label style="display:flex;gap:8px;align-items:center;"><input id="simpleAdUnderGuarantee" type="checkbox" /> underGuarantee</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="advancedEditorSection">
+      <div id="fieldRows" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <button id="addFieldBtn" class="btn" type="button" style="margin-top:10px;">Добавить поле</button>
+    </section>
     <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
       <button id="itemCancelBtn" class="btn" type="button">Отмена</button>
       <button id="itemSaveBtn" class="btn btn-primary" type="button">Сохранить</button>
+    </div>
+    <div id="itemModalFallbackNote" class="modal-fallback-note">
+      Если модальное окно отображается некорректно, проверьте поддержку тега dialog в браузере.
     </div>
   </dialog>
 
@@ -149,6 +213,9 @@
     <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
       <button id="adCancelBtn" class="btn" type="button">Отмена</button>
       <button id="adSaveBtn" class="btn btn-primary" type="button">Сохранить объявление</button>
+    </div>
+    <div id="adModalFallbackNote" class="modal-fallback-note">
+      Если модальное окно не открылось штатно, включен fallback-режим отображения.
     </div>
   </dialog>
 

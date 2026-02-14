@@ -2,6 +2,8 @@ let activeTab = "home";
 let activeCategory = null;
 let currentItems = [];
 let editingItemId = null;
+let editingItemDraft = null;
+let isAdvancedAdsEdit = false;
 let mainPageConfig = { hotOffers: { offers: [] }, news: { channelUrl: "" } };
 let guarantConfig = { guarantor: {}, commissionTiers: [], aboutText: "" };
 let editingHotOfferIndex = null;
@@ -39,10 +41,28 @@ const fieldRows = document.getElementById("fieldRows");
 const addFieldBtn = document.getElementById("addFieldBtn");
 const itemSaveBtn = document.getElementById("itemSaveBtn");
 const itemCancelBtn = document.getElementById("itemCancelBtn");
+const toggleAdvancedEditBtn = document.getElementById("toggleAdvancedEditBtn");
+const simpleAdEditor = document.getElementById("simpleAdEditor");
+const advancedEditorSection = document.getElementById("advancedEditorSection");
+const itemModalFallbackNote = document.getElementById("itemModalFallbackNote");
+
+const simpleAdTheme = document.getElementById("simpleAdTheme");
+const simpleAdPrice = document.getElementById("simpleAdPrice");
+const simpleAdDescription = document.getElementById("simpleAdDescription");
+const simpleAdUsername = document.getElementById("simpleAdUsername");
+const simpleAdChannelLink = document.getElementById("simpleAdChannelLink");
+const simpleAdType = document.getElementById("simpleAdType");
+const simpleAdPayment = document.getElementById("simpleAdPayment");
+const simpleAdPublishTime = document.getElementById("simpleAdPublishTime");
+const simpleAdPostDuration = document.getElementById("simpleAdPostDuration");
+const simpleAdVerified = document.getElementById("simpleAdVerified");
+const simpleAdPinned = document.getElementById("simpleAdPinned");
+const simpleAdUnderGuarantee = document.getElementById("simpleAdUnderGuarantee");
 
 const adModal = document.getElementById("adModal");
 const adSaveBtn = document.getElementById("adSaveBtn");
 const adCancelBtn = document.getElementById("adCancelBtn");
+const adModalFallbackNote = document.getElementById("adModalFallbackNote");
 
 const userSearchInput = document.getElementById("userSearchInput");
 const userSearchBtn = document.getElementById("userSearchBtn");
@@ -83,6 +103,41 @@ async function apiJson(url, method, body) {
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+}
+
+function isDialogSupported(dialogEl) {
+  return Boolean(dialogEl && typeof dialogEl.showModal === "function" && typeof dialogEl.close === "function");
+}
+
+function openDialogSafe(dialogEl, fallbackNoteEl) {
+  if (!dialogEl) return;
+  if (isDialogSupported(dialogEl)) {
+    if (!dialogEl.open) dialogEl.showModal();
+    if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
+    return;
+  }
+
+  dialogEl.setAttribute("open", "");
+  dialogEl.style.position = "fixed";
+  dialogEl.style.left = "50%";
+  dialogEl.style.top = "50%";
+  dialogEl.style.transform = "translate(-50%, -50%)";
+  dialogEl.style.zIndex = "9999";
+  dialogEl.style.display = "block";
+  if (fallbackNoteEl) fallbackNoteEl.style.display = "block";
+}
+
+function closeDialogSafe(dialogEl, fallbackNoteEl) {
+  if (!dialogEl) return;
+  if (isDialogSupported(dialogEl)) {
+    if (dialogEl.open) dialogEl.close();
+    if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
+    return;
+  }
+
+  dialogEl.removeAttribute("open");
+  dialogEl.style.display = "none";
+  if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
 }
 
 async function loadDashboard() {
@@ -153,7 +208,7 @@ function openHotOfferModal(offer) {
   hotOfferTitleInput.value = offer?.title || "";
   hotOfferPriceInput.value = offer?.price || "";
   hotOfferSubtitleInput.value = offer?.subtitle || "";
-  hotOfferModal.showModal();
+  openDialogSafe(hotOfferModal);
 }
 
 function saveHotOfferFromModal() {
@@ -177,7 +232,7 @@ function saveHotOfferFromModal() {
   else offers[editingHotOfferIndex] = record;
 
   mainPageConfig.hotOffers = { offers };
-  hotOfferModal.close();
+  closeDialogSafe(hotOfferModal);
   editingHotOfferIndex = null;
   renderHotOffersTable();
 }
@@ -199,6 +254,58 @@ function inferType(value) {
   if (typeof value === "boolean") return "boolean";
   if (typeof value === "number") return "number";
   return "string";
+}
+
+function fillSimpleAdForm(item) {
+  const source = item || {};
+  simpleAdTheme.value = source.theme || source.title || "";
+  simpleAdPrice.value = source.price == null ? "" : String(source.price);
+  simpleAdDescription.value = source.description || "";
+  simpleAdUsername.value = source.username || "";
+  simpleAdChannelLink.value = source.channelOrChatLink || "";
+  simpleAdType.value = source.adType || "post_in_channel";
+  simpleAdPayment.value = source.paymentMethod || "crypto";
+  simpleAdPublishTime.value = source.publishTime || "";
+  simpleAdPostDuration.value = source.postDuration || "";
+  simpleAdVerified.checked = Boolean(source.verified);
+  simpleAdPinned.checked = Boolean(source.pinned);
+  simpleAdUnderGuarantee.checked = Boolean(source.underGuarantee);
+}
+
+function readSimpleAdForm(baseItem) {
+  const base = { ...(baseItem || {}) };
+  const value = {
+    ...base,
+    theme: simpleAdTheme.value.trim(),
+    title: simpleAdTheme.value.trim(),
+    price: Number(simpleAdPrice.value || 0),
+    description: simpleAdDescription.value.trim(),
+    username: simpleAdUsername.value.trim(),
+    channelOrChatLink: simpleAdChannelLink.value.trim(),
+    adType: simpleAdType.value || "post_in_channel",
+    paymentMethod: simpleAdPayment.value || "crypto",
+    publishTime: simpleAdPublishTime.value.trim(),
+    postDuration: simpleAdPostDuration.value.trim(),
+    verified: Boolean(simpleAdVerified.checked),
+    pinned: Boolean(simpleAdPinned.checked),
+    underGuarantee: Boolean(simpleAdUnderGuarantee.checked),
+  };
+  return value;
+}
+
+function setAdsEditMode(advanced) {
+  isAdvancedAdsEdit = advanced;
+  if (advanced) {
+    simpleAdEditor.style.display = "none";
+    advancedEditorSection.style.display = "";
+    addFieldBtn.style.display = "";
+    toggleAdvancedEditBtn.textContent = "Скрыть расширенное отображение";
+    return;
+  }
+  simpleAdEditor.style.display = "";
+  advancedEditorSection.style.display = "none";
+  addFieldBtn.style.display = "none";
+  toggleAdvancedEditBtn.textContent = "Показать расширенное отображение";
 }
 
 function createFieldRow(field = {}) {
@@ -347,13 +454,31 @@ async function loadCategoryItems(category) {
 
 function openItemModal(title, item) {
   itemModalTitle.textContent = title;
-  fillFormFromItem(item || {});
-  itemModal.showModal();
+  editingItemDraft = { ...(item || {}) };
+  const isAdsCategory = activeCategory === "ads";
+
+  if (isAdsCategory) {
+    toggleAdvancedEditBtn.style.display = "inline-block";
+    fillSimpleAdForm(editingItemDraft);
+    fillFormFromItem(editingItemDraft);
+    setAdsEditMode(false);
+  } else {
+    toggleAdvancedEditBtn.style.display = "none";
+    simpleAdEditor.style.display = "none";
+    advancedEditorSection.style.display = "";
+    addFieldBtn.style.display = "";
+    fillFormFromItem(editingItemDraft);
+  }
+
+  openDialogSafe(itemModal, itemModalFallbackNote);
 }
 
 async function saveItemModal() {
   if (!activeCategory) return;
-  const parsed = readItemFromForm();
+  const parsed =
+    activeCategory === "ads" && !isAdvancedAdsEdit
+      ? readSimpleAdForm(editingItemDraft || {})
+      : readItemFromForm();
   if (!parsed.id && editingItemId) parsed.id = editingItemId;
   if (!parsed.id && activeCategory !== "ads") {
     alert("Укажите поле id");
@@ -364,8 +489,9 @@ async function saveItemModal() {
   } else {
     await apiJson(`/admin/api/categories/${encodeURIComponent(activeCategory)}/items`, "POST", { item: parsed });
   }
-  itemModal.close();
+  closeDialogSafe(itemModal, itemModalFallbackNote);
   editingItemId = null;
+  editingItemDraft = null;
   await loadCategoryItems(activeCategory);
   await loadCategories();
   await loadDashboard();
@@ -406,7 +532,7 @@ async function saveManualAd() {
     return;
   }
   await apiJson("/admin/api/categories/ads/items", "POST", { item: ad });
-  adModal.close();
+  closeDialogSafe(adModal, adModalFallbackNote);
   if (activeCategory === "ads") await loadCategoryItems("ads");
   await loadCategories();
   await loadDashboard();
@@ -524,11 +650,14 @@ addItemBtn.addEventListener("click", () => {
   editingItemId = null;
   openItemModal("Новый элемент", { id: "" });
 });
-addAdBtn.addEventListener("click", () => adModal.showModal());
+addAdBtn.addEventListener("click", () => openDialogSafe(adModal, adModalFallbackNote));
 itemSaveBtn.addEventListener("click", saveItemModal);
-itemCancelBtn.addEventListener("click", () => itemModal.close());
+itemCancelBtn.addEventListener("click", () => {
+  editingItemDraft = null;
+  closeDialogSafe(itemModal, itemModalFallbackNote);
+});
 adSaveBtn.addEventListener("click", saveManualAd);
-adCancelBtn.addEventListener("click", () => adModal.close());
+adCancelBtn.addEventListener("click", () => closeDialogSafe(adModal, adModalFallbackNote));
 addFieldBtn.addEventListener("click", () => fieldRows.appendChild(createFieldRow()));
 fieldRows.addEventListener("click", (e) => {
   const btn = e.target.closest('[data-role="field-remove"]');
@@ -536,6 +665,20 @@ fieldRows.addEventListener("click", (e) => {
     btn.closest(".field-row")?.remove();
     if (!fieldRows.children.length) fieldRows.appendChild(createFieldRow());
   }
+});
+toggleAdvancedEditBtn.addEventListener("click", () => {
+  if (activeCategory !== "ads") return;
+
+  if (isAdvancedAdsEdit) {
+    editingItemDraft = readItemFromForm();
+    fillSimpleAdForm(editingItemDraft);
+    setAdsEditMode(false);
+    return;
+  }
+
+  editingItemDraft = readSimpleAdForm(editingItemDraft || {});
+  fillFormFromItem(editingItemDraft);
+  setAdsEditMode(true);
 });
 userSearchBtn.addEventListener("click", doUserSearch);
 userSearchInput.addEventListener("keydown", (e) => {
@@ -549,7 +692,7 @@ addHotOfferBtn.addEventListener("click", () => {
 });
 hotOfferCancelBtn.addEventListener("click", () => {
   editingHotOfferIndex = null;
-  hotOfferModal.close();
+  closeDialogSafe(hotOfferModal);
 });
 hotOfferSaveBtn.addEventListener("click", saveHotOfferFromModal);
 saveGuarantBtn.addEventListener("click", saveGuarantConfig);
