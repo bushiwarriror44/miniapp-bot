@@ -7,6 +7,16 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 
+class AppState(db.Model):
+    __tablename__ = "app_state"
+
+    key = db.Column(db.String(100), primary_key=True)
+    value = db.Column(db.Text, nullable=False, default="")
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+
 class Dataset(db.Model):
     __tablename__ = "datasets"
 
@@ -80,36 +90,79 @@ def _load_json_file(path):
         return json.load(f)
 
 
-def seed_datasets_from_frontend(project_root):
+def _upsert_state(key, value):
+    row = AppState.query.filter_by(key=key).first()
+    if row:
+        row.value = value
+    else:
+        row = AppState(key=key, value=value)
+        db.session.add(row)
+    return row
+
+
+def _has_state(key):
+    return AppState.query.filter_by(key=key).first() is not None
+
+
+def migrate_datasets_from_frontend(project_root, overwrite_existing=False):
     data_dir = os.path.join(project_root, "frontend", "src", "shared", "data")
     if not os.path.isdir(data_dir):
-        return
+        return {"migrated": [], "skipped": sorted(set(DATASET_FILES.keys()) | set(DEFAULT_DATASETS.keys()))}
+
+    migrated = []
+    skipped = []
 
     for dataset_name, file_name in DATASET_FILES.items():
         file_path = os.path.join(data_dir, file_name)
         if not os.path.isfile(file_path):
+            skipped.append(dataset_name)
             continue
 
         existing = Dataset.query.filter_by(name=dataset_name).first()
-        if existing:
+        if existing and not overwrite_existing:
+            skipped.append(dataset_name)
             continue
 
         payload = _load_json_file(file_path)
-        db.session.add(
-            Dataset(name=dataset_name, payload=json.dumps(payload, ensure_ascii=False))
-        )
+        payload_json = json.dumps(payload, ensure_ascii=False)
+        if existing:
+            existing.payload = payload_json
+        else:
+            db.session.add(Dataset(name=dataset_name, payload=payload_json))
+        migrated.append(dataset_name)
 
     for dataset_name, payload in DEFAULT_DATASETS.items():
         existing = Dataset.query.filter_by(name=dataset_name).first()
-        if existing:
+        if existing and not overwrite_existing:
+            skipped.append(dataset_name)
             continue
-        db.session.add(
-            Dataset(name=dataset_name, payload=json.dumps(payload, ensure_ascii=False))
-        )
+        payload_json = json.dumps(payload, ensure_ascii=False)
+        if existing:
+            existing.payload = payload_json
+        else:
+            db.session.add(Dataset(name=dataset_name, payload=payload_json))
+        migrated.append(dataset_name)
 
     db.session.commit()
+    return {"migrated": sorted(set(migrated)), "skipped": sorted(set(skipped))}
+
+
+def seed_datasets_once(project_root):
+    """
+    One-time bootstrap seed:
+    - Runs only once per DB lifetime.
+    - Never re-seeds after marker is set, so admins can freely edit/delete data.
+    """
+    marker_key = "json_seed_v1_done"
+    if _has_state(marker_key):
+        return {"status": "already-seeded", "migrated": []}
+
+    result = migrate_datasets_from_frontend(project_root, overwrite_existing=False)
+    _upsert_state(marker_key, datetime.utcnow().isoformat())
+    db.session.commit()
+    return {"status": "seeded", **result}
 
 
 def init_all_models(project_root):
     db.create_all()
-    seed_datasets_from_frontend(project_root)
+    seed_datasets_once(project_root)
