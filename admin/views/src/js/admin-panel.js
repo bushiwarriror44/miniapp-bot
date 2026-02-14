@@ -116,6 +116,30 @@ function isDialogSupported(dialogEl) {
   return Boolean(dialogEl && typeof dialogEl.showModal === "function" && typeof dialogEl.close === "function");
 }
 
+function ensureFallbackOverlay() {
+  let overlay = document.getElementById("modalFallbackOverlay");
+  if (overlay) return overlay;
+
+  overlay = document.createElement("div");
+  overlay.id = "modalFallbackOverlay";
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.background = "rgba(0,0,0,0.6)";
+  overlay.style.zIndex = "9998";
+  overlay.style.display = "none";
+  overlay.addEventListener("click", () => {
+    debugLog("modalFallbackOverlay:click", { adModalOpen: Boolean(adModal?.open) });
+    closeDialogSafe(adModal, adModalFallbackNote, { forceFallback: true });
+  });
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function toggleFallbackOverlay(show) {
+  const overlay = ensureFallbackOverlay();
+  overlay.style.display = show ? "block" : "none";
+}
+
 function isDialogActuallyVisible(dialogEl) {
   if (!dialogEl) return false;
   const rect = dialogEl.getBoundingClientRect();
@@ -133,6 +157,7 @@ function isDialogActuallyVisible(dialogEl) {
 function applyForcedDialogVisibility(dialogEl, fallbackNoteEl) {
   if (!dialogEl) return;
   dialogEl.setAttribute("open", "");
+  dialogEl.dataset.fallbackOpen = "1";
   dialogEl.style.position = "fixed";
   dialogEl.style.left = "50%";
   dialogEl.style.top = "50%";
@@ -142,18 +167,33 @@ function applyForcedDialogVisibility(dialogEl, fallbackNoteEl) {
   dialogEl.style.visibility = "visible";
   dialogEl.style.opacity = "1";
   dialogEl.style.pointerEvents = "auto";
+  dialogEl.style.margin = "0";
+  dialogEl.style.maxHeight = "90vh";
+  dialogEl.style.overflow = "auto";
   if (fallbackNoteEl) fallbackNoteEl.style.display = "block";
+  toggleFallbackOverlay(true);
 }
 
-function openDialogSafe(dialogEl, fallbackNoteEl) {
+function openDialogSafe(dialogEl, fallbackNoteEl, options = {}) {
+  const forceFallback = Boolean(options.forceFallback);
   debugLog("openDialogSafe:start", {
     hasDialog: Boolean(dialogEl),
     dialogId: dialogEl?.id || null,
     currentlyOpen: Boolean(dialogEl?.open),
     hasFallbackNote: Boolean(fallbackNoteEl),
     supportsDialog: isDialogSupported(dialogEl),
+    forceFallback,
   });
   if (!dialogEl) return;
+  if (forceFallback) {
+    applyForcedDialogVisibility(dialogEl, fallbackNoteEl);
+    debugLog("openDialogSafe:forced-fallback-only", {
+      dialogId: dialogEl.id,
+      currentlyOpen: Boolean(dialogEl.open),
+    });
+    return;
+  }
+
   if (isDialogSupported(dialogEl)) {
     try {
       // Reset any stale inline styles from previous fallback opens.
@@ -186,6 +226,14 @@ function openDialogSafe(dialogEl, fallbackNoteEl) {
             zIndex: styles.zIndex,
           },
         });
+        try {
+          if (dialogEl.open) dialogEl.close();
+        } catch (closeErr) {
+          debugLog("openDialogSafe:showModal:not-visible:close-error", {
+            dialogId: dialogEl.id,
+            message: closeErr instanceof Error ? closeErr.message : String(closeErr),
+          });
+        }
         applyForcedDialogVisibility(dialogEl, fallbackNoteEl);
         debugLog("openDialogSafe:forced-visible:applied", {
           dialogId: dialogEl.id,
@@ -212,15 +260,17 @@ function openDialogSafe(dialogEl, fallbackNoteEl) {
   });
 }
 
-function closeDialogSafe(dialogEl, fallbackNoteEl) {
+function closeDialogSafe(dialogEl, fallbackNoteEl, options = {}) {
+  const forceFallback = Boolean(options.forceFallback);
   debugLog("closeDialogSafe:start", {
     hasDialog: Boolean(dialogEl),
     dialogId: dialogEl?.id || null,
     currentlyOpen: Boolean(dialogEl?.open),
     supportsDialog: isDialogSupported(dialogEl),
+    forceFallback,
   });
   if (!dialogEl) return;
-  if (isDialogSupported(dialogEl)) {
+  if (!forceFallback && isDialogSupported(dialogEl)) {
     try {
       if (dialogEl.open) dialogEl.close();
       if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
@@ -241,10 +291,16 @@ function closeDialogSafe(dialogEl, fallbackNoteEl) {
   }
 
   dialogEl.removeAttribute("open");
+  delete dialogEl.dataset.fallbackOpen;
   dialogEl.style.display = "none";
   dialogEl.style.visibility = "";
   dialogEl.style.opacity = "";
   dialogEl.style.pointerEvents = "";
+  dialogEl.style.margin = "";
+  dialogEl.style.maxHeight = "";
+  dialogEl.style.overflow = "";
+  const hasFallbackDialogs = document.querySelector('dialog[data-fallback-open="1"]');
+  if (!hasFallbackDialogs) toggleFallbackOverlay(false);
   if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
   debugLog("closeDialogSafe:fallback:closed", {
     dialogId: dialogEl.id,
@@ -645,7 +701,7 @@ async function saveManualAd() {
     return;
   }
   await apiJson("/admin/api/categories/ads/items", "POST", { item: ad });
-  closeDialogSafe(adModal, adModalFallbackNote);
+  closeDialogSafe(adModal, adModalFallbackNote, { forceFallback: true });
   if (activeCategory === "ads") await loadCategoryItems("ads");
   await loadCategories();
   await loadDashboard();
@@ -772,7 +828,7 @@ addAdBtn.addEventListener("click", (event) => {
     dialogOpenBefore: Boolean(adModal?.open),
     eventType: event?.type || null,
   });
-  openDialogSafe(adModal, adModalFallbackNote);
+  openDialogSafe(adModal, adModalFallbackNote, { forceFallback: true });
   debugLog("addAdBtn:after-open-call", {
     dialogOpenAfter: Boolean(adModal?.open),
   });
@@ -783,7 +839,7 @@ itemCancelBtn.addEventListener("click", () => {
   closeDialogSafe(itemModal, itemModalFallbackNote);
 });
 adSaveBtn.addEventListener("click", saveManualAd);
-adCancelBtn.addEventListener("click", () => closeDialogSafe(adModal, adModalFallbackNote));
+adCancelBtn.addEventListener("click", () => closeDialogSafe(adModal, adModalFallbackNote, { forceFallback: true }));
 addFieldBtn.addEventListener("click", () => fieldRows.appendChild(createFieldRow()));
 fieldRows.addEventListener("click", (e) => {
   const btn = e.target.closest('[data-role="field-remove"]');
@@ -845,5 +901,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     });
   }
+  document.addEventListener("keydown", (evt) => {
+    if (evt.key === "Escape" && adModal?.dataset?.fallbackOpen === "1") {
+      debugLog("keydown:escape:fallback-close", { dialogId: "adModal" });
+      closeDialogSafe(adModal, adModalFallbackNote, { forceFallback: true });
+    }
+  });
   await switchTab("home");
 });
