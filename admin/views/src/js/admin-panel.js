@@ -7,6 +7,7 @@ let isAdvancedAdsEdit = false;
 let mainPageConfig = { hotOffers: { offers: [] }, news: { channelUrl: "" } };
 let guarantConfig = { guarantor: {}, commissionTiers: [], aboutText: "" };
 let editingHotOfferIndex = null;
+const DEBUG_MODAL = true;
 
 const tabButtons = Array.from(document.querySelectorAll("[data-tab-btn]"));
 const tabViews = Array.from(document.querySelectorAll(".tab-view"));
@@ -79,6 +80,12 @@ function notify(text) {
   console.log(text);
 }
 
+function debugLog(scope, payload) {
+  if (!DEBUG_MODAL) return;
+  const timestamp = new Date().toISOString();
+  console.log(`[admin-debug][${timestamp}][${scope}]`, payload);
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -110,14 +117,30 @@ function isDialogSupported(dialogEl) {
 }
 
 function openDialogSafe(dialogEl, fallbackNoteEl) {
+  debugLog("openDialogSafe:start", {
+    hasDialog: Boolean(dialogEl),
+    dialogId: dialogEl?.id || null,
+    currentlyOpen: Boolean(dialogEl?.open),
+    hasFallbackNote: Boolean(fallbackNoteEl),
+    supportsDialog: isDialogSupported(dialogEl),
+  });
   if (!dialogEl) return;
   if (isDialogSupported(dialogEl)) {
     try {
       if (!dialogEl.open) dialogEl.showModal();
       if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
+      debugLog("openDialogSafe:showModal:success", {
+        dialogId: dialogEl.id,
+        currentlyOpen: Boolean(dialogEl.open),
+      });
       return;
     } catch (error) {
       console.error("showModal failed, fallback to non-modal open:", error);
+      debugLog("openDialogSafe:showModal:error", {
+        dialogId: dialogEl.id,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : null,
+      });
       // Continue to fallback mode below.
     }
   }
@@ -130,17 +153,37 @@ function openDialogSafe(dialogEl, fallbackNoteEl) {
   dialogEl.style.zIndex = "9999";
   dialogEl.style.display = "block";
   if (fallbackNoteEl) fallbackNoteEl.style.display = "block";
+  debugLog("openDialogSafe:fallback:opened", {
+    dialogId: dialogEl.id,
+    currentlyOpen: Boolean(dialogEl.open),
+    styleDisplay: dialogEl.style.display || null,
+  });
 }
 
 function closeDialogSafe(dialogEl, fallbackNoteEl) {
+  debugLog("closeDialogSafe:start", {
+    hasDialog: Boolean(dialogEl),
+    dialogId: dialogEl?.id || null,
+    currentlyOpen: Boolean(dialogEl?.open),
+    supportsDialog: isDialogSupported(dialogEl),
+  });
   if (!dialogEl) return;
   if (isDialogSupported(dialogEl)) {
     try {
       if (dialogEl.open) dialogEl.close();
       if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
+      debugLog("closeDialogSafe:success", {
+        dialogId: dialogEl.id,
+        currentlyOpen: Boolean(dialogEl.open),
+      });
       return;
     } catch (error) {
       console.error("dialog close failed, forcing fallback close:", error);
+      debugLog("closeDialogSafe:error", {
+        dialogId: dialogEl.id,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : null,
+      });
       // Continue to fallback mode below.
     }
   }
@@ -148,6 +191,11 @@ function closeDialogSafe(dialogEl, fallbackNoteEl) {
   dialogEl.removeAttribute("open");
   dialogEl.style.display = "none";
   if (fallbackNoteEl) fallbackNoteEl.style.display = "none";
+  debugLog("closeDialogSafe:fallback:closed", {
+    dialogId: dialogEl.id,
+    currentlyOpen: Boolean(dialogEl.open),
+    styleDisplay: dialogEl.style.display || null,
+  });
 }
 
 async function loadDashboard() {
@@ -660,7 +708,20 @@ addItemBtn.addEventListener("click", () => {
   editingItemId = null;
   openItemModal("Новый элемент", { id: "" });
 });
-addAdBtn.addEventListener("click", () => openDialogSafe(adModal, adModalFallbackNote));
+addAdBtn.addEventListener("click", (event) => {
+  debugLog("addAdBtn:click", {
+    activeTab,
+    activeCategory,
+    buttonExists: Boolean(addAdBtn),
+    dialogExists: Boolean(adModal),
+    dialogOpenBefore: Boolean(adModal?.open),
+    eventType: event?.type || null,
+  });
+  openDialogSafe(adModal, adModalFallbackNote);
+  debugLog("addAdBtn:after-open-call", {
+    dialogOpenAfter: Boolean(adModal?.open),
+  });
+});
 itemSaveBtn.addEventListener("click", saveItemModal);
 itemCancelBtn.addEventListener("click", () => {
   editingItemDraft = null;
@@ -708,5 +769,26 @@ hotOfferSaveBtn.addEventListener("click", saveHotOfferFromModal);
 saveGuarantBtn.addEventListener("click", saveGuarantConfig);
 
 document.addEventListener("DOMContentLoaded", async () => {
+  debugLog("DOMContentLoaded:init", {
+    hasAddAdBtn: Boolean(addAdBtn),
+    hasAdModal: Boolean(adModal),
+    hasAdSaveBtn: Boolean(adSaveBtn),
+    hasAdCancelBtn: Boolean(adCancelBtn),
+    supportsDialog: isDialogSupported(adModal),
+  });
+  if (adModal) {
+    adModal.addEventListener("close", () => {
+      debugLog("adModal:event:close", {
+        currentlyOpen: Boolean(adModal.open),
+        returnValue: adModal.returnValue || null,
+      });
+    });
+    adModal.addEventListener("cancel", (evt) => {
+      debugLog("adModal:event:cancel", {
+        currentlyOpen: Boolean(adModal.open),
+        defaultPrevented: Boolean(evt.defaultPrevented),
+      });
+    });
+  }
   await switchTab("home");
 });
