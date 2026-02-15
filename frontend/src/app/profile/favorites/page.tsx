@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronLeft, faStar, faCheck, faExternalLink } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faStar, faExternalLink } from "@fortawesome/free-solid-svg-icons";
 import { AD_TYPE_LABELS, PAYMENT_LABELS, type AdItem } from "@/shared/api/ads";
 import { formatServiceDate } from "@/shared/api/services";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { fetchUserFavorites } from "@/shared/api/users";
+import VerifiedBadge from "@/app/components/VerifiedBadge";
 
 function FavoriteAdCard({ ad }: { ad: AdItem }) {
   return (
@@ -48,9 +49,7 @@ function FavoriteAdCard({ ad }: { ad: AdItem }) {
             <span className="font-medium text-sm" style={{ color: "var(--color-text)" }}>
               @{ad.username}
             </span>
-            {ad.verified && (
-              <FontAwesomeIcon icon={faCheck} className="w-3.5 h-3.5" style={{ color: "var(--color-accent)" }} />
-            )}
+            {ad.verified && <VerifiedBadge />}
           </div>
           <a
             href={ad.channelOrChatLink}

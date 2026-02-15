@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faExternalLink } from "@fortawesome/free-solid-svg-icons";
+import { faExternalLink } from "@fortawesome/free-solid-svg-icons";
 import { fetchAds, AD_TYPE_LABELS, PAYMENT_LABELS, type AdItem } from "@/shared/api/ads";
 import { fetchBuyAds, type BuyAdItem } from "@/shared/api/buyAds";
 import {
@@ -28,6 +28,7 @@ import { fetchBuyChannels, type BuyChannelItem } from "@/shared/api/buyChannels"
 import { fetchOther, type OtherItem } from "@/shared/api/other";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { submitModerationRequest } from "@/shared/api/moderation";
+import VerifiedBadge from "@/app/components/VerifiedBadge";
 import {
   faBullhorn,
   faBriefcase,
@@ -675,9 +676,7 @@ function AdCard({ ad }: { ad: AdItem }) {
             <span className="font-medium text-sm" style={{ color: "var(--color-text)" }}>
               @{ad.username}
             </span>
-            {ad.verified && (
-              <FontAwesomeIcon icon={faCheck} className="w-3.5 h-3.5 text-(--color-accent)" />
-            )}
+            {ad.verified && <VerifiedBadge />}
           </div>
           <a
             href={ad.channelOrChatLink}
@@ -941,9 +940,7 @@ function BuyAdCard({ item }: { item: BuyAdItem }) {
           @{item.username}
           <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
         </a>
-        {item.verified && (
-          <FontAwesomeIcon icon={faCheck} className="w-3.5 h-3.5 shrink-0 text-(--color-accent)" />
-        )}
+        {item.verified && <VerifiedBadge />}
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
         <span style={{ color: "var(--color-text-muted)" }}>Сумма:</span>
@@ -1548,9 +1545,7 @@ function ServiceCard({ service }: { service: ServiceItem }) {
         <p className="font-medium text-sm flex-1 min-w-0" style={{ color: "var(--color-text)" }}>
           {service.title}
         </p>
-        {service.verified && (
-          <FontAwesomeIcon icon={faCheck} className="w-3.5 h-3.5 shrink-0 text-(--color-accent)" />
-        )}
+        {service.verified && <VerifiedBadge />}
       </div>
       <div className="flex items-center gap-2">
         <span className="font-semibold text-sm" style={{ color: "var(--color-accent)" }}>
@@ -1889,9 +1884,7 @@ function SellChannelCard({ channel }: { channel: SellChannelItem }) {
             onClick={(e) => e.stopPropagation()}
           >
             @{channel.username}
-            {channel.verified && (
-              <FontAwesomeIcon icon={faCheck} className="w-3.5 h-3.5 text-(--color-accent)" />
-            )}
+            {channel.verified && <VerifiedBadge />}
           </a>
         </div>
       </div>
@@ -2295,9 +2288,7 @@ function BuyChannelCard({ item }: { item: BuyChannelItem }) {
           @{item.username}
           <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
         </a>
-        {item.verified && (
-          <FontAwesomeIcon icon={faCheck} className="w-3.5 h-3.5 shrink-0 text-(--color-accent)" />
-        )}
+        {item.verified && <VerifiedBadge />}
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
         <span style={{ color: "var(--color-text-muted)" }}>Цена (₽):</span>
@@ -2667,9 +2658,7 @@ function OtherCard({ item }: { item: OtherItem }) {
           @{item.username}
           <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
         </a>
-        {item.verified && (
-          <FontAwesomeIcon icon={faCheck} className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--color-accent)" }} />
-        )}
+        {item.verified && <VerifiedBadge />}
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
         <span style={{ color: "var(--color-text-muted)" }}>Верифицирован:</span>
