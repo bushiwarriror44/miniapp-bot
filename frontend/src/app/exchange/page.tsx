@@ -42,6 +42,7 @@ import {
   faFilterCircleXmark,
   faXmark,
   faBox,
+  faShieldHalved,
 } from "@fortawesome/free-solid-svg-icons";
 
 type ExchangeSection = "buy-ads" | "sell-ads" | "jobs" | "designers" | "currency" | "sell-channel" | "buy-channel" | "other";
@@ -617,9 +618,20 @@ function CardExpandedBlock({ authorLink }: { authorLink: string }) {
   const rating: number | null = null;
   return (
     <div className="pt-3 mt-3 space-y-2" style={{ borderTop: "1px solid var(--color-border)" }}>
-      <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-        Проводите сделку через гаранта, чтобы обезопасить свои средства.
-      </p>
+      <div
+        className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+        style={{
+          backgroundColor: "var(--color-accent)",
+          color: "white",
+        }}
+      >
+        <span className="flex shrink-0 w-8 h-8 items-center justify-center rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.25)" }}>
+          <FontAwesomeIcon icon={faShieldHalved} className="w-4 h-4" />
+        </span>
+        <p className="text-xs leading-snug m-0" style={{ color: "white" }}>
+          Проводите сделку через гаранта, чтобы обезопасить свои средства.
+        </p>
+      </div>
       <p className="text-xs" style={{ color: "var(--color-text)" }}>
         Рейтинг: {rating != null ? rating : "—"}
       </p>

@@ -62,6 +62,12 @@ type RejectModerationRequest = {
   adminNote?: string | null;
 };
 
+type CreateSupportRequest = {
+  telegramId?: string | number;
+  username?: string | null;
+  message?: string;
+};
+
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
@@ -323,5 +329,35 @@ export class AppController {
       throw new HttpException('Moderation request not found', HttpStatus.NOT_FOUND);
     }
     return { ok: true, request: requestEntity };
+  }
+
+  @Post('support/requests')
+  @HttpCode(201)
+  async createSupportRequest(@Body() body: CreateSupportRequest) {
+    if (body?.telegramId === undefined || body?.telegramId === null) {
+      throw new HttpException('telegramId is required', HttpStatus.BAD_REQUEST);
+    }
+    if (body?.message === undefined || body?.message === null) {
+      throw new HttpException('message is required', HttpStatus.BAD_REQUEST);
+    }
+    try {
+      const entity = await this.appService.createSupportRequest({
+        telegramId: body.telegramId!,
+        username: body.username ?? null,
+        message: String(body.message),
+      });
+      return { id: entity.id, createdAt: entity.createdAt };
+    } catch (error) {
+      throw new HttpException(
+        error instanceof Error ? error.message : 'Failed to create support request',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('support/requests')
+  async listSupportRequests() {
+    const requests = await this.appService.listSupportRequests();
+    return { requests };
   }
 }

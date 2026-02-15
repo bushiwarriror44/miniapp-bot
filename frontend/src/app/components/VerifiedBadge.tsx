@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 
-const TOOLTIP_TEXT = "Этот пользователь верифицирован";
+const TOOLTIP_TEXT = "Этот \nпользователь \nверифицирован";
 const TOOLTIP_HIDE_MS = 2500;
 
 export default function VerifiedBadge() {

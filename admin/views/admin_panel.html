@@ -21,6 +21,7 @@
         <button class="btn tab-btn" data-tab-btn="moderation">Модерация</button>
         <button class="btn tab-btn" data-tab-btn="moderators" data-admin-only>Модераторы</button>
         <button class="btn tab-btn" data-tab-btn="log" data-admin-only>Лог</button>
+        <button class="btn tab-btn" data-tab-btn="support" data-admin-only>Обращения в поддержку</button>
         <button class="btn tab-btn" data-tab-btn="faq" data-admin-only>FAQ</button>
         <button class="btn tab-btn" data-tab-btn="bot" data-admin-only>Бот</button>
       </aside>
@@ -188,6 +189,16 @@
               <button id="refreshLogBtn" class="btn">Обновить</button>
             </div>
             <div id="logTableWrap" style="overflow:auto;"></div>
+          </section>
+        </section>
+
+        <section id="tab-support" class="tab-view stack" style="display:none;" data-admin-only>
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 8px 0;font-size:16px;">Обращения в поддержку</h2>
+            <div style="margin-bottom:8px;">
+              <button id="refreshSupportBtn" class="btn">Обновить</button>
+            </div>
+            <div id="supportRequestsTableWrap" style="overflow:auto;"></div>
           </section>
         </section>
 

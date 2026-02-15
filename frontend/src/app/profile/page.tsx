@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSun, faMoon, faCheck, faStar, faCircleExclamation, faChartLine, faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
 import { useTheme } from "@/shared/theme/ThemeContext";
 import { getTelegramWebApp } from "@/shared/api/client";
+import { submitSupportRequest } from "@/shared/api/support";
 import { fetchUserProfile, type UserProfileResponse } from "@/shared/api/users";
 
 const ADMIN_TG_LINK = "https://t.me/miniapp_admin_example";
@@ -71,12 +72,31 @@ export default function ProfilePage() {
     );
   };
 
-  const handleSupportSubmit = () => {
-    setShowSupportModal(false);
-    setSupportText("");
-    showNotice(
-      "Ваше обращение отправлено. Мы рассмотрим его и постараемся решить проблему как можно быстрее."
-    );
+  const handleSupportSubmit = async () => {
+    const text = supportText.trim();
+    if (!text) return;
+    const telegram = getTelegramWebApp();
+    const telegramUsername = telegram?.initDataUnsafe?.user?.username ?? tgUsername;
+    const username =
+      typeof telegramUsername === "string" && telegramUsername && telegramUsername !== "user"
+        ? telegramUsername.replace(/^@/, "")
+        : null;
+    try {
+      await submitSupportRequest({
+        telegramId: tgUserId,
+        username: username || undefined,
+        message: text,
+      });
+      setShowSupportModal(false);
+      setSupportText("");
+      showNotice(
+        "Ваше обращение отправлено. Мы рассмотрим его и постараемся решить проблему как можно быстрее."
+      );
+    } catch (err) {
+      showNotice(
+        err instanceof Error ? err.message : "Не удалось отправить обращение. Попробуйте позже."
+      );
+    }
   };
 
   useEffect(() => {

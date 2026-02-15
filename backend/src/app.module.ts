@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { DealEntity } from './entities/deal.entity';
 import { ModerationRequestEntity } from './entities/moderation-request.entity';
 import { ProfileViewEntity } from './entities/profile-view.entity';
+import { SupportRequestEntity } from './entities/support-request.entity';
 import { UserEntity } from './entities/user.entity';
 import { UserActivityEntity } from './entities/user-activity.entity';
 import { UserAdLinkEntity } from './entities/user-ad-link.entity';
@@ -28,6 +29,7 @@ import { UserAdLinkEntity } from './entities/user-ad-link.entity';
       UserAdLinkEntity,
       DealEntity,
       ModerationRequestEntity,
+      SupportRequestEntity,
     ]),
   ],
   controllers: [AppController],

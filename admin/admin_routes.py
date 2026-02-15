@@ -930,6 +930,17 @@ def admin_log():
     return jsonify({"entries": entries})
 
 
+@admin_bp.route("/admin/api/support-requests", methods=["GET"])
+@require_login
+@require_admin
+def admin_support_requests():
+    try:
+        data = _backend_get_json("/support/requests")
+        return jsonify({"requests": data.get("requests", [])})
+    except (HTTPError, URLError, ValueError) as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
 @admin_bp.route("/admin/api/moderation/requests", methods=["GET"])
 @require_login
 def admin_moderation_list():

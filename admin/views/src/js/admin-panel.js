@@ -135,6 +135,8 @@ const editModeratorLabelInput = document.getElementById("editModeratorLabelInput
 const saveModeratorBtn = document.getElementById("saveModeratorBtn");
 const cancelEditModeratorBtn = document.getElementById("cancelEditModeratorBtn");
 const logTableWrap = document.getElementById("logTableWrap");
+const supportRequestsTableWrap = document.getElementById("supportRequestsTableWrap");
+const refreshSupportBtn = document.getElementById("refreshSupportBtn");
 const refreshLogBtn = document.getElementById("refreshLogBtn");
 
 function applyModeratorLayout() {
@@ -1184,6 +1186,42 @@ async function loadLog() {
   }
 }
 
+async function loadSupportRequests() {
+  if (!supportRequestsTableWrap) return;
+  try {
+    const data = await apiGet("/admin/api/support-requests");
+    const requests = data.requests || [];
+    const rows = requests
+      .map(
+        (r) => {
+          const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
+          const username = r.username ? escapeHtml(r.username) : "—";
+          const profileLink = r.username
+            ? `<a href="https://t.me/${escapeHtml(r.username)}" target="_blank" rel="noopener">@${escapeHtml(r.username)}</a>`
+            : escapeHtml(String(r.telegramId || ""));
+          const message = escapeHtml(r.message || "");
+          return `
+      <tr>
+        <td class="muted" style="font-size:13px;">${dateStr}</td>
+        <td>${username}</td>
+        <td>${profileLink}</td>
+        <td style="font-size:13px;max-width:300px;word-break:break-word;">${message}</td>
+      </tr>
+    `;
+        }
+      )
+      .join("");
+    supportRequestsTableWrap.innerHTML = `
+      <table class="table">
+        <thead><tr><th>Дата и время</th><th>Юзернейм</th><th>Ссылка на профиль</th><th>Текст обращения</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="4" class="muted">Обращений нет</td></tr>'}</tbody>
+      </table>
+    `;
+  } catch (err) {
+    supportRequestsTableWrap.innerHTML = `<p class="muted">Ошибка загрузки: ${escapeHtml(err instanceof Error ? err.message : String(err))}</p>`;
+  }
+}
+
 function resetFaqEditor() {
   editingFaqId = null;
   faqIdInput.value = "";
@@ -1320,6 +1358,7 @@ async function switchTab(tabId) {
   if (tabId === "moderation") await loadModerationRequests();
   if (tabId === "moderators") await loadModerators();
   if (tabId === "log") await loadLog();
+  if (tabId === "support") await loadSupportRequests();
   if (tabId === "faq") await loadFaqConfig();
   if (tabId === "bot") await loadBotConfig();
 }
@@ -1568,6 +1607,7 @@ cancelEditModeratorBtn?.addEventListener("click", () => {
 });
 
 refreshLogBtn?.addEventListener("click", loadLog);
+refreshSupportBtn?.addEventListener("click", loadSupportRequests);
 
 document.addEventListener("DOMContentLoaded", async () => {
   debugLog("DOMContentLoaded:init", {

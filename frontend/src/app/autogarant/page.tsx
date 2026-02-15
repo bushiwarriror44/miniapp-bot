@@ -21,11 +21,11 @@ export default function AutogarantPage() {
       });
   }, []);
 
-  const tgUsername = config?.guarantor?.username || "";
+  const tgUsername = (config?.guarantor?.username || "").replace(/^@/, "");
   const tgDisplayName = config?.guarantor?.displayName || "";
   const tgProfileLink = config?.guarantor?.profileLink || "#";
   const tgAvatarUrl = useMemo(
-    () => `https://t.me/i/userpic/320/${tgUsername}.jpg`,
+    () => (tgUsername ? `https://t.me/i/userpic/320/${tgUsername}.jpg` : ""),
     [tgUsername],
   );
   const commissionTiers = config?.commissionTiers || [];
@@ -56,18 +56,23 @@ export default function AutogarantPage() {
 					target="_blank"
 					rel="noopener noreferrer"
 					className="flex items-center gap-3 mb-3 no-underline">
-					<span className="relative w-12 h-12 shrink-0 rounded-full overflow-hidden">
-						<img
-							src={tgAvatarUrl}
-							alt={tgDisplayName}
-							className="w-full h-full object-cover"
-							onError={(e) => {
-								const target = e.currentTarget;
-								// Fallback на локальную иконку Telegram, если аватар недоступен
-								target.onerror = null;
-								target.src = '/assets/telegram-ico.svg';
-							}}
-						/>
+					<span className="relative w-12 h-12 shrink-0 rounded-full overflow-hidden bg-[var(--color-surface)]" aria-hidden>
+						{tgAvatarUrl ? (
+							<img
+								src={tgAvatarUrl}
+								alt={tgDisplayName ? `Аватар ${tgDisplayName}` : "Аватар гаранта"}
+								className="w-full h-full object-cover"
+								onError={(e) => {
+									const target = e.currentTarget;
+									target.onerror = null;
+									target.src = "/assets/telegram-ico.svg";
+								}}
+							/>
+						) : (
+							<span className="w-full h-full flex items-center justify-center">
+								<img src="/assets/telegram-ico.svg" alt="" className="w-6 h-6 opacity-60" />
+							</span>
+						)}
 					</span>
 					<div className="min-w-0">
 						<p className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>

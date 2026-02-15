@@ -8,6 +8,7 @@ import {
   type ModerationStatus,
 } from './entities/moderation-request.entity';
 import { ProfileViewEntity } from './entities/profile-view.entity';
+import { SupportRequestEntity } from './entities/support-request.entity';
 import { UserEntity } from './entities/user.entity';
 import { UserActivityEntity } from './entities/user-activity.entity';
 import { UserAdLinkEntity } from './entities/user-ad-link.entity';
@@ -92,6 +93,8 @@ export class AppService {
     private readonly dealsRepository: Repository<DealEntity>,
     @InjectRepository(ModerationRequestEntity)
     private readonly moderationRequestsRepository: Repository<ModerationRequestEntity>,
+    @InjectRepository(SupportRequestEntity)
+    private readonly supportRequestsRepository: Repository<SupportRequestEntity>,
   ) {}
 
   getHello(): string {
@@ -511,5 +514,39 @@ export class AppService {
     entity.adminNote = adminNote ?? entity.adminNote;
     entity.processedAt = new Date();
     return this.moderationRequestsRepository.save(entity);
+  }
+
+  async createSupportRequest(payload: {
+    telegramId: string | number;
+    username?: string | null;
+    message: string;
+  }) {
+    const telegramId = String(payload.telegramId ?? '').trim();
+    if (!telegramId) {
+      throw new Error('telegramId is required');
+    }
+    const message = typeof payload.message === 'string' ? payload.message.trim() : '';
+    if (!message) {
+      throw new Error('message is required');
+    }
+    const username =
+      payload.username != null && payload.username !== ''
+        ? String(payload.username).replace(/^@/, '').trim() || null
+        : null;
+    const user = await this.usersRepository.findOne({ where: { telegramId } });
+    const entity = this.supportRequestsRepository.create({
+      telegramId,
+      userId: user?.id ?? null,
+      username,
+      message,
+    });
+    return this.supportRequestsRepository.save(entity);
+  }
+
+  async listSupportRequests() {
+    return this.supportRequestsRepository.find({
+      order: { createdAt: 'DESC' },
+      take: 500,
+    });
   }
 }
