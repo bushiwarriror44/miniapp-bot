@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronRight, faUserTie, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faUserTie, faXmark } from '@fortawesome/free-solid-svg-icons';
 
 const STORAGE_KEY = 'miniapp-promo-closed';
 
@@ -24,13 +25,18 @@ export function PromoBlock() {
 	return (
 		<section className="mb-6 overflow-x-auto overflow-y-hidden scrollbar-none">
 			<div className="flex gap-3 min-h-px">
-				<article
-					className="relative flex w-full min-w-0 items-center gap-4 rounded-xl px-4 py-3 pr-12 shrink-0"
+				<Link
+					href="/exchange?openSubmit=1"
+					className="relative flex w-full min-w-0 items-center gap-4 rounded-xl px-4 py-3 pr-12 shrink-0 cursor-pointer transition-opacity hover:opacity-95 no-underline"
 					style={{ backgroundColor: 'var(--color-accent)' }}>
 					{/* Крестик — закрыть до следующего запуска */}
 					<button
 						type="button"
-						onClick={handleClose}
+						onClick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							handleClose();
+						}}
 						className="absolute top-1.5 right-1.5 w-8 h-8 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/15 transition-colors"
 						aria-label="Закрыть">
 						<FontAwesomeIcon icon={faXmark} className="w-4 h-4" />
@@ -52,9 +58,7 @@ export function PromoBlock() {
 							Нажми в нашу форму для связи
 						</p>
 					</div>
-
-					
-				</article>
+				</Link>
 			</div>
 		</section>
 	);

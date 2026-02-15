@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faExternalLink } from "@fortawesome/free-solid-svg-icons";
 import { fetchAds, AD_TYPE_LABELS, PAYMENT_LABELS, type AdItem } from "@/shared/api/ads";
@@ -70,6 +71,7 @@ function toErrorMessage(error: unknown): string {
 }
 
 export default function ExchangePage() {
+  const searchParams = useSearchParams();
   const [activeSection, setActiveSection] = useState<ExchangeSection>("buy-ads");
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitSection, setSubmitSection] = useState<SubmitFormSection>("buy-ads");
@@ -77,6 +79,16 @@ export default function ExchangePage() {
   const [showSuccessNotice, setShowSuccessNotice] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (searchParams.get("openSubmit") === "1") {
+      setShowSubmitModal(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("openSubmit");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    }
+  }, [searchParams]);
 
   const openSubmitModal = () => {
     setShowSubmitModal(true);
@@ -591,15 +603,46 @@ function SubmitFormBySection({
   return null;
 }
 
+/* ——— Блок при раскрытии карточки: гарант, рейтинг, Написать ——— */
+function CardExpandedBlock({ authorLink }: { authorLink: string }) {
+  const rating: number | null = null;
+  return (
+    <div className="pt-3 mt-3 space-y-2" style={{ borderTop: "1px solid var(--color-border)" }}>
+      <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+        Проводите сделку через гаранта, чтобы обезопасить свои средства.
+      </p>
+      <p className="text-xs" style={{ color: "var(--color-text)" }}>
+        Рейтинг: {rating != null ? rating : "—"}
+      </p>
+      <a
+        href={authorLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center rounded-xl py-2.5 px-4 text-sm font-medium w-full"
+        style={{ backgroundColor: "var(--color-accent)", color: "white" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        Написать
+      </a>
+    </div>
+  );
+}
+
 /* ——— Карточка объявления ——— */
 function AdCard({ ad }: { ad: AdItem }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const authorLink = `https://t.me/${(ad.username || "").replace(/^@/, "")}`;
   return (
     <article
-      className="rounded-xl p-4 space-y-3 min-w-0"
+      role="button"
+      tabIndex={0}
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
+      onClick={() => setIsOpen((v) => !v)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
       <div className="flex gap-3">
         {ad.imageUrl ? (
@@ -634,6 +677,7 @@ function AdCard({ ad }: { ad: AdItem }) {
             rel="noopener noreferrer"
             className="text-xs inline-flex items-center gap-1 truncate max-w-full"
             style={{ color: "var(--color-accent)" }}
+            onClick={(e) => e.stopPropagation()}
           >
             Ссылка на канал/чат
             <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
@@ -663,6 +707,7 @@ function AdCard({ ad }: { ad: AdItem }) {
           {ad.description}
         </p>
       )}
+      {isOpen && <CardExpandedBlock authorLink={authorLink} />}
     </article>
   );
 }
@@ -853,6 +898,7 @@ function SellAdsSection() {
 
 /* ——— Карточка заявки на покупку рекламы ——— */
 function BuyAdCard({ item }: { item: BuyAdItem }) {
+  const [isOpen, setIsOpen] = useState(false);
   const formatPriceRange = (min: number, max: number): string => {
     if (min === max) return `${min.toLocaleString("ru-RU")} ₽`;
     return `${min.toLocaleString("ru-RU")} — ${max.toLocaleString("ru-RU")} ₽`;
@@ -865,11 +911,15 @@ function BuyAdCard({ item }: { item: BuyAdItem }) {
 
   return (
     <article
-      className="rounded-xl p-4 space-y-3 min-w-0"
+      role="button"
+      tabIndex={0}
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
+      onClick={() => setIsOpen((v) => !v)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
       <div className="flex items-center justify-between gap-2">
         <a
@@ -878,6 +928,7 @@ function BuyAdCard({ item }: { item: BuyAdItem }) {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-sm font-medium min-w-0"
           style={{ color: "var(--color-accent)" }}
+          onClick={(e) => e.stopPropagation()}
         >
           @{item.username}
           <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
@@ -908,6 +959,7 @@ function BuyAdCard({ item }: { item: BuyAdItem }) {
           {item.description}
         </p>
       )}
+      {isOpen && <CardExpandedBlock authorLink={item.usernameLink} />}
     </article>
   );
 }
@@ -1159,13 +1211,18 @@ function BuyAdsSection() {
 
 /* ——— Карточка вакансии ——— */
 function JobCard({ job }: { job: JobItem }) {
+  const [isOpen, setIsOpen] = useState(false);
   return (
     <article
-      className="rounded-xl p-4 space-y-3 min-w-0"
+      role="button"
+      tabIndex={0}
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
+      onClick={() => setIsOpen((v) => !v)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
       <p className="text-xs font-medium" style={{ color: "var(--color-accent)" }}>
         {JOB_OFFER_TYPE_LABELS[job.offerType]}
@@ -1180,6 +1237,7 @@ function JobCard({ job }: { job: JobItem }) {
           rel="noopener noreferrer"
           className="text-xs inline-flex items-center gap-1 shrink-0"
           style={{ color: "var(--color-accent)" }}
+          onClick={(e) => e.stopPropagation()}
         >
           Профиль
           <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3" />
@@ -1195,6 +1253,7 @@ function JobCard({ job }: { job: JobItem }) {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-0.5"
               style={{ color: "var(--color-accent)" }}
+              onClick={(e) => e.stopPropagation()}
             >
               Ссылка
               <FontAwesomeIcon icon={faExternalLink} className="w-2.5 h-2.5" />
@@ -1222,6 +1281,7 @@ function JobCard({ job }: { job: JobItem }) {
           {job.description}
         </p>
       )}
+      {isOpen && <CardExpandedBlock authorLink={job.usernameLink} />}
     </article>
   );
 }
@@ -1462,13 +1522,19 @@ function JobsSection() {
 
 /* ——— Карточка услуги ——— */
 function ServiceCard({ service }: { service: ServiceItem }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const authorLink = `https://t.me/${(service.username || "").replace(/^@/, "")}`;
   return (
     <article
-      className="rounded-xl p-4 space-y-3 min-w-0"
+      role="button"
+      tabIndex={0}
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
+      onClick={() => setIsOpen((v) => !v)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
       <div className="flex items-start justify-between gap-2">
         <p className="font-medium text-sm flex-1 min-w-0" style={{ color: "var(--color-text)" }}>
@@ -1498,6 +1564,7 @@ function ServiceCard({ service }: { service: ServiceItem }) {
       <p className="text-xs pt-1 border-t" style={{ color: "var(--color-text-muted)", borderColor: "var(--color-border)" }}>
         Опубликовано: {formatServiceDate(service.publishedAt)}
       </p>
+      {isOpen && <CardExpandedBlock authorLink={authorLink} />}
     </article>
   );
 }
@@ -1773,13 +1840,18 @@ function CurrencySection() {
 
 /* ——— Карточка канала на продажу ——— */
 function SellChannelCard({ channel }: { channel: SellChannelItem }) {
+  const [isOpen, setIsOpen] = useState(false);
   return (
     <article
-      className="rounded-xl p-4 space-y-3 min-w-0"
+      role="button"
+      tabIndex={0}
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
+      onClick={() => setIsOpen((v) => !v)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
       <div className="flex gap-3">
         {channel.imageUrl ? (
@@ -1806,6 +1878,7 @@ function SellChannelCard({ channel }: { channel: SellChannelItem }) {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-xs mt-0.5"
             style={{ color: "var(--color-accent)" }}
+            onClick={(e) => e.stopPropagation()}
           >
             @{channel.username}
             {channel.verified && (
@@ -1836,6 +1909,7 @@ function SellChannelCard({ channel }: { channel: SellChannelItem }) {
           {channel.description}
         </p>
       )}
+      {isOpen && <CardExpandedBlock authorLink={channel.usernameLink} />}
     </article>
   );
 }
@@ -2188,13 +2262,18 @@ function formatRange(min: number, max: number): string {
 }
 
 function BuyChannelCard({ item }: { item: BuyChannelItem }) {
+  const [isOpen, setIsOpen] = useState(false);
   return (
     <article
-      className="rounded-xl p-4 space-y-3 min-w-0"
+      role="button"
+      tabIndex={0}
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
+      onClick={() => setIsOpen((v) => !v)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
       <div className="flex items-center justify-between gap-2">
         <a
@@ -2203,6 +2282,7 @@ function BuyChannelCard({ item }: { item: BuyChannelItem }) {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-sm font-medium min-w-0"
           style={{ color: "var(--color-accent)" }}
+          onClick={(e) => e.stopPropagation()}
         >
           @{item.username}
           <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
@@ -2239,6 +2319,7 @@ function BuyChannelCard({ item }: { item: BuyChannelItem }) {
           {item.description}
         </p>
       )}
+      {isOpen && <CardExpandedBlock authorLink={item.usernameLink} />}
     </article>
   );
 }
@@ -2553,13 +2634,18 @@ function BuyChannelSection() {
 
 /* ——— Карточка товара/услуги из раздела Другое ——— */
 function OtherCard({ item }: { item: OtherItem }) {
+  const [isOpen, setIsOpen] = useState(false);
   return (
     <article
-      className="rounded-xl p-4 space-y-3 min-w-0"
+      role="button"
+      tabIndex={0}
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
+      onClick={() => setIsOpen((v) => !v)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
       <div className="flex items-center justify-between gap-2">
         <a
@@ -2568,6 +2654,7 @@ function OtherCard({ item }: { item: OtherItem }) {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-sm font-medium min-w-0"
           style={{ color: "var(--color-accent)" }}
+          onClick={(e) => e.stopPropagation()}
         >
           @{item.username}
           <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
@@ -2592,6 +2679,7 @@ function OtherCard({ item }: { item: OtherItem }) {
           {item.description}
         </p>
       )}
+      {isOpen && <CardExpandedBlock authorLink={item.usernameLink} />}
     </article>
   );
 }
