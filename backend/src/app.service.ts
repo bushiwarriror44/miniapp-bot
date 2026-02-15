@@ -27,6 +27,7 @@ type UserStatistics = {
     active: number;
     completed: number;
     hidden: number;
+    onModeration: number;
   };
   deals: {
     total: number;
@@ -211,6 +212,15 @@ export class AppService {
     const dealStats = await this.getDealStatsForUser(user.id);
     const viewStats = await this.getProfileViewsStats(user.id);
 
+    const adsOnModeration = await this.moderationRequestsRepository
+      .createQueryBuilder('m')
+      .where('m.status = :status', { status: 'pending' })
+      .andWhere('(m.userId = :userId OR m.telegramId = :telegramId)', {
+        userId: user.id,
+        telegramId: user.telegramId,
+      })
+      .getCount();
+
     const dealsTotal = dealStats.total || activity.dealsTotal;
     const dealsSuccessful = dealStats.successful || activity.dealsSuccessful;
     const dealsDisputed = dealStats.disputed || activity.dealsDisputed;
@@ -220,6 +230,7 @@ export class AppService {
         active: activity.adsActive,
         completed: activity.adsCompleted,
         hidden: activity.adsHidden,
+        onModeration: adsOnModeration,
       },
       deals: {
         total: dealsTotal,
@@ -464,6 +475,23 @@ export class AppService {
       order: { createdAt: 'DESC' },
       take: 300,
     });
+  }
+
+  async getMyModerationRequests(telegramId: string | number) {
+    const normalized = String(telegramId ?? '').trim();
+    if (!normalized) return [];
+    const rows = await this.moderationRequestsRepository.find({
+      where: { telegramId: normalized },
+      order: { createdAt: 'DESC' },
+      take: 100,
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      status: r.status,
+      section: r.section,
+      formData: r.formData ?? {},
+      createdAt: r.createdAt?.toISOString?.() ?? new Date().toISOString(),
+    }));
   }
 
   async getModerationRequestById(id: string) {

@@ -142,6 +142,15 @@ export class AppController {
     return { favorites };
   }
 
+  @Get('users/me/publications')
+  async getMyPublications(@Query('telegramId') telegramId?: string) {
+    if (!telegramId) {
+      throw new HttpException('telegramId is required', HttpStatus.BAD_REQUEST);
+    }
+    const publications = await this.appService.getMyModerationRequests(telegramId);
+    return { publications };
+  }
+
   @Post('users/:telegramId/profile-view')
   @HttpCode(200)
   async createProfileView(

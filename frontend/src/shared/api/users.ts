@@ -50,7 +50,7 @@ export type UserProfileResponse = {
     total: number;
   };
   statistics: {
-    ads: { active: number; completed: number; hidden: number };
+    ads: { active: number; completed: number; hidden: number; onModeration?: number };
     deals: { total: number; successful: number; disputed: number };
     profileViews: { week: number; month: number };
   };
@@ -58,9 +58,17 @@ export type UserProfileResponse = {
 };
 
 export type UserStatisticsResponse = {
-  ads: { active: number; completed: number; hidden: number };
+  ads: { active: number; completed: number; hidden: number; onModeration?: number };
   deals: { total: number; successful: number; disputed: number };
   profileViews: { week: number; month: number };
+};
+
+export type MyPublicationItem = {
+  id: string;
+  status: "pending" | "approved" | "rejected";
+  section: string;
+  formData: Record<string, unknown>;
+  createdAt: string;
 };
 
 export async function fetchUserProfile(telegramId: string | number): Promise<UserProfileResponse | null> {
@@ -92,4 +100,15 @@ export async function fetchUserFavorites(
   }
   const data = await res.json();
   return Array.isArray(data.favorites) ? data.favorites : [];
+}
+
+export async function fetchMyPublications(
+  telegramId: string | number,
+): Promise<MyPublicationItem[]> {
+  const res = await fetch(`${API_BASE}/users/me/publications?telegramId=${encodeURIComponent(String(telegramId))}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load publications: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  return Array.isArray(data.publications) ? data.publications : [];
 }

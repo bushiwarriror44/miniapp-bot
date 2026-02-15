@@ -34,7 +34,7 @@ export default function ProfileStatisticsPage() {
   }, [telegramId]);
 
   const stats = statistics ?? {
-    ads: { active: 0, completed: 0, hidden: 0 },
+    ads: { active: 0, completed: 0, hidden: 0, onModeration: 0 },
     deals: { total: 0, successful: 0, disputed: 0 },
     profileViews: { week: 0, month: 0 },
   };
@@ -64,6 +64,12 @@ export default function ProfileStatisticsPage() {
               Объявления
             </p>
             <div className="flex flex-wrap gap-2 text-sm">
+              <span
+                className="rounded-lg px-3 py-1.5"
+                style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
+              >
+                на модерации: <strong>{stats.ads.onModeration ?? 0}</strong>
+              </span>
               <span
                 className="rounded-lg px-3 py-1.5"
                 style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
