@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faExternalLink } from "@fortawesome/free-solid-svg-icons";
@@ -70,7 +70,7 @@ function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Неизвестная ошибка";
 }
 
-export default function ExchangePage() {
+function ExchangePageContent() {
   const searchParams = useSearchParams();
   const [activeSection, setActiveSection] = useState<ExchangeSection>("buy-ads");
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -277,6 +277,14 @@ export default function ExchangePage() {
       {activeSection === "buy-channel" && <BuyChannelSection />}
       {activeSection === "other" && <OtherSection />}
     </main>
+  );
+}
+
+export default function ExchangePage() {
+  return (
+    <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center px-4" style={{ color: "var(--color-text-muted)" }}>Загрузка...</div>}>
+      <ExchangePageContent />
+    </Suspense>
   );
 }
 
