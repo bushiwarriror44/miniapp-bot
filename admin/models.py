@@ -141,6 +141,20 @@ DEFAULT_DATASETS = {
         "welcomePhotoUrl": None,
         "supportLink": "https://t.me/miniapp_admin_example",
     },
+    "exchangeOptions": {
+        "jobTypes": [
+            {"value": "editor", "label": "Редактор"},
+            {"value": "sales", "label": "Продажник"},
+            {"value": "buyer", "label": "Закупщик"},
+            {"value": "designer", "label": "Дизайнер"},
+            {"value": "motion_designer", "label": "Моушен-дизайнер"},
+            {"value": "other", "label": "Другое"},
+        ],
+        "currencies": [
+            {"value": "usd", "label": "доллары"},
+            {"value": "rub", "label": "рубли"},
+        ],
+    },
 }
 
 

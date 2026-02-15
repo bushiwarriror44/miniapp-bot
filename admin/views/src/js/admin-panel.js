@@ -138,6 +138,13 @@ const logTableWrap = document.getElementById("logTableWrap");
 const supportRequestsTableWrap = document.getElementById("supportRequestsTableWrap");
 const refreshSupportBtn = document.getElementById("refreshSupportBtn");
 const refreshLogBtn = document.getElementById("refreshLogBtn");
+const jobTypesTableWrap = document.getElementById("jobTypesTableWrap");
+const currenciesTableWrap = document.getElementById("currenciesTableWrap");
+const addJobTypeBtn = document.getElementById("addJobTypeBtn");
+const addCurrencyBtn = document.getElementById("addCurrencyBtn");
+const saveExchangeOptionsBtn = document.getElementById("saveExchangeOptionsBtn");
+
+let exchangeOptions = { jobTypes: [], currencies: [] };
 
 function applyModeratorLayout() {
   document.querySelectorAll(".sidebar [data-admin-only]").forEach((el) => {
@@ -1343,6 +1350,93 @@ async function sendBotMessage() {
   }`;
 }
 
+async function loadExchangeOptionsConfig() {
+  try {
+    const data = await apiGet("/admin/api/config/exchange-options");
+    const payload = data?.payload || { jobTypes: [], currencies: [] };
+    exchangeOptions = {
+      jobTypes: Array.isArray(payload.jobTypes) ? payload.jobTypes : [],
+      currencies: Array.isArray(payload.currencies) ? payload.currencies : [],
+    };
+  } catch (err) {
+    exchangeOptions = { jobTypes: [], currencies: [] };
+  }
+  renderJobTypesTable();
+  renderCurrenciesTable();
+}
+
+function renderJobTypesTable() {
+  if (!jobTypesTableWrap) return;
+  const rows = exchangeOptions.jobTypes
+    .map(
+      (item, i) => `
+    <tr>
+      <td><input type="text" class="input" data-extra-input="jobType-value" data-extra-index="${i}" value="${escapeHtml(item.value || "")}" placeholder="value" style="width:100%;" /></td>
+      <td><input type="text" class="input" data-extra-input="jobType-label" data-extra-index="${i}" value="${escapeHtml(item.label || "")}" placeholder="подпись" style="width:100%;" /></td>
+      <td><button type="button" class="btn" data-extra-delete="jobType" data-extra-index="${i}">Удалить</button></td>
+    </tr>
+  `
+    )
+    .join("");
+  jobTypesTableWrap.innerHTML = `
+    <table class="table">
+      <thead><tr><th>Значение (value)</th><th>Подпись</th><th>Действия</th></tr></thead>
+      <tbody>${rows || "<tr><td colspan=\"3\" class=\"muted\">Нет пунктов</td></tr>"}</tbody>
+    </table>
+  `;
+}
+
+function renderCurrenciesTable() {
+  if (!currenciesTableWrap) return;
+  const rows = exchangeOptions.currencies
+    .map(
+      (item, i) => `
+    <tr>
+      <td><input type="text" class="input" data-extra-input="currency-value" data-extra-index="${i}" value="${escapeHtml(item.value || "")}" placeholder="value" style="width:100%;" /></td>
+      <td><input type="text" class="input" data-extra-input="currency-label" data-extra-index="${i}" value="${escapeHtml(item.label || "")}" placeholder="подпись" style="width:100%;" /></td>
+      <td><button type="button" class="btn" data-extra-delete="currency" data-extra-index="${i}">Удалить</button></td>
+    </tr>
+  `
+    )
+    .join("");
+  currenciesTableWrap.innerHTML = `
+    <table class="table">
+      <thead><tr><th>Значение (value)</th><th>Подпись</th><th>Действия</th></tr></thead>
+      <tbody>${rows || "<tr><td colspan=\"3\" class=\"muted\">Нет пунктов</td></tr>"}</tbody>
+    </table>
+  `;
+}
+
+document.addEventListener("input", (e) => {
+  const el = e.target.closest("[data-extra-input]");
+  if (!el) return;
+  const kind = el.dataset.extraInput;
+  const i = parseInt(el.dataset.extraIndex, 10);
+  if (Number.isNaN(i) || i < 0) return;
+  if (kind === "jobType-value" && exchangeOptions.jobTypes[i]) exchangeOptions.jobTypes[i].value = el.value || "";
+  if (kind === "jobType-label" && exchangeOptions.jobTypes[i]) exchangeOptions.jobTypes[i].label = el.value || "";
+  if (kind === "currency-value" && exchangeOptions.currencies[i]) exchangeOptions.currencies[i].value = el.value || "";
+  if (kind === "currency-label" && exchangeOptions.currencies[i]) exchangeOptions.currencies[i].label = el.value || "";
+});
+
+async function saveExchangeOptions() {
+  const jobTypes = exchangeOptions.jobTypes.map((o) => ({ value: (o.value || "").trim(), label: (o.label || "").trim() })).filter((o) => o.value && o.label);
+  const currencies = exchangeOptions.currencies.map((o) => ({ value: (o.value || "").trim(), label: (o.label || "").trim() })).filter((o) => o.value && o.label);
+  if (jobTypes.length === 0) {
+    alert("Добавьте хотя бы один тип вакансии (value и подпись не пустые)");
+    return;
+  }
+  if (currencies.length === 0) {
+    alert("Добавьте хотя бы одну валюту (value и подпись не пустые)");
+    return;
+  }
+  await apiJson("/admin/api/config/exchange-options", "PUT", { payload: { jobTypes, currencies } });
+  notify("Сохранено");
+  exchangeOptions = { jobTypes, currencies };
+  renderJobTypesTable();
+  renderCurrenciesTable();
+}
+
 async function switchTab(tabId) {
   activeTab = tabId;
   tabButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.tabBtn === tabId));
@@ -1360,6 +1454,7 @@ async function switchTab(tabId) {
   if (tabId === "log") await loadLog();
   if (tabId === "support") await loadSupportRequests();
   if (tabId === "faq") await loadFaqConfig();
+  if (tabId === "extra") await loadExchangeOptionsConfig();
   if (tabId === "bot") await loadBotConfig();
 }
 
@@ -1430,6 +1525,21 @@ document.addEventListener("click", async (e) => {
       await loadFaqConfig();
       return;
     }
+  }
+
+  const extraDeleteBtn = e.target.closest("[data-extra-delete]");
+  if (extraDeleteBtn) {
+    const kind = extraDeleteBtn.dataset.extraDelete;
+    const i = parseInt(extraDeleteBtn.dataset.extraIndex, 10);
+    if (Number.isNaN(i) || i < 0) return;
+    if (kind === "jobType") {
+      exchangeOptions.jobTypes.splice(i, 1);
+      renderJobTypesTable();
+    } else if (kind === "currency") {
+      exchangeOptions.currencies.splice(i, 1);
+      renderCurrenciesTable();
+    }
+    return;
   }
 
   const moderationRequestBtn = e.target.closest("[data-mod-request-id]");
@@ -1541,6 +1651,15 @@ adminUsersSearchInput?.addEventListener("keydown", (e) => {
 addFaqBtn?.addEventListener("click", resetFaqEditor);
 faqResetBtn?.addEventListener("click", resetFaqEditor);
 saveFaqBtn?.addEventListener("click", saveFaqConfig);
+addJobTypeBtn?.addEventListener("click", () => {
+  exchangeOptions.jobTypes.push({ value: "", label: "" });
+  renderJobTypesTable();
+});
+addCurrencyBtn?.addEventListener("click", () => {
+  exchangeOptions.currencies.push({ value: "", label: "" });
+  renderCurrenciesTable();
+});
+saveExchangeOptionsBtn?.addEventListener("click", saveExchangeOptions);
 moderationRefreshBtn?.addEventListener("click", loadModerationRequests);
 moderationStatusFilter?.addEventListener("change", loadModerationRequests);
 uploadBotPhotoBtn?.addEventListener("click", async () => {

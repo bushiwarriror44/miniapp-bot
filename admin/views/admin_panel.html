@@ -23,6 +23,7 @@
         <button class="btn tab-btn" data-tab-btn="log" data-admin-only>Лог</button>
         <button class="btn tab-btn" data-tab-btn="support" data-admin-only>Обращения в поддержку</button>
         <button class="btn tab-btn" data-tab-btn="faq" data-admin-only>FAQ</button>
+        <button class="btn tab-btn" data-tab-btn="extra" data-admin-only>Дополнительное</button>
         <button class="btn tab-btn" data-tab-btn="bot" data-admin-only>Бот</button>
       </aside>
 
@@ -218,6 +219,26 @@
             <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
               <button id="faqResetBtn" class="btn">Очистить</button>
               <button id="saveFaqBtn" class="btn btn-primary">Сохранить FAQ</button>
+            </div>
+          </section>
+        </section>
+
+        <section id="tab-extra" class="tab-view stack" style="display:none;" data-admin-only>
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 8px 0;font-size:16px;">Дополнительное</h2>
+            <p class="muted" style="margin:4px 0 12px 0;font-size:13px;">Типы вакансий и валюты оплаты для раздела «Вакансии» на бирже.</p>
+            <h3 style="margin:12px 0 8px 0;font-size:14px;">Вакансии (типы работ)</h3>
+            <div style="margin-bottom:8px;">
+              <button id="addJobTypeBtn" class="btn">Добавить</button>
+            </div>
+            <div id="jobTypesTableWrap" style="overflow:auto;"></div>
+            <h3 style="margin:16px 0 8px 0;font-size:14px;">Валюта оплаты</h3>
+            <div style="margin-bottom:8px;">
+              <button id="addCurrencyBtn" class="btn">Добавить</button>
+            </div>
+            <div id="currenciesTableWrap" style="overflow:auto;"></div>
+            <div style="margin-top:12px;">
+              <button id="saveExchangeOptionsBtn" class="btn btn-primary">Сохранить</button>
             </div>
           </section>
         </section>

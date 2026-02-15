@@ -28,6 +28,7 @@ import { fetchBuyChannels, type BuyChannelItem } from "@/shared/api/buyChannels"
 import { fetchOther, type OtherItem } from "@/shared/api/other";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { submitModerationRequest } from "@/shared/api/moderation";
+import { fetchExchangeOptions, getJobTypeLabel, getCurrencyLabel, type ExchangeOptionsPayload } from "@/shared/api/exchangeOptions";
 import VerifiedBadge from "@/app/components/VerifiedBadge";
 import {
   faBullhorn,
@@ -68,6 +69,43 @@ const inputStyleModal = {
   color: "var(--input-text)",
 };
 
+const inputStyleError = {
+  ...inputStyleModal,
+  borderColor: "var(--color-accent)",
+};
+
+function getRequiredFields(section: SubmitFormSection): string[] {
+  switch (section) {
+    case "buy-ads":
+      return ["username", "priceRange"];
+    case "sell-ads":
+      return ["channelOrChatLink"];
+    case "jobs":
+      return ["offerType", "work", "usernameLink", "employmentType", "paymentCurrency"];
+    case "designers":
+      return ["title", "username"];
+    case "sell-channel":
+      return ["name", "username"];
+    case "buy-channel":
+      return ["username", "theme"];
+    case "other":
+      return ["username"];
+    default:
+      return [];
+  }
+}
+
+function getDefaultFormDataForSection(section: SubmitFormSection): Record<string, string> {
+  const tg = getTelegramWebApp();
+  const username = tg?.initDataUnsafe?.user?.username ?? "";
+  const uname = typeof username === "string" ? username.replace(/^@/, "").trim() : "";
+  const link = uname ? `https://t.me/${uname}` : "";
+  const base: Record<string, string> = {};
+  if (uname) base.username = uname;
+  if (section === "jobs" && link) base.usernameLink = link;
+  return base;
+}
+
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Неизвестная ошибка";
 }
@@ -81,6 +119,12 @@ function ExchangePageContent() {
   const [showSuccessNotice, setShowSuccessNotice] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [invalidFields, setInvalidFields] = useState<string[]>([]);
+  const [exchangeOptions, setExchangeOptions] = useState<ExchangeOptionsPayload | null>(null);
+
+  useEffect(() => {
+    fetchExchangeOptions().then(setExchangeOptions).catch(() => setExchangeOptions(null));
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -95,7 +139,8 @@ function ExchangePageContent() {
   const openSubmitModal = () => {
     setShowSubmitModal(true);
     setSubmitSection("buy-ads");
-    setFormData({});
+    setInvalidFields([]);
+    setFormData(getDefaultFormDataForSection("buy-ads"));
   };
 
   const closeSubmitModal = () => setShowSubmitModal(false);
@@ -111,10 +156,14 @@ function ExchangePageContent() {
       setSubmitError("Не удалось определить Telegram ID пользователя.");
       return;
     }
-    if (!Object.keys(formData).length) {
-      setSubmitError("Заполните хотя бы одно поле заявки.");
+    const required = getRequiredFields(submitSection);
+    const missing = required.filter((key) => !String(formData[key] ?? "").trim());
+    if (missing.length > 0) {
+      setInvalidFields(missing);
+      setSubmitError("Заполните обязательные поля.");
       return;
     }
+    setInvalidFields([]);
     setSubmitLoading(true);
     setSubmitError(null);
     try {
@@ -202,8 +251,10 @@ function ExchangePageContent() {
               <select
                 value={submitSection}
                 onChange={(e) => {
-                  setSubmitSection((e.target.value || "ads") as SubmitFormSection);
-                  setFormData({});
+                  const next = (e.target.value || "buy-ads") as SubmitFormSection;
+                  setSubmitSection(next);
+                  setInvalidFields([]);
+                  setFormData(getDefaultFormDataForSection(next));
                 }}
                 className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
                 style={inputStyleModal}
@@ -219,6 +270,9 @@ function ExchangePageContent() {
               formData={formData}
               setFormField={setFormField}
               inputStyleModal={inputStyleModal}
+              inputStyleError={inputStyleError}
+              invalidFields={invalidFields}
+              exchangeOptions={exchangeOptions}
             />
 
             <button
@@ -272,7 +326,7 @@ function ExchangePageContent() {
       {/* Контент по выбранному разделу */}
       {activeSection === "buy-ads" && <BuyAdsSection />}
       {activeSection === "sell-ads" && <SellAdsSection />}
-      {activeSection === "jobs" && <JobsSection />}
+      {activeSection === "jobs" && <JobsSection exchangeOptions={exchangeOptions} />}
       {activeSection === "designers" && <DesignersSection />}
       {activeSection === "currency" && <CurrencySection />}
       {activeSection === "sell-channel" && <SellChannelSection />}
@@ -296,12 +350,19 @@ function SubmitFormBySection({
   formData,
   setFormField,
   inputStyleModal,
+  inputStyleError,
+  invalidFields,
+  exchangeOptions,
 }: {
   section: SubmitFormSection;
   formData: Record<string, string>;
   setFormField: (key: string, value: string) => void;
   inputStyleModal: React.CSSProperties;
+  inputStyleError: React.CSSProperties;
+  invalidFields: string[];
+  exchangeOptions: ExchangeOptionsPayload | null;
 }) {
+  const styleFor = (key: string) => (invalidFields.includes(key) ? inputStyleError : inputStyleModal);
   const label = (text: string, optional?: boolean) => (
     <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
       {text}{optional ? " (необязательно)" : ""}
@@ -314,7 +375,7 @@ function SubmitFormBySection({
       value={formData[key] ?? ""}
       onChange={(e) => setFormField(key, e.target.value)}
       className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
-      style={inputStyleModal}
+      style={styleFor(key)}
     />
   );
   const textarea = (key: string, placeholder?: string) => (
@@ -324,7 +385,7 @@ function SubmitFormBySection({
       onChange={(e) => setFormField(key, e.target.value)}
       rows={2}
       className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none resize-none box-border"
-      style={inputStyleModal}
+      style={styleFor(key)}
     />
   );
   const select = (key: string, options: { value: string; label: string }[]) => (
@@ -332,7 +393,7 @@ function SubmitFormBySection({
       value={formData[key] ?? ""}
       onChange={(e) => setFormField(key, e.target.value)}
       className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
-      style={inputStyleModal}
+      style={styleFor(key)}
     >
       <option value="">Выберите...</option>
       {options.map((o) => (
@@ -349,7 +410,7 @@ function SubmitFormBySection({
           {input("username", "@username")}
         </div>
         <div>
-          {label("Сумма (₽)", true)}
+          {label("Сумма (₽)")}
           {input("priceRange", "например: 1000-2000 или ~1500")}
         </div>
         <div>
@@ -420,6 +481,19 @@ function SubmitFormBySection({
   }
 
   if (section === "jobs") {
+    const defaultJobTypes: { value: string; label: string }[] = [
+      ...(Object.entries(WORK_LABELS) as [WorkType, string][]).map(([v, l]) => ({ value: v, label: l })),
+      { value: "other", label: "Другое" },
+    ];
+    const defaultCurrencies: { value: string; label: string }[] = (Object.entries(PAYMENT_CURRENCY_LABELS) as [PaymentCurrency, string][]).map(([v, l]) => ({ value: v, label: l }));
+    const jobTypeOptions =
+      exchangeOptions && Array.isArray(exchangeOptions.jobTypes) && exchangeOptions.jobTypes.length > 0
+        ? exchangeOptions.jobTypes
+        : defaultJobTypes;
+    const currencyOptions =
+      exchangeOptions && Array.isArray(exchangeOptions.currencies) && exchangeOptions.currencies.length > 0
+        ? exchangeOptions.currencies
+        : defaultCurrencies;
     return (
       <div className="space-y-3">
         <div>
@@ -428,7 +502,7 @@ function SubmitFormBySection({
         </div>
         <div>
           {label("Работа")}
-          {select("work", (Object.entries(WORK_LABELS) as [WorkType, string][]).map(([v, l]) => ({ value: v, label: l })))}
+          {select("work", jobTypeOptions)}
         </div>
         <div>
           {label("Ссылка на профиль")}
@@ -444,7 +518,7 @@ function SubmitFormBySection({
         </div>
         <div>
           {label("Валюта оплаты")}
-          {select("paymentCurrency", Object.entries(PAYMENT_CURRENCY_LABELS).map(([v, l]) => ({ value: v, label: l })))}
+          {select("paymentCurrency", currencyOptions)}
         </div>
         <div>
           {label("Сумма оплаты", true)}
@@ -493,16 +567,12 @@ function SubmitFormBySection({
     return (
       <div className="space-y-3">
         <div>
-          {label("Название канала")}
-          {input("name", "Название канала")}
+          {label("Ссылка на канал")}
+          {input("name", "https://t.me/...")}
         </div>
         <div>
           {label("Юзернейм")}
           {input("username", "@username")}
-        </div>
-        <div>
-          {label("Ссылка на профиль")}
-          {input("usernameLink", "https://t.me/...")}
         </div>
         <div>
           {label("Количество подписчиков", true)}
@@ -540,8 +610,8 @@ function SubmitFormBySection({
           {input("username", "@username")}
         </div>
         <div>
-          {label("Ссылка на профиль")}
-          {input("usernameLink", "https://t.me/...")}
+          {label("Тематика канала")}
+          {input("theme", "например: крипто, маркетинг")}
         </div>
         <div>
           {label("Цена от, ₽", true)}
@@ -572,10 +642,6 @@ function SubmitFormBySection({
           {select("viaGuarantor", [{ value: "", label: "—" }, { value: "yes", label: "Да" }, { value: "no", label: "Нет" }])}
         </div>
         <div>
-          {label("Тематика канала", true)}
-          {input("theme", "например: крипто, маркетинг")}
-        </div>
-        <div>
           {label("Дополнительное описание", true)}
           {textarea("description", "Что ищете...")}
         </div>
@@ -589,14 +655,6 @@ function SubmitFormBySection({
         <div>
           {label("Юзернейм пользователя")}
           {input("username", "@username")}
-        </div>
-        <div>
-          {label("Ссылка на профиль")}
-          {input("usernameLink", "https://t.me/...")}
-        </div>
-        <div>
-          {label("Верифицирован", true)}
-          {select("verified", [{ value: "", label: "—" }, { value: "yes", label: "Да" }, { value: "no", label: "Нет" }])}
         </div>
         <div>
           {label("Цена (₽)", true)}
@@ -1227,7 +1285,7 @@ function BuyAdsSection() {
 }
 
 /* ——— Карточка вакансии ——— */
-function JobCard({ job }: { job: JobItem }) {
+function JobCard({ job, exchangeOptions }: { job: JobItem; exchangeOptions: ExchangeOptionsPayload | null }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <article
@@ -1246,7 +1304,7 @@ function JobCard({ job }: { job: JobItem }) {
       </p>
       <div className="flex items-start justify-between gap-2">
         <p className="font-medium text-sm" style={{ color: "var(--color-text)" }}>
-          {WORK_LABELS[job.work]}
+          {getJobTypeLabel(job.work, exchangeOptions)}
         </p>
         <a
           href={job.usernameLink}
@@ -1283,7 +1341,7 @@ function JobCard({ job }: { job: JobItem }) {
         <span style={{ color: "var(--color-text)" }}>{EMPLOYMENT_LABELS[job.employmentType]}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Оплата:</span>
         <span style={{ color: "var(--color-text)" }}>
-          {job.paymentAmount} {PAYMENT_CURRENCY_LABELS[job.paymentCurrency]}
+          {job.paymentAmount} {getCurrencyLabel(job.paymentCurrency, exchangeOptions)}
         </span>
         <span style={{ color: "var(--color-text-muted)" }}>Тематика:</span>
         <span style={{ color: "var(--color-text)" }}>{job.theme}</span>
@@ -1310,7 +1368,7 @@ const inputStyle = {
 };
 
 /* ——— Поиск/предложение вакансии (фильтры + загрузка по API) ——— */
-function JobsSection() {
+function JobsSection({ exchangeOptions }: { exchangeOptions: ExchangeOptionsPayload | null }) {
   const [offerType, setOfferType] = useState<JobOfferType | "">("");
   const [work, setWork] = useState<WorkType | "">("");
   const [employmentType, setEmploymentType] = useState<EmploymentType | "">("");
@@ -1529,7 +1587,7 @@ function JobsSection() {
       {!loading && filteredJobs.length > 0 && (
         <div className="space-y-3">
           {filteredJobs.map((job) => (
-            <JobCard key={job.id} job={job} />
+            <JobCard key={job.id} job={job} exchangeOptions={exchangeOptions} />
           ))}
         </div>
       )}

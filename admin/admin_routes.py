@@ -614,6 +614,59 @@ def put_bot_config():
     return jsonify({"ok": True, "updatedAt": row.updated_at.isoformat() if row.updated_at else None})
 
 
+DEFAULT_EXCHANGE_OPTIONS = {
+    "jobTypes": [
+        {"value": "editor", "label": "Редактор"},
+        {"value": "sales", "label": "Продажник"},
+        {"value": "buyer", "label": "Закупщик"},
+        {"value": "designer", "label": "Дизайнер"},
+        {"value": "motion_designer", "label": "Моушен-дизайнер"},
+        {"value": "other", "label": "Другое"},
+    ],
+    "currencies": [
+        {"value": "usd", "label": "доллары"},
+        {"value": "rub", "label": "рубли"},
+    ],
+}
+
+
+@admin_bp.route("/admin/api/config/exchange-options", methods=["GET"])
+@require_login
+@require_admin
+def get_exchange_options_config():
+    row = Dataset.query.filter_by(name="exchangeOptions").first()
+    payload = _dataset_payload(row) if row else DEFAULT_EXCHANGE_OPTIONS
+    if not isinstance(payload.get("jobTypes"), list):
+        payload = dict(payload) if isinstance(payload, dict) else {}
+        payload["jobTypes"] = DEFAULT_EXCHANGE_OPTIONS["jobTypes"]
+    if not isinstance(payload.get("currencies"), list):
+        payload = dict(payload) if isinstance(payload, dict) else {}
+        payload["currencies"] = DEFAULT_EXCHANGE_OPTIONS["currencies"]
+    return jsonify({"name": "exchangeOptions", "payload": payload})
+
+
+@admin_bp.route("/admin/api/config/exchange-options", methods=["PUT"])
+@require_login
+@require_admin
+def put_exchange_options_config():
+    body = request.get_json(silent=True) or {}
+    payload = body.get("payload")
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Body must contain object field 'payload'"}), 400
+    if not isinstance(payload.get("jobTypes"), list):
+        return jsonify({"error": "payload.jobTypes must be an array"}), 400
+    if not isinstance(payload.get("currencies"), list):
+        return jsonify({"error": "payload.currencies must be an array"}), 400
+    for i, item in enumerate(payload["jobTypes"]):
+        if not isinstance(item, dict) or not isinstance(item.get("value"), str) or not isinstance(item.get("label"), str):
+            return jsonify({"error": f"payload.jobTypes[{i}] must be {{value, label}}"}), 400
+    for i, item in enumerate(payload["currencies"]):
+        if not isinstance(item, dict) or not isinstance(item.get("value"), str) or not isinstance(item.get("label"), str):
+            return jsonify({"error": f"payload.currencies[{i}] must be {{value, label}}"}), 400
+    row = _upsert_dataset("exchangeOptions", payload)
+    return jsonify({"ok": True, "updatedAt": row.updated_at.isoformat() if row.updated_at else None})
+
+
 @admin_bp.route("/admin/api/config/bot/upload-photo", methods=["POST"])
 @require_login
 @require_admin
