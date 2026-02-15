@@ -20,7 +20,9 @@ from flask import (
     url_for,
 )
 
-from models import Dataset, db
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from models import Dataset, Moderator, ModeratorActionLog, db
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -58,6 +60,39 @@ def require_login(fn):
         return fn(*args, **kwargs)
 
     return wrapper
+
+
+def require_admin(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not is_logged_in():
+            return redirect(url_for("admin.admin_login"))
+        if session.get("role") != "admin":
+            if request.wants_json() or request.accept_mimetypes.best == "application/json":
+                return jsonify({"error": "Доступ запрещён"}), 403
+            return redirect(url_for("admin.admin_panel"))
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
+def _log_moderator_action(action_type, request_id, details=None):
+    if session.get("role") != "moderator":
+        return
+    mod_id = session.get("moderator_id")
+    if not mod_id:
+        return
+    details_str = None
+    if details is not None:
+        details_str = json.dumps(details, ensure_ascii=False) if isinstance(details, dict) else str(details)
+    entry = ModeratorActionLog(
+        moderator_id=mod_id,
+        action_type=action_type,
+        request_id=request_id,
+        details=details_str,
+    )
+    db.session.add(entry)
+    db.session.commit()
 
 
 def _dataset_payload(dataset):
@@ -304,7 +339,15 @@ def admin_login():
         if password == ADMIN_PASSWORD:
             session.clear()
             session["admin_logged_in"] = True
+            session["role"] = "admin"
             return redirect(url_for("admin.admin_panel"))
+        for mod in Moderator.query.all():
+            if check_password_hash(mod.password_hash, password):
+                session.clear()
+                session["admin_logged_in"] = True
+                session["role"] = "moderator"
+                session["moderator_id"] = mod.id
+                return redirect(url_for("admin.admin_panel"))
         error = "Неверный пароль"
 
     return render_template("admin_login.html", error=error)
@@ -319,11 +362,13 @@ def admin_logout():
 @admin_bp.route("/admin/panel")
 @require_login
 def admin_panel():
-    return render_template("admin_panel.html")
+    role = session.get("role", "admin")
+    return render_template("admin_panel.html", role=role)
 
 
 @admin_bp.route("/admin/api/categories", methods=["GET"])
 @require_login
+@require_admin
 def categories():
     rows = (
         Dataset.query.filter(Dataset.name.in_(EXCHANGE_CATEGORIES))
@@ -349,6 +394,7 @@ def categories():
 
 @admin_bp.route("/admin/api/categories/<category>/items", methods=["GET"])
 @require_login
+@require_admin
 def category_items(category):
     row = Dataset.query.filter_by(name=category).first()
     if not row:
@@ -360,6 +406,7 @@ def category_items(category):
 
 @admin_bp.route("/admin/api/categories/<category>/items", methods=["POST"])
 @require_login
+@require_admin
 def create_item(category):
     row = Dataset.query.filter_by(name=category).first()
     if not row:
@@ -380,6 +427,7 @@ def create_item(category):
 
 @admin_bp.route("/admin/api/categories/<category>/items/<item_id>", methods=["PUT"])
 @require_login
+@require_admin
 def update_item(category, item_id):
     row = Dataset.query.filter_by(name=category).first()
     if not row:
@@ -403,6 +451,7 @@ def update_item(category, item_id):
 
 @admin_bp.route("/admin/api/categories/<category>/items/<item_id>", methods=["DELETE"])
 @require_login
+@require_admin
 def delete_item(category, item_id):
     row = Dataset.query.filter_by(name=category).first()
     if not row:
@@ -420,6 +469,7 @@ def delete_item(category, item_id):
 
 @admin_bp.route("/admin/api/search/users", methods=["GET"])
 @require_login
+@require_admin
 def search_users():
     q = (request.args.get("q") or "").strip().lower()
     if len(q) < 2:
@@ -450,6 +500,7 @@ def search_users():
 
 @admin_bp.route("/admin/api/dashboard/main", methods=["GET"])
 @require_login
+@require_admin
 def dashboard_main():
     return jsonify(
         {
@@ -461,6 +512,7 @@ def dashboard_main():
 
 @admin_bp.route("/admin/api/config/main-page", methods=["GET"])
 @require_login
+@require_admin
 def get_main_page_config():
     row = Dataset.query.filter_by(name="mainPage").first()
     payload = _dataset_payload(row) if row else {}
@@ -469,6 +521,7 @@ def get_main_page_config():
 
 @admin_bp.route("/admin/api/config/main-page", methods=["PUT"])
 @require_login
+@require_admin
 def put_main_page_config():
     body = request.get_json(silent=True) or {}
     payload = body.get("payload")
@@ -480,6 +533,7 @@ def put_main_page_config():
 
 @admin_bp.route("/admin/api/config/guarant", methods=["GET"])
 @require_login
+@require_admin
 def get_guarant_config():
     row = Dataset.query.filter_by(name="guarantConfig").first()
     payload = _dataset_payload(row) if row else {}
@@ -488,6 +542,7 @@ def get_guarant_config():
 
 @admin_bp.route("/admin/api/config/guarant", methods=["PUT"])
 @require_login
+@require_admin
 def put_guarant_config():
     body = request.get_json(silent=True) or {}
     payload = body.get("payload")
@@ -499,6 +554,7 @@ def put_guarant_config():
 
 @admin_bp.route("/admin/api/config/faq", methods=["GET"])
 @require_login
+@require_admin
 def get_faq_config():
     row = Dataset.query.filter_by(name="faq").first()
     payload = _dataset_payload(row) if row else {"items": []}
@@ -507,6 +563,7 @@ def get_faq_config():
 
 @admin_bp.route("/admin/api/config/faq", methods=["PUT"])
 @require_login
+@require_admin
 def put_faq_config():
     body = request.get_json(silent=True) or {}
     payload = body.get("payload")
@@ -520,6 +577,7 @@ def put_faq_config():
 
 @admin_bp.route("/admin/api/config/bot", methods=["GET"])
 @require_login
+@require_admin
 def get_bot_config():
     row = Dataset.query.filter_by(name="botConfig").first()
     payload = _dataset_payload(row) if row else {
@@ -532,6 +590,7 @@ def get_bot_config():
 
 @admin_bp.route("/admin/api/config/bot", methods=["PUT"])
 @require_login
+@require_admin
 def put_bot_config():
     body = request.get_json(silent=True) or {}
     payload = body.get("payload")
@@ -549,6 +608,7 @@ def put_bot_config():
 
 @admin_bp.route("/admin/api/config/bot/upload-photo", methods=["POST"])
 @require_login
+@require_admin
 def upload_bot_welcome_photo():
     file = request.files.get("photo")
     if not file or not file.filename:
@@ -567,6 +627,7 @@ def upload_bot_welcome_photo():
 
 @admin_bp.route("/admin/api/bot/send-message", methods=["POST"])
 @require_login
+@require_admin
 def send_bot_message():
     token = os.getenv("BOT_TOKEN", "").strip()
     if not token:
@@ -617,6 +678,7 @@ def send_bot_message():
 
 @admin_bp.route("/admin/api/users", methods=["GET"])
 @require_login
+@require_admin
 def admin_users_list():
     q = (request.args.get("q") or "").strip()
     try:
@@ -628,6 +690,7 @@ def admin_users_list():
 
 @admin_bp.route("/admin/api/users/<user_id>", methods=["GET"])
 @require_login
+@require_admin
 def admin_users_get(user_id):
     try:
         data = _backend_get_json(f"/users/{user_id}")
@@ -641,6 +704,7 @@ def admin_users_get(user_id):
 
 @admin_bp.route("/admin/api/users/<user_id>/statistics", methods=["GET"])
 @require_login
+@require_admin
 def admin_users_get_statistics(user_id):
     try:
         data = _backend_get_json(f"/users/{user_id}/statistics")
@@ -654,6 +718,7 @@ def admin_users_get_statistics(user_id):
 
 @admin_bp.route("/admin/api/users/<user_id>/rating-manual", methods=["PATCH"])
 @require_login
+@require_admin
 def admin_users_patch_rating(user_id):
     body = request.get_json(silent=True) or {}
     rating_manual_delta = body.get("ratingManualDelta")
@@ -675,6 +740,7 @@ def admin_users_patch_rating(user_id):
 
 @admin_bp.route("/admin/api/users/<user_id>/verified", methods=["PATCH"])
 @require_login
+@require_admin
 def admin_users_patch_verified(user_id):
     body = request.get_json(silent=True) or {}
     verified = body.get("verified")
@@ -696,6 +762,7 @@ def admin_users_patch_verified(user_id):
 
 @admin_bp.route("/admin/api/users/<user_id>/scam", methods=["PATCH"])
 @require_login
+@require_admin
 def admin_users_patch_scam(user_id):
     body = request.get_json(silent=True) or {}
     is_scam = body.get("isScam")
@@ -717,6 +784,7 @@ def admin_users_patch_scam(user_id):
 
 @admin_bp.route("/admin/api/users/<user_id>/blocked", methods=["PATCH"])
 @require_login
+@require_admin
 def admin_users_patch_blocked(user_id):
     body = request.get_json(silent=True) or {}
     is_blocked = body.get("isBlocked")
@@ -734,6 +802,107 @@ def admin_users_patch_blocked(user_id):
         return jsonify({"error": f"Backend returned {status}"}), status
     except (URLError, ValueError) as exc:
         return jsonify({"error": f"Failed to update blocked flag: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/moderators", methods=["GET"])
+@require_login
+@require_admin
+def list_moderators():
+    rows = Moderator.query.order_by(Moderator.created_at.desc()).all()
+    return jsonify({
+        "moderators": [
+            {"id": r.id, "label": r.label or "", "createdAt": r.created_at.isoformat() if r.created_at else None}
+            for r in rows
+        ]
+    })
+
+
+@admin_bp.route("/admin/api/moderators", methods=["POST"])
+@require_login
+@require_admin
+def create_moderator():
+    body = request.get_json(silent=True) or {}
+    password = body.get("password")
+    if not password or not isinstance(password, str):
+        return jsonify({"error": "password is required"}), 400
+    label = body.get("label")
+    if label is not None and not isinstance(label, str):
+        return jsonify({"error": "label must be string"}), 400
+    label = (label or "").strip()
+    mod = Moderator(
+        label=label,
+        password_hash=generate_password_hash(password),
+    )
+    db.session.add(mod)
+    db.session.commit()
+    return jsonify({
+        "id": mod.id,
+        "label": mod.label or "",
+        "createdAt": mod.created_at.isoformat() if mod.created_at else None,
+    }), 201
+
+
+@admin_bp.route("/admin/api/moderators/<int:mod_id>", methods=["PATCH"])
+@require_login
+@require_admin
+def update_moderator(mod_id):
+    mod = Moderator.query.get(mod_id)
+    if not mod:
+        return jsonify({"error": "Moderator not found"}), 404
+    body = request.get_json(silent=True) or {}
+    if "password" in body and body["password"] is not None:
+        pw = body["password"]
+        if not isinstance(pw, str):
+            return jsonify({"error": "password must be string"}), 400
+        mod.password_hash = generate_password_hash(pw)
+    if "label" in body:
+        label = body["label"]
+        if not isinstance(label, str):
+            return jsonify({"error": "label must be string"}), 400
+        mod.label = (label or "").strip()
+    db.session.commit()
+    return jsonify({
+        "id": mod.id,
+        "label": mod.label or "",
+        "createdAt": mod.created_at.isoformat() if mod.created_at else None,
+    })
+
+
+@admin_bp.route("/admin/api/moderators/<int:mod_id>", methods=["DELETE"])
+@require_login
+@require_admin
+def delete_moderator(mod_id):
+    mod = Moderator.query.get(mod_id)
+    if not mod:
+        return jsonify({"error": "Moderator not found"}), 404
+    db.session.delete(mod)
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+@admin_bp.route("/admin/api/log", methods=["GET"])
+@require_login
+@require_admin
+def admin_log():
+    rows = (
+        ModeratorActionLog.query
+        .order_by(ModeratorActionLog.created_at.desc())
+        .limit(200)
+        .all()
+    )
+    mod_ids = {r.moderator_id for r in rows}
+    moderators = {m.id: (m.label or f"Модератор #{m.id}") for m in Moderator.query.filter(Moderator.id.in_(mod_ids)).all()}
+    entries = []
+    for r in rows:
+        entries.append({
+            "id": r.id,
+            "moderatorLabel": moderators.get(r.moderator_id, f"#{r.moderator_id}"),
+            "actionType": r.action_type,
+            "requestId": r.request_id,
+            "details": r.details,
+            "createdAt": r.created_at.isoformat() if r.created_at else None,
+        })
+    return jsonify({"entries": entries})
 
 
 @admin_bp.route("/admin/api/moderation/requests", methods=["GET"])
@@ -777,6 +946,7 @@ def admin_moderation_update(request_id):
         payload["adminNote"] = note
     try:
         data = _backend_json(f"/moderation/requests/{request_id}", "PATCH", payload)
+        _log_moderator_action("edit", request_id)
         return jsonify(data)
     except HTTPError as exc:
         status = exc.code if exc.code else 502
@@ -792,6 +962,7 @@ def admin_moderation_reject(request_id):
     payload = {"adminNote": body.get("adminNote")}
     try:
         data = _backend_json(f"/moderation/requests/{request_id}/reject", "PATCH", payload)
+        _log_moderator_action("reject", request_id)
         return jsonify(data)
     except HTTPError as exc:
         status = exc.code if exc.code else 502
@@ -816,6 +987,7 @@ def admin_moderation_approve(request_id):
         return jsonify({"error": f"Failed to load moderation request: {exc}"}), 502
 
     if current.get("status") == "approved" and current.get("publishedItemId"):
+        _log_moderator_action("approve", request_id, {"alreadyApproved": True})
         return jsonify({"ok": True, "request": current, "alreadyApproved": True})
 
     if form_data is not None:
@@ -856,6 +1028,7 @@ def admin_moderation_approve(request_id):
             "PATCH",
             {"publishedItemId": new_item.get("id"), "adminNote": admin_note},
         )
+        _log_moderator_action("approve", request_id)
         return jsonify({"ok": True, "publishedItem": new_item, "request": approved.get("request")})
     except HTTPError as exc:
         status = exc.code if exc.code else 502

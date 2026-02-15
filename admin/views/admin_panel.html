@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Админ-панель{% endblock %}
 {% block body %}
+  <script>window.ADMIN_ROLE = "{{ role }}";</script>
   <main class="container">
     <header class="card" style="padding:14px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;">
       <div>
@@ -12,18 +13,20 @@
 
     <div class="layout" style="margin-top:12px;">
       <aside class="card sidebar">
-        <button class="btn tab-btn active" data-tab-btn="home">Главная страница</button>
-        <button class="btn tab-btn" data-tab-btn="main-edit">Изменение главной страницы</button>
-        <button class="btn tab-btn" data-tab-btn="exchange">Биржа</button>
-        <button class="btn tab-btn" data-tab-btn="guarant">Гарант</button>
-        <button class="btn tab-btn" data-tab-btn="users">Пользователи</button>
+        <button class="btn tab-btn active" data-tab-btn="home" data-admin-only>Главная страница</button>
+        <button class="btn tab-btn" data-tab-btn="main-edit" data-admin-only>Изменение главной страницы</button>
+        <button class="btn tab-btn" data-tab-btn="exchange" data-admin-only>Биржа</button>
+        <button class="btn tab-btn" data-tab-btn="guarant" data-admin-only>Гарант</button>
+        <button class="btn tab-btn" data-tab-btn="users" data-admin-only>Пользователи</button>
         <button class="btn tab-btn" data-tab-btn="moderation">Модерация</button>
-        <button class="btn tab-btn" data-tab-btn="faq">FAQ</button>
-        <button class="btn tab-btn" data-tab-btn="bot">Бот</button>
+        <button class="btn tab-btn" data-tab-btn="moderators" data-admin-only>Модераторы</button>
+        <button class="btn tab-btn" data-tab-btn="log" data-admin-only>Лог</button>
+        <button class="btn tab-btn" data-tab-btn="faq" data-admin-only>FAQ</button>
+        <button class="btn tab-btn" data-tab-btn="bot" data-admin-only>Бот</button>
       </aside>
 
       <section class="stack">
-        <section id="tab-home" class="tab-view stack">
+        <section id="tab-home" class="tab-view stack" data-admin-only>
           <div class="grid-2">
             <article class="card" style="padding:14px;">
               <p class="muted" style="margin:0 0 6px 0;">Количество пользователей</p>
@@ -40,7 +43,7 @@
           </div>
         </section>
 
-        <section id="tab-main-edit" class="tab-view stack" style="display:none;">
+        <section id="tab-main-edit" class="tab-view stack" style="display:none;" data-admin-only>
           <div class="card" style="padding:12px;">
             <h2 style="margin:0 0 10px 0;font-size:16px;">Ссылка кнопки новостей</h2>
             <div class="grid-2">
@@ -57,7 +60,7 @@
           </div>
         </section>
 
-        <section id="tab-exchange" class="tab-view stack" style="display:none;">
+        <section id="tab-exchange" class="tab-view stack" style="display:none;" data-admin-only>
           <section class="card" style="padding:12px;">
             <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
               <input id="userSearchInput" class="input" placeholder="Поиск по пользователям (username / usernameLink)" />
@@ -83,7 +86,7 @@
           </section>
         </section>
 
-        <section id="tab-guarant" class="tab-view stack" style="display:none;">
+        <section id="tab-guarant" class="tab-view stack" style="display:none;" data-admin-only>
           <section class="card" style="padding:12px;">
             <h2 style="margin:0 0 10px 0;font-size:16px;">Ссылка на гаранта</h2>
             <div class="grid-2">
@@ -101,7 +104,7 @@
           </section>
         </section>
 
-        <section id="tab-users" class="tab-view stack" style="display:none;">
+        <section id="tab-users" class="tab-view stack" style="display:none;" data-admin-only>
           <section class="card" style="padding:12px;">
             <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
               <input id="adminUsersSearchInput" class="input" placeholder="Поиск по username или telegramId" />
@@ -138,7 +141,57 @@
           </section>
         </section>
 
-        <section id="tab-faq" class="tab-view stack" style="display:none;">
+        <section id="tab-moderators" class="tab-view stack" style="display:none;" data-admin-only>
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 10px 0;font-size:16px;">Модераторы</h2>
+            <p class="muted" style="margin:4px 0 10px 0;font-size:13px;">Создайте пароли для входа модераторов. Подпись отображается в логе действий.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:12px;">
+              <div>
+                <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Пароль</label>
+                <input id="newModeratorPasswordInput" class="input" type="password" placeholder="••••••••" />
+              </div>
+              <div>
+                <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Подпись (для лога)</label>
+                <input id="newModeratorLabelInput" class="input" placeholder="Модератор 1" />
+              </div>
+              <button id="createModeratorBtn" class="btn btn-primary">Создать</button>
+            </div>
+            <div id="moderatorsTableWrap" style="overflow:auto;"></div>
+          </section>
+          <section class="card" style="padding:12px;">
+            <h3 style="margin:0 0 8px 0;font-size:14px;">Изменить модератора</h3>
+            <div id="editModeratorWrap" class="muted" style="font-size:13px;">Выберите модератора в таблице и нажмите «Изменить».</div>
+            <div id="editModeratorFormWrap" style="display:none;margin-top:10px;">
+              <input id="editModeratorIdInput" type="hidden" />
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                  <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Новый пароль (оставьте пустым, чтобы не менять)</label>
+                  <input id="editModeratorPasswordInput" class="input" type="password" placeholder="••••••••" />
+                </div>
+                <div>
+                  <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Подпись</label>
+                  <input id="editModeratorLabelInput" class="input" placeholder="Подпись" />
+                </div>
+              </div>
+              <div style="margin-top:8px;display:flex;gap:8px;">
+                <button id="saveModeratorBtn" class="btn btn-primary">Сохранить</button>
+                <button id="cancelEditModeratorBtn" class="btn">Отмена</button>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section id="tab-log" class="tab-view stack" style="display:none;" data-admin-only>
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 8px 0;font-size:16px;">Лог действий модераторов</h2>
+            <div style="margin-bottom:8px;">
+              <button id="refreshLogBtn" class="btn">Обновить</button>
+            </div>
+            <div id="logTableWrap" style="overflow:auto;"></div>
+          </section>
+        </section>
+
+        <section id="tab-faq" class="tab-view stack" style="display:none;" data-admin-only>
           <section class="card" style="padding:12px;">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
               <h2 style="margin:0;font-size:16px;">Частые вопросы</h2>
@@ -158,7 +211,7 @@
           </section>
         </section>
 
-        <section id="tab-bot" class="tab-view stack" style="display:none;">
+        <section id="tab-bot" class="tab-view stack" style="display:none;" data-admin-only>
           <section class="card" style="padding:12px;">
             <h2 style="margin:0 0 8px 0;font-size:16px;">Приветствие в боте (/start)</h2>
             <label class="muted" style="display:block;margin-bottom:6px;">Текст приветствия</label>

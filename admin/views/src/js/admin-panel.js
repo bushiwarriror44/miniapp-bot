@@ -1,5 +1,8 @@
+const adminRole = typeof window.ADMIN_ROLE !== "undefined" ? window.ADMIN_ROLE : "admin";
 let activeTab = "home";
 let activeCategory = null;
+let moderatorsList = [];
+let selectedModeratorId = null;
 let currentItems = [];
 let editingItemId = null;
 let editingItemDraft = null;
@@ -120,6 +123,28 @@ const botMessageSendAllInput = document.getElementById("botMessageSendAllInput")
 const botMessageTextInput = document.getElementById("botMessageTextInput");
 const sendBotMessageBtn = document.getElementById("sendBotMessageBtn");
 const botMessageResult = document.getElementById("botMessageResult");
+const newModeratorPasswordInput = document.getElementById("newModeratorPasswordInput");
+const newModeratorLabelInput = document.getElementById("newModeratorLabelInput");
+const createModeratorBtn = document.getElementById("createModeratorBtn");
+const moderatorsTableWrap = document.getElementById("moderatorsTableWrap");
+const editModeratorWrap = document.getElementById("editModeratorWrap");
+const editModeratorFormWrap = document.getElementById("editModeratorFormWrap");
+const editModeratorIdInput = document.getElementById("editModeratorIdInput");
+const editModeratorPasswordInput = document.getElementById("editModeratorPasswordInput");
+const editModeratorLabelInput = document.getElementById("editModeratorLabelInput");
+const saveModeratorBtn = document.getElementById("saveModeratorBtn");
+const cancelEditModeratorBtn = document.getElementById("cancelEditModeratorBtn");
+const logTableWrap = document.getElementById("logTableWrap");
+const refreshLogBtn = document.getElementById("refreshLogBtn");
+
+function applyModeratorLayout() {
+  document.querySelectorAll(".sidebar [data-admin-only]").forEach((el) => {
+    el.style.display = "none";
+  });
+  document.querySelectorAll(".tab-view[data-admin-only]").forEach((el) => {
+    el.style.display = "none";
+  });
+}
 
 function notify(text) {
   console.log(text);
@@ -1095,6 +1120,70 @@ async function approveModerationRequest() {
   await openModerationRequest(selectedModerationRequestId);
 }
 
+async function loadModerators() {
+  if (!moderatorsTableWrap) return;
+  try {
+    const data = await apiGet("/admin/api/moderators");
+    moderatorsList = data.moderators || [];
+    renderModeratorsTable();
+  } catch (err) {
+    moderatorsTableWrap.innerHTML = `<p class="muted">Ошибка загрузки: ${escapeHtml(err instanceof Error ? err.message : String(err))}</p>`;
+  }
+}
+
+function renderModeratorsTable() {
+  if (!moderatorsTableWrap) return;
+  const rows = moderatorsList
+    .map(
+      (m) => `
+      <tr>
+        <td>${escapeHtml(m.label || "")}</td>
+        <td class="muted" style="font-size:13px;">${m.createdAt ? new Date(m.createdAt).toLocaleString() : ""}</td>
+        <td>
+          <button class="btn" data-moderator-edit-id="${m.id}">Изменить</button>
+          <button class="btn" data-moderator-delete-id="${m.id}">Удалить</button>
+        </td>
+      </tr>
+    `
+    )
+    .join("");
+  moderatorsTableWrap.innerHTML = `
+    <table class="table">
+      <thead><tr><th>Подпись</th><th>Создан</th><th>Действия</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="3" class="muted">Нет модераторов</td></tr>'}</tbody>
+    </table>
+  `;
+}
+
+async function loadLog() {
+  if (!logTableWrap) return;
+  try {
+    const data = await apiGet("/admin/api/log");
+    const entries = data.entries || [];
+    const rows = entries
+      .map(
+        (e) => `
+      <tr>
+        <td class="muted" style="font-size:13px;">${e.createdAt ? new Date(e.createdAt).toLocaleString() : ""}</td>
+        <td>${escapeHtml(e.moderatorLabel || "")}</td>
+        <td>${escapeHtml(e.actionType || "")}</td>
+        <td style="font-family:monospace;">${escapeHtml(e.requestId || "")}</td>
+        <td class="muted" style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.details || "")}</td>
+      </tr>
+    `
+      )
+      .join("");
+    logTableWrap.innerHTML = `
+      <table class="table">
+        <thead><tr><th>Дата</th><th>Модератор</th><th>Действие</th><th>ID заявки</th><th>Детали</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="5" class="muted">Записей нет</td></tr>'}</tbody>
+      </table>
+    `;
+  } catch (err) {
+    logTableWrap.innerHTML = `<p class="muted">Ошибка загрузки: ${escapeHtml(err instanceof Error ? err.message : String(err))}</p>`;
+  }
+}
+
 function resetFaqEditor() {
   editingFaqId = null;
   faqIdInput.value = "";
@@ -1229,6 +1318,8 @@ async function switchTab(tabId) {
   if (tabId === "guarant") await loadGuarantConfig();
   if (tabId === "users") await loadAdminUsers();
   if (tabId === "moderation") await loadModerationRequests();
+  if (tabId === "moderators") await loadModerators();
+  if (tabId === "log") await loadLog();
   if (tabId === "faq") await loadFaqConfig();
   if (tabId === "bot") await loadBotConfig();
 }
@@ -1305,6 +1396,37 @@ document.addEventListener("click", async (e) => {
   const moderationRequestBtn = e.target.closest("[data-mod-request-id]");
   if (moderationRequestBtn) {
     await openModerationRequest(moderationRequestBtn.dataset.modRequestId);
+    return;
+  }
+
+  const modEditBtn = e.target.closest("[data-moderator-edit-id]");
+  if (modEditBtn) {
+    const id = modEditBtn.dataset.moderatorEditId;
+    const m = moderatorsList.find((x) => String(x.id) === String(id));
+    if (!m || !editModeratorFormWrap || !editModeratorIdInput) return;
+    selectedModeratorId = id;
+    if (editModeratorIdInput) editModeratorIdInput.value = id;
+    if (editModeratorLabelInput) editModeratorLabelInput.value = m.label || "";
+    if (editModeratorPasswordInput) editModeratorPasswordInput.value = "";
+    if (editModeratorWrap) editModeratorWrap.style.display = "none";
+    if (editModeratorFormWrap) editModeratorFormWrap.style.display = "block";
+    return;
+  }
+
+  const modDeleteBtn = e.target.closest("[data-moderator-delete-id]");
+  if (modDeleteBtn) {
+    const id = modDeleteBtn.dataset.moderatorDeleteId;
+    if (!confirm("Удалить этого модератора? Пароль перестанет действовать.")) return;
+    try {
+      await apiJson(`/admin/api/moderators/${id}`, "DELETE", {});
+      await loadModerators();
+      if (editModeratorFormWrap && selectedModeratorId === id) {
+        editModeratorFormWrap.style.display = "none";
+        if (editModeratorWrap) editModeratorWrap.style.display = "";
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+    }
     return;
   }
 });
@@ -1404,6 +1526,49 @@ sendBotMessageBtn?.addEventListener("click", async () => {
   }
 });
 
+createModeratorBtn?.addEventListener("click", async () => {
+  const password = newModeratorPasswordInput?.value?.trim();
+  if (!password) {
+    alert("Введите пароль");
+    return;
+  }
+  const label = newModeratorLabelInput?.value?.trim() || "";
+  try {
+    await apiJson("/admin/api/moderators", "POST", { password, label });
+    if (newModeratorPasswordInput) newModeratorPasswordInput.value = "";
+    if (newModeratorLabelInput) newModeratorLabelInput.value = "";
+    await loadModerators();
+  } catch (err) {
+    alert(err instanceof Error ? err.message : String(err));
+  }
+});
+
+saveModeratorBtn?.addEventListener("click", async () => {
+  const id = editModeratorIdInput?.value;
+  if (!id) return;
+  const label = editModeratorLabelInput?.value?.trim() || "";
+  const password = editModeratorPasswordInput?.value?.trim() || null;
+  const payload = { label };
+  if (password) payload.password = password;
+  try {
+    await apiJson(`/admin/api/moderators/${id}`, "PATCH", payload);
+    editModeratorFormWrap.style.display = "none";
+    if (editModeratorWrap) editModeratorWrap.style.display = "";
+    if (editModeratorPasswordInput) editModeratorPasswordInput.value = "";
+    await loadModerators();
+  } catch (err) {
+    alert(err instanceof Error ? err.message : String(err));
+  }
+});
+
+cancelEditModeratorBtn?.addEventListener("click", () => {
+  if (editModeratorFormWrap) editModeratorFormWrap.style.display = "none";
+  if (editModeratorWrap) editModeratorWrap.style.display = "";
+  selectedModeratorId = null;
+});
+
+refreshLogBtn?.addEventListener("click", loadLog);
+
 document.addEventListener("DOMContentLoaded", async () => {
   debugLog("DOMContentLoaded:init", {
     hasAddAdBtn: Boolean(addAdBtn),
@@ -1455,5 +1620,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       await approveModerationRequest();
     }
   });
-  await switchTab("home");
+  if (adminRole === "moderator") {
+    applyModeratorLayout();
+    await switchTab("moderation");
+  } else {
+    await switchTab("home");
+  }
 });

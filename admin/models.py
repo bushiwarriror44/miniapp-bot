@@ -29,6 +29,26 @@ class Dataset(db.Model):
     )
 
 
+class Moderator(db.Model):
+    __tablename__ = "moderators"
+
+    id = db.Column(db.Integer, primary_key=True)
+    label = db.Column(db.String(200), nullable=True, default="")
+    password_hash = db.Column(db.String(256), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class ModeratorActionLog(db.Model):
+    __tablename__ = "moderator_action_log"
+
+    id = db.Column(db.Integer, primary_key=True)
+    moderator_id = db.Column(db.Integer, db.ForeignKey("moderators.id"), nullable=False)
+    action_type = db.Column(db.String(50), nullable=False)
+    request_id = db.Column(db.String(100), nullable=True)
+    details = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
 DATASET_FILES = {
     "ads": "ads.json",
     "buyAds": "buyAds.json",
