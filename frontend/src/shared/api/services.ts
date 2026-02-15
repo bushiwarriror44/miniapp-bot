@@ -23,8 +23,10 @@ export async function fetchServices(): Promise<ServicesResponse> {
   return payload;
 }
 
-export function formatServiceDate(isoDate: string): string {
+export function formatServiceDate(isoDate: string | undefined | null): string {
+  if (isoDate == null || typeof isoDate !== "string") return "—";
   const d = new Date(isoDate);
+  if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("ru-RU", {
     day: "numeric",
     month: "short",

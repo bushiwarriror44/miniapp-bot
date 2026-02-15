@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faStar, faExternalLink } from "@fortawesome/free-solid-svg-icons";
 import { AD_TYPE_LABELS, PAYMENT_LABELS, type AdItem } from "@/shared/api/ads";
 import { formatServiceDate } from "@/shared/api/services";
+import { safeLocaleNumber } from "@/shared/format";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { fetchUserFavorites } from "@/shared/api/users";
 import VerifiedBadge from "@/app/components/VerifiedBadge";
@@ -65,7 +66,7 @@ function FavoriteAdCard({ ad }: { ad: AdItem }) {
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
         <span style={{ color: "var(--color-text-muted)" }}>Цена:</span>
-        <span style={{ color: "var(--color-text)" }}>{ad.price.toLocaleString("ru-RU")} ₽</span>
+        <span style={{ color: "var(--color-text)" }}>{safeLocaleNumber(ad.price)} ₽</span>
         <span style={{ color: "var(--color-text-muted)" }}>С закрепом:</span>
         <span style={{ color: "var(--color-text)" }}>{ad.pinned ? "Да" : "Нет"}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Под гарант:</span>

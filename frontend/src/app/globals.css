@@ -194,3 +194,12 @@ textarea:focus,
   background-position: right 0.5rem center;
   background-size: 1.25rem;
 }
+
+/* Подсветка обязательных полей с ошибкой (форма заявки на бирже) */
+.input-error,
+input.input-error,
+textarea.input-error,
+select.input-error {
+  border: 2px solid #dc2626 !important;
+  box-shadow: 0 0 0 1px #dc2626 !important;
+}

@@ -40,6 +40,9 @@ def list_datasets():
 def get_dataset(dataset_name):
     item = Dataset.query.filter_by(name=dataset_name).first()
     if not item:
+        if dataset_name == 'exchangeOptions':
+            payload = DEFAULT_DATASETS.get('exchangeOptions', {'jobTypes': [], 'currencies': []})
+            return jsonify({'name': 'exchangeOptions', 'payload': payload, 'updatedAt': None})
         return jsonify({'error': f'Dataset "{dataset_name}" not found'}), 404
 
     try:

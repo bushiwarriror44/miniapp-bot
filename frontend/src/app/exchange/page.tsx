@@ -29,6 +29,7 @@ import { fetchOther, type OtherItem } from "@/shared/api/other";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { submitModerationRequest } from "@/shared/api/moderation";
 import { fetchExchangeOptions, getJobTypeLabel, getCurrencyLabel, type ExchangeOptionsPayload } from "@/shared/api/exchangeOptions";
+import { safeLocaleNumber } from "@/shared/format";
 import VerifiedBadge from "@/app/components/VerifiedBadge";
 import {
   faBullhorn,
@@ -71,7 +72,8 @@ const inputStyleModal = {
 
 const inputStyleError = {
   ...inputStyleModal,
-  borderColor: "var(--color-accent)",
+  border: "2px solid #dc2626",
+  boxShadow: "0 0 0 1px #dc2626",
 };
 
 function getRequiredFields(section: SubmitFormSection): string[] {
@@ -362,7 +364,9 @@ function SubmitFormBySection({
   invalidFields: string[];
   exchangeOptions: ExchangeOptionsPayload | null;
 }) {
-  const styleFor = (key: string) => (invalidFields.includes(key) ? inputStyleError : inputStyleModal);
+  const isInvalid = (key: string) => invalidFields.includes(key);
+  const styleFor = (key: string) => (isInvalid(key) ? inputStyleError : inputStyleModal);
+  const errorClass = (key: string) => (isInvalid(key) ? " input-error" : "");
   const label = (text: string, optional?: boolean) => (
     <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
       {text}{optional ? " (необязательно)" : ""}
@@ -374,7 +378,7 @@ function SubmitFormBySection({
       placeholder={placeholder}
       value={formData[key] ?? ""}
       onChange={(e) => setFormField(key, e.target.value)}
-      className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border"
+      className={`w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border${errorClass(key)}`}
       style={styleFor(key)}
     />
   );
@@ -384,7 +388,7 @@ function SubmitFormBySection({
       value={formData[key] ?? ""}
       onChange={(e) => setFormField(key, e.target.value)}
       rows={2}
-      className="w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none resize-none box-border"
+      className={`w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none resize-none box-border${errorClass(key)}`}
       style={styleFor(key)}
     />
   );
@@ -392,7 +396,7 @@ function SubmitFormBySection({
     <select
       value={formData[key] ?? ""}
       onChange={(e) => setFormField(key, e.target.value)}
-      className="select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0"
+      className={`select-next w-full rounded-lg px-3 py-2.5 text-sm outline-none min-w-0${errorClass(key)}`}
       style={styleFor(key)}
     >
       <option value="">Выберите...</option>
@@ -763,7 +767,7 @@ function AdCard({ ad }: { ad: AdItem }) {
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
         <span style={{ color: "var(--color-text-muted)" }}>Цена:</span>
-        <span style={{ color: "var(--color-text)" }}>{ad.price.toLocaleString("ru-RU")} ₽</span>
+        <span style={{ color: "var(--color-text)" }}>{safeLocaleNumber(ad.price)} ₽</span>
         <span style={{ color: "var(--color-text-muted)" }}>С закрепом:</span>
         <span style={{ color: "var(--color-text)" }}>{ad.pinned ? "Да" : "Нет"}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Под гарант:</span>
@@ -976,14 +980,22 @@ function SellAdsSection() {
 /* ——— Карточка заявки на покупку рекламы ——— */
 function BuyAdCard({ item }: { item: BuyAdItem }) {
   const [isOpen, setIsOpen] = useState(false);
-  const formatPriceRange = (min: number, max: number): string => {
-    if (min === max) return `${min.toLocaleString("ru-RU")} ₽`;
-    return `${min.toLocaleString("ru-RU")} — ${max.toLocaleString("ru-RU")} ₽`;
+  const formatPriceRange = (min: number | undefined | null, max: number | undefined | null): string => {
+    const m = min != null && typeof min === "number" && !Number.isNaN(min) ? min : null;
+    const n = max != null && typeof max === "number" && !Number.isNaN(max) ? max : null;
+    if (m == null && n == null) return "—";
+    if (m != null && n != null && m === n) return `${m.toLocaleString("ru-RU")} ₽`;
+    if (m != null && n != null) return `${m.toLocaleString("ru-RU")} — ${n.toLocaleString("ru-RU")} ₽`;
+    return m != null ? `${m.toLocaleString("ru-RU")} ₽` : n != null ? `${n.toLocaleString("ru-RU")} ₽` : "—";
   };
 
-  const formatViewsRange = (min: number, max: number): string => {
-    if (min === max) return min.toLocaleString("ru-RU");
-    return `${min.toLocaleString("ru-RU")} — ${max.toLocaleString("ru-RU")}`;
+  const formatViewsRange = (min: number | undefined | null, max: number | undefined | null): string => {
+    const m = min != null && typeof min === "number" && !Number.isNaN(min) ? min : null;
+    const n = max != null && typeof max === "number" && !Number.isNaN(max) ? max : null;
+    if (m == null && n == null) return "—";
+    if (m != null && n != null && m === n) return m.toLocaleString("ru-RU");
+    if (m != null && n != null) return `${m.toLocaleString("ru-RU")} — ${n.toLocaleString("ru-RU")}`;
+    return m != null ? m.toLocaleString("ru-RU") : n != null ? n.toLocaleString("ru-RU") : "—";
   };
 
   return (
@@ -1619,7 +1631,7 @@ function ServiceCard({ service }: { service: ServiceItem }) {
       </div>
       <div className="flex items-center gap-2">
         <span className="font-semibold text-sm" style={{ color: "var(--color-accent)" }}>
-          {service.price.toLocaleString("ru-RU")} ₽
+          {safeLocaleNumber(service.price)} ₽
         </span>
         <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
           @{service.username}
@@ -1960,11 +1972,11 @@ function SellChannelCard({ channel }: { channel: SellChannelItem }) {
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
         <span style={{ color: "var(--color-text-muted)" }}>Подписчиков:</span>
-        <span style={{ color: "var(--color-text)" }}>{channel.subscribers.toLocaleString("ru-RU")}</span>
+        <span style={{ color: "var(--color-text)" }}>{safeLocaleNumber(channel.subscribers)}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Охват:</span>
-        <span style={{ color: "var(--color-text)" }}>{channel.reach.toLocaleString("ru-RU")}</span>
+        <span style={{ color: "var(--color-text)" }}>{safeLocaleNumber(channel.reach)}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Цена:</span>
-        <span style={{ color: "var(--color-text)" }}>{channel.price.toLocaleString("ru-RU")} ₽</span>
+        <span style={{ color: "var(--color-text)" }}>{safeLocaleNumber(channel.price)} ₽</span>
         <span style={{ color: "var(--color-text-muted)" }}>Через гаранта:</span>
         <span style={{ color: "var(--color-text)" }}>{channel.viaGuarantor ? "Да" : "Нет"}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Тематика:</span>
@@ -2327,9 +2339,13 @@ function SellChannelSection() {
 }
 
 /* ——— Карточка заявки на покупку канала ——— */
-function formatRange(min: number, max: number): string {
-  if (min === max) return min.toLocaleString("ru-RU");
-  return `${min.toLocaleString("ru-RU")} — ${max.toLocaleString("ru-RU")}`;
+function formatRange(min: number | undefined | null, max: number | undefined | null): string {
+  const m = min != null && typeof min === "number" && !Number.isNaN(min) ? min : null;
+  const n = max != null && typeof max === "number" && !Number.isNaN(max) ? max : null;
+  if (m == null && n == null) return "—";
+  if (m != null && n != null && m === n) return m.toLocaleString("ru-RU");
+  if (m != null && n != null) return `${m.toLocaleString("ru-RU")} — ${n.toLocaleString("ru-RU")}`;
+  return m != null ? m.toLocaleString("ru-RU") : n != null ? n.toLocaleString("ru-RU") : "—";
 }
 
 function BuyChannelCard({ item }: { item: BuyChannelItem }) {
@@ -2734,7 +2750,7 @@ function OtherCard({ item }: { item: OtherItem }) {
         <span style={{ color: "var(--color-text-muted)" }}>Верифицирован:</span>
         <span style={{ color: "var(--color-text)" }}>{item.verified ? "Да" : "Нет"}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Цена (₽):</span>
-        <span style={{ color: "var(--color-text)" }}>{item.price.toLocaleString("ru-RU")}</span>
+        <span style={{ color: "var(--color-text)" }}>{safeLocaleNumber(item.price)}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Опубликовано:</span>
         <span style={{ color: "var(--color-text)" }}>{formatServiceDate(item.publishedAt)}</span>
       </div>
