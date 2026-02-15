@@ -19,10 +19,18 @@ from flask import (
     session,
     url_for,
 )
-
+from sqlalchemy.exc import OperationalError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from models import Dataset, Moderator, ModeratorActionLog, db
+
+
+def _ensure_moderator_tables():
+    """Create moderator-related tables if they do not exist (e.g. after deploy without restart)."""
+    try:
+        db.create_all()
+    except Exception:
+        pass
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -808,7 +816,12 @@ def admin_users_patch_blocked(user_id):
 @require_login
 @require_admin
 def list_moderators():
-    rows = Moderator.query.order_by(Moderator.created_at.desc()).all()
+    _ensure_moderator_tables()
+    try:
+        rows = Moderator.query.order_by(Moderator.created_at.desc()).all()
+    except OperationalError:
+        _ensure_moderator_tables()
+        rows = Moderator.query.order_by(Moderator.created_at.desc()).all()
     return jsonify({
         "moderators": [
             {"id": r.id, "label": r.label or "", "createdAt": r.created_at.isoformat() if r.created_at else None}
@@ -884,14 +897,26 @@ def delete_moderator(mod_id):
 @require_login
 @require_admin
 def admin_log():
-    rows = (
-        ModeratorActionLog.query
-        .order_by(ModeratorActionLog.created_at.desc())
-        .limit(200)
-        .all()
-    )
+    _ensure_moderator_tables()
+    try:
+        rows = (
+            ModeratorActionLog.query
+            .order_by(ModeratorActionLog.created_at.desc())
+            .limit(200)
+            .all()
+        )
+    except OperationalError:
+        _ensure_moderator_tables()
+        rows = (
+            ModeratorActionLog.query
+            .order_by(ModeratorActionLog.created_at.desc())
+            .limit(200)
+            .all()
+        )
     mod_ids = {r.moderator_id for r in rows}
-    moderators = {m.id: (m.label or f"Модератор #{m.id}") for m in Moderator.query.filter(Moderator.id.in_(mod_ids)).all()}
+    moderators = {}
+    if mod_ids:
+        moderators = {m.id: (m.label or f"Модератор #{m.id}") for m in Moderator.query.filter(Moderator.id.in_(mod_ids)).all()}
     entries = []
     for r in rows:
         entries.append({

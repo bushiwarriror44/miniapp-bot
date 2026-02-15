@@ -201,8 +201,8 @@ def migrate_datasets_from_frontend(project_root, overwrite_existing=False):
         else:
             db.session.add(Dataset(name=dataset_name, payload=payload_json))
         migrated.append(dataset_name)
-
-    db.session.commit()
+    
+        db.session.commit()
     return {"migrated": sorted(set(migrated)), "skipped": sorted(set(skipped))}
 
 

@@ -4,7 +4,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 import os
 
-from models import db, init_all_models
+from models import db, init_all_models, Moderator, ModeratorActionLog  # ensure moderator tables exist after create_all()
 from api_routes import api_bp
 from admin_routes import admin_bp
 
