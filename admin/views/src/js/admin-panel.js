@@ -593,9 +593,16 @@ async function loadAttachAdItems(backendCategory) {
         (item) => {
           const label = escapeHtml(attachAdItemDisplayLabel(item));
           const id = escapeHtml(String(item.id ?? ""));
-          return `<div class="stack" style="flex-direction:row;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-color, #eee);">
-  <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:13px;">${label}</span>
-  <button type="button" class="btn btn-primary attach-ad-add-btn" data-attach-ad-id="${id}" data-attach-ad-category="${escapeHtml(backendCategory)}">Добавить</button>
+          const description = escapeHtml((item.description || "").slice(0, 120));
+          const descriptionHtml = description
+            ? `<p class="muted" style="margin:2px 0 0 0;font-size:12px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${description}</p>`
+            : "";
+          return `<div class="stack" style="flex-direction:row;align-items:flex-start;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-color, #eee);">
+  <div style="flex:1;min-width:0;">
+    <span style="font-size:13px;font-weight:500;display:block;">${label}</span>
+    ${descriptionHtml}
+  </div>
+  <button type="button" class="btn btn-primary attach-ad-add-btn" data-attach-ad-id="${id}" data-attach-ad-category="${escapeHtml(backendCategory)}" style="flex-shrink:0;">Добавить</button>
 </div>`;
         }
       )
@@ -605,7 +612,7 @@ async function loadAttachAdItems(backendCategory) {
   }
 }
 
-function addHotOfferFromAd(item, backendCategory) {
+async function addHotOfferFromAd(item, backendCategory) {
   const frontendSection = BACKEND_TO_FRONTEND_SECTION[backendCategory];
   if (!frontendSection) return;
   const { title, price, subtitle } = buildHotOfferFieldsFromItem(item, backendCategory);
@@ -623,7 +630,12 @@ function addHotOfferFromAd(item, backendCategory) {
   mainPageConfig.hotOffers = { offers };
   closeDialogSafe(attachAdHotOfferModal);
   renderHotOffersTable();
-  notify("Объявление добавлено в горячие предложения. Сохраните изменения главной.");
+  try {
+    await saveMainPageConfig();
+    notify("Объявление добавлено в горячие предложения и сохранено.");
+  } catch (e) {
+    notify("Объявление добавлено, но ошибка сохранения: " + String(e.message || e));
+  }
 }
 
 function openAttachAdHotOfferModal() {
