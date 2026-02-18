@@ -329,6 +329,31 @@ export class AppService {
     return this.buildUserProfile(user);
   }
 
+  async getTopUsers(limit: number = 10) {
+    const users = await this.usersRepository.find({
+      order: { createdAt: 'DESC' },
+    });
+    const profiles = await Promise.all(
+      users.map((user) => this.buildUserProfile(user)),
+    );
+    profiles.sort((a, b) => b.rating.total - a.rating.total);
+    const topUsers = profiles.slice(0, limit).map((profile, index) => {
+      const name =
+        profile.username ||
+        profile.firstName ||
+        profile.lastName ||
+        'Пользователь';
+      return {
+        id: profile.id,
+        rank: index + 1,
+        name,
+        rating: profile.rating.total,
+        dealsCount: profile.statistics?.deals?.total || 0,
+      };
+    });
+    return topUsers;
+  }
+
   async setUserRatingManualDelta(userId: string, ratingManualDelta: number) {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) {

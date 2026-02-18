@@ -1,4 +1,4 @@
-import { fetchDatasetFromApi } from "./dataSource";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001").replace(/\/$/, "");
 
 export type TopUser = {
   id: string;
@@ -13,9 +13,18 @@ export type TopUsersResponse = {
 };
 
 export async function fetchTopUsers(): Promise<TopUsersResponse> {
-  const payload = await fetchDatasetFromApi<TopUsersResponse>("topUsers");
-  if (!payload) {
-    throw new Error('Failed to load "topUsers" from content API');
+  try {
+    const res = await fetch(`${API_BASE}/users/top?limit=10`, {
+      method: "GET",
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to load top users: ${res.status} ${res.statusText}`);
+    }
+    const data = await res.json();
+    return { users: Array.isArray(data.users) ? data.users : [] };
+  } catch (error) {
+    console.error("[api] Failed to fetch top users from backend", error);
+    return { users: [] };
   }
-  return payload;
 }

@@ -167,6 +167,15 @@ export class AppController {
     return { users };
   }
 
+  @Get('users/top')
+  async getTopUsers(@Query('limit') limit?: string) {
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    const topUsers = await this.appService.getTopUsers(
+      Number.isFinite(limitNum) && limitNum > 0 ? limitNum : 10,
+    );
+    return { users: topUsers };
+  }
+
   @Get('users/:id')
   async getUserById(@Param('id') id: string) {
     const user = await this.appService.getUserById(id);

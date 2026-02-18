@@ -749,6 +749,18 @@ def admin_users_list():
         return jsonify({"error": f"Failed to fetch users from backend: {exc}"}), 502
 
 
+@admin_bp.route("/admin/api/users/top", methods=["GET"])
+@require_login
+@require_admin
+def admin_users_top():
+    limit = request.args.get("limit", "10")
+    try:
+        data = _backend_get_json("/users/top", {"limit": limit})
+        return jsonify(data)
+    except (HTTPError, URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to fetch top users from backend: {exc}"}), 502
+
+
 @admin_bp.route("/admin/api/users/<user_id>", methods=["GET"])
 @require_login
 @require_admin

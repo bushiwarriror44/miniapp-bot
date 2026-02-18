@@ -15,6 +15,8 @@ let faqItems = [];
 let editingFaqId = null;
 let adminUsers = [];
 let selectedAdminUserId = null;
+let ratingUsers = [];
+let selectedRatingUserId = null;
 let botConfig = { welcomeMessage: "", welcomePhotoUrl: null, supportLink: "" };
 let moderationRequests = [];
 let selectedModerationRequestId = null;
@@ -118,6 +120,15 @@ const adminUsersSearchInput = document.getElementById("adminUsersSearchInput");
 const adminUsersSearchBtn = document.getElementById("adminUsersSearchBtn");
 const adminUsersTableWrap = document.getElementById("adminUsersTableWrap");
 const adminUserDetailsWrap = document.getElementById("adminUserDetailsWrap");
+
+const ratingUsersSearchInput = document.getElementById("ratingUsersSearchInput");
+const ratingUsersRefreshBtn = document.getElementById("ratingUsersRefreshBtn");
+const ratingUsersTableWrap = document.getElementById("ratingUsersTableWrap");
+const ratingEditModal = document.getElementById("ratingEditModal");
+const ratingManualDeltaInput = document.getElementById("ratingManualDeltaInput");
+const ratingInfoText = document.getElementById("ratingInfoText");
+const ratingEditCancelBtn = document.getElementById("ratingEditCancelBtn");
+const ratingEditSaveBtn = document.getElementById("ratingEditSaveBtn");
 const moderationStatusFilter = document.getElementById("moderationStatusFilter");
 const moderationRefreshBtn = document.getElementById("moderationRefreshBtn");
 const moderationRequestsTableWrap = document.getElementById("moderationRequestsTableWrap");
@@ -1149,6 +1160,96 @@ async function saveAdminUserBlocked() {
   await openAdminUserCard(selectedAdminUserId);
 }
 
+async function loadRatingUsers() {
+  const q = ratingUsersSearchInput?.value?.trim() || "";
+  try {
+    const data = await apiGet(`/admin/api/users?q=${encodeURIComponent(q)}`);
+    ratingUsers = (data.users || []).sort((a, b) => (b.ratingTotal || 0) - (a.ratingTotal || 0));
+    renderRatingUsersTable();
+  } catch (e) {
+    console.error("[admin] Failed to load rating users", e);
+    ratingUsers = [];
+    renderRatingUsersTable();
+  }
+}
+
+function renderRatingUsersTable() {
+  const rows = ratingUsers
+    .map(
+      (user) => {
+        const ratingTotal = typeof user.ratingTotal === "number" ? user.ratingTotal.toFixed(1) : "0.0";
+        const ratingAuto = typeof user.ratingAuto === "number" ? user.ratingAuto.toFixed(1) : "0.0";
+        const ratingManualDelta = typeof user.ratingManualDelta === "number" ? user.ratingManualDelta.toFixed(1) : "0.0";
+        return `
+      <tr>
+        <td style="font-family:monospace;font-size:12px;">${escapeHtml(user.id || "")}</td>
+        <td>${escapeHtml(user.username || "-")}</td>
+        <td style="font-family:monospace;font-size:12px;">${escapeHtml(String(user.telegramId || ""))}</td>
+        <td style="font-weight:600;">${escapeHtml(ratingTotal)}</td>
+        <td>${escapeHtml(ratingAuto)}</td>
+        <td>${escapeHtml(ratingManualDelta)}</td>
+        <td>
+          <button class="btn" data-rating-edit-user-id="${escapeHtml(user.id || "")}">Изменить рейтинг</button>
+        </td>
+      </tr>
+    `;
+      }
+    )
+    .join("");
+
+  ratingUsersTableWrap.innerHTML = `
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Username</th>
+          <th>Telegram ID</th>
+          <th>Рейтинг (total)</th>
+          <th>Авто-рейтинг</th>
+          <th>Ручная корректировка</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody>${rows || '<tr><td colspan="7" class="muted">Пользователей не найдено</td></tr>'}</tbody>
+    </table>
+  `;
+}
+
+async function openRatingEditModal(userId) {
+  selectedRatingUserId = userId;
+  const user = ratingUsers.find((u) => u.id === userId);
+  if (!user) {
+    alert("Пользователь не найден");
+    return;
+  }
+  const ratingAuto = typeof user.ratingAuto === "number" ? user.ratingAuto : 0;
+  const ratingManualDelta = typeof user.ratingManualDelta === "number" ? user.ratingManualDelta : 0;
+  const ratingTotal = ratingAuto + ratingManualDelta;
+  ratingManualDeltaInput.value = String(ratingManualDelta);
+  ratingInfoText.textContent = `Авто-рейтинг: ${ratingAuto.toFixed(1)}, Итоговый: ${ratingTotal.toFixed(1)}`;
+  openDialogSafe(ratingEditModal);
+}
+
+async function saveRatingEdit() {
+  if (!selectedRatingUserId) return;
+  const value = Number(ratingManualDeltaInput?.value ?? 0);
+  if (Number.isNaN(value)) {
+    alert("Введите корректное число");
+    return;
+  }
+  try {
+    await apiJson(`/admin/api/users/${encodeURIComponent(selectedRatingUserId)}/rating-manual`, "PATCH", {
+      ratingManualDelta: value,
+    });
+    notify("Рейтинг обновлен");
+    closeDialogSafe(ratingEditModal);
+    selectedRatingUserId = null;
+    await loadRatingUsers();
+  } catch (e) {
+    alert("Ошибка сохранения: " + String(e.message || e));
+  }
+}
+
 function renderModerationRequestsTable() {
   const rows = moderationRequests
     .map(
@@ -1596,6 +1697,7 @@ async function switchTab(tabId) {
   if (tabId === "exchange") await loadCategories();
   if (tabId === "guarant") await loadGuarantConfig();
   if (tabId === "users") await loadAdminUsers();
+  if (tabId === "rating") await loadRatingUsers();
   if (tabId === "moderation") await loadModerationRequests();
   if (tabId === "moderators") await loadModerators();
   if (tabId === "log") await loadLog();
@@ -1804,6 +1906,22 @@ saveGuarantBtn.addEventListener("click", saveGuarantConfig);
 adminUsersSearchBtn?.addEventListener("click", loadAdminUsers);
 adminUsersSearchInput?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") loadAdminUsers();
+});
+ratingUsersRefreshBtn?.addEventListener("click", loadRatingUsers);
+ratingUsersSearchInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") loadRatingUsers();
+});
+ratingEditCancelBtn?.addEventListener("click", () => {
+  selectedRatingUserId = null;
+  closeDialogSafe(ratingEditModal);
+});
+ratingEditSaveBtn?.addEventListener("click", saveRatingEdit);
+ratingUsersTableWrap?.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-rating-edit-user-id]");
+  if (btn) {
+    const userId = btn.getAttribute("data-rating-edit-user-id");
+    if (userId) await openRatingEditModal(userId);
+  }
 });
 addFaqBtn?.addEventListener("click", resetFaqEditor);
 faqResetBtn?.addEventListener("click", resetFaqEditor);

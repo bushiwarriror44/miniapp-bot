@@ -18,6 +18,7 @@
         <button class="btn tab-btn" data-tab-btn="exchange" data-admin-only>Биржа</button>
         <button class="btn tab-btn" data-tab-btn="guarant" data-admin-only>Гарант</button>
         <button class="btn tab-btn" data-tab-btn="users" data-admin-only>Пользователи</button>
+        <button class="btn tab-btn" data-tab-btn="rating" data-admin-only>Рейтинг</button>
         <button class="btn tab-btn" data-tab-btn="moderation">Модерация</button>
         <button class="btn tab-btn" data-tab-btn="moderators" data-admin-only>Модераторы</button>
         <button class="btn tab-btn" data-tab-btn="log" data-admin-only>Лог</button>
@@ -120,6 +121,16 @@
           <section class="card" style="padding:12px;">
             <h2 style="margin:0 0 8px 0;font-size:16px;">Карточка пользователя</h2>
             <div id="adminUserDetailsWrap" class="muted">Выберите пользователя в таблице выше.</div>
+          </section>
+        </section>
+
+        <section id="tab-rating" class="tab-view stack" style="display:none;" data-admin-only>
+          <section class="card" style="padding:12px;">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:10px;">
+              <input id="ratingUsersSearchInput" class="input" placeholder="Поиск по username или telegramId (необязательно)" />
+              <button id="ratingUsersRefreshBtn" class="btn">Обновить</button>
+            </div>
+            <div id="ratingUsersTableWrap" style="overflow:auto;"></div>
           </section>
         </section>
 
@@ -317,6 +328,22 @@
     </div>
     <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
       <button id="attachAdHotOfferCloseBtn" class="btn" type="button">Закрыть</button>
+    </div>
+  </dialog>
+
+  <dialog id="ratingEditModal" class="card" style="border:none;max-width:500px;width:calc(100% - 24px);padding:12px;">
+    <h3 style="margin:0 0 10px 0;">Изменение рейтинга</h3>
+    <p class="muted" style="margin:0 0 10px 0;font-size:13px;">Ручная корректировка рейтинга. Итоговый рейтинг = авто-рейтинг + ручная корректировка.</p>
+    <div class="stack">
+      <div>
+        <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Ручная корректировка</label>
+        <input id="ratingManualDeltaInput" class="input" type="number" step="0.1" placeholder="0.0" />
+      </div>
+      <p class="muted" style="margin:0;font-size:12px;" id="ratingInfoText">Авто-рейтинг: —, Итоговый: —</p>
+    </div>
+    <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
+      <button id="ratingEditCancelBtn" class="btn" type="button">Отмена</button>
+      <button id="ratingEditSaveBtn" class="btn btn-primary" type="button">Сохранить</button>
     </div>
   </dialog>
 
