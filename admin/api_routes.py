@@ -12,6 +12,7 @@ EXCHANGE_DATASETS = [
     "buyAds",
     "jobs",
     "services",
+    "currency",
     "sellChannels",
     "buyChannels",
     "other",

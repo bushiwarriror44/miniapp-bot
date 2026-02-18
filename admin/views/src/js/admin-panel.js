@@ -29,6 +29,7 @@ const CATEGORY_LABELS = {
   sellChannels: "Продам канал",
   services: "Услуги",
   jobs: "Вакансии",
+  currency: "Обмен валют",
   other: "Прочее",
 };
 
@@ -38,6 +39,7 @@ const BACKEND_TO_FRONTEND_SECTION = {
   buyAds: "buy-ads",
   jobs: "jobs",
   services: "designers",
+  currency: "currency",
   sellChannels: "sell-channel",
   buyChannels: "buy-channel",
   other: "other",
@@ -571,6 +573,10 @@ function buildHotOfferFieldsFromItem(item, backendCategory) {
       price = o.price != null ? String(o.price) + " ₽" : "";
       subtitle = o.theme || o.username || "";
       break;
+    case "currency":
+      price = o.rate != null && String(o.rate).trim() ? String(o.rate).trim() : o.price != null ? String(o.price) : "";
+      subtitle = o.subtitle || (o.description || "").slice(0, 60) || "";
+      break;
     case "sellChannels":
       price = o.subscribers != null ? String(o.subscribers) : "";
       subtitle = o.username || "";
@@ -667,6 +673,7 @@ function itemSummary(item) {
 }
 
 function inferType(value) {
+  if (value && typeof value === "object") return "json";
   if (typeof value === "boolean") return "boolean";
   if (typeof value === "number") return "number";
   return "string";
@@ -746,6 +753,7 @@ function createFieldRow(field = {}) {
     <option value="string">string</option>
     <option value="number">number</option>
     <option value="boolean">boolean</option>
+    <option value="json">json</option>
   `;
   typeSelect.value = field.type || "string";
   if (field.locked) typeSelect.disabled = true;
@@ -779,6 +787,15 @@ function createFieldRow(field = {}) {
       text.textContent = "true / false";
       label.appendChild(text);
       valueWrap.appendChild(label);
+    } else if (type === "json") {
+      const textarea = document.createElement("textarea");
+      textarea.className = "textarea";
+      textarea.rows = 4;
+      textarea.dataset.role = "field-value";
+      textarea.value = field.value == null ? "" : String(field.value);
+      textarea.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
+      if (field.locked) textarea.readOnly = true;
+      valueWrap.appendChild(textarea);
     } else {
       const input = document.createElement("input");
       input.className = "input";
@@ -802,8 +819,16 @@ function createFieldRow(field = {}) {
 function fillFormFromItem(item) {
   fieldRows.innerHTML = "";
   Object.entries(item || {}).forEach(([key, value]) => {
-    if (value && typeof value === "object") return;
-    fieldRows.appendChild(createFieldRow({ key, type: inferType(value), value, locked: key === "id" && editingItemId !== null }));
+    const type = inferType(value);
+    const displayValue = type === "json" ? JSON.stringify(value, null, 2) : value;
+    fieldRows.appendChild(
+      createFieldRow({
+        key,
+        type,
+        value: displayValue,
+        locked: key === "id" && editingItemId !== null,
+      })
+    );
   });
   if (!fieldRows.children.length) fieldRows.appendChild(createFieldRow());
 }
@@ -820,7 +845,25 @@ function readItemFromForm() {
       continue;
     }
     const raw = row.querySelector('[data-role="field-value"]').value;
-    result[key] = type === "number" ? (raw === "" ? 0 : Number(raw)) : raw;
+    if (type === "number") {
+      result[key] = raw === "" ? 0 : Number(raw);
+      continue;
+    }
+    if (type === "json") {
+      const trimmed = String(raw || "").trim();
+      if (!trimmed) {
+        result[key] = null;
+        continue;
+      }
+      try {
+        result[key] = JSON.parse(trimmed);
+      } catch (e) {
+        alert(`Поле "${key}": некорректный JSON`);
+        throw e;
+      }
+      continue;
+    }
+    result[key] = raw;
   }
   return result;
 }

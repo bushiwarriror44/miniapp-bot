@@ -26,6 +26,7 @@ import {
 import { fetchSellChannels, type SellChannelItem } from "@/shared/api/sellChannels";
 import { fetchBuyChannels, type BuyChannelItem } from "@/shared/api/buyChannels";
 import { fetchOther, type OtherItem } from "@/shared/api/other";
+import { fetchCurrency, type CurrencyItem } from "@/shared/api/currency";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { submitModerationRequest } from "@/shared/api/moderation";
 import { fetchExchangeOptions, getJobTypeLabel, getCurrencyLabel, type ExchangeOptionsPayload } from "@/shared/api/exchangeOptions";
@@ -54,6 +55,7 @@ const EXCHANGE_SECTIONS_WITH_ITEMS: ExchangeSection[] = [
   "sell-ads",
   "jobs",
   "designers",
+  "currency",
   "sell-channel",
   "buy-channel",
   "other",
@@ -379,7 +381,9 @@ function ExchangePageContent() {
       {activeSection === "designers" && (
         <DesignersSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["designers"]} />
       )}
-      {activeSection === "currency" && <CurrencySection />}
+      {activeSection === "currency" && (
+        <CurrencySection openItemId={openItemId} hotItemIds={hotItemIdsBySection["currency"]} />
+      )}
       {activeSection === "sell-channel" && (
         <SellChannelSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["sell-channel"]} />
       )}
@@ -2079,21 +2083,246 @@ function DesignersSection({
 }
 
 /* ——— Обмен валют (отдельный раздел) ——— */
-function CurrencySection() {
+function CurrencyCard({
+  item,
+  isHot,
+  defaultOpen,
+}: {
+  item: CurrencyItem;
+  isHot?: boolean;
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
+
+  const rawLinks = Array.isArray(item.additionalLinks) ? item.additionalLinks : [];
+  const links = rawLinks
+    .map((l, idx) => {
+      if (typeof l === "string") return { url: l, label: `Ссылка ${idx + 1}` };
+      if (l && typeof l === "object") {
+        const url = "url" in l ? (l as { url?: unknown }).url : undefined;
+        const label = "label" in l ? (l as { label?: unknown }).label : undefined;
+        if (typeof url === "string" && url.trim()) {
+          return { url: url.trim(), label: typeof label === "string" && label.trim() ? label.trim() : `Ссылка ${idx + 1}` };
+        }
+      }
+      return null;
+    })
+    .filter(Boolean) as { url: string; label: string }[];
+
+  const rateText =
+    item.rate != null && String(item.rate).trim()
+      ? String(item.rate).trim()
+      : item.price != null && String(item.price).trim()
+        ? String(item.price).trim()
+        : "";
+
+  const subtitleText =
+    (item.subtitle && String(item.subtitle).trim()) ||
+    (item.description && String(item.description).trim()) ||
+    "";
+
+  return (
+    <article
+      role="button"
+      tabIndex={0}
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer relative"
+      style={{
+        backgroundColor: "var(--color-bg-elevated)",
+        border: "1px solid var(--color-border)",
+      }}
+      onClick={() => setIsOpen((v) => !v)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
+    >
+      {isHot && (
+        <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
+          <FontAwesomeIcon icon={faFire} className="w-4 h-4" />
+        </span>
+      )}
+
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-medium text-sm truncate" style={{ color: "var(--color-text)" }}>
+            {item.title || "Обмен валют"}
+          </p>
+          {rateText && (
+            <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+              Курс: <span style={{ color: "var(--color-text)" }}>{rateText}</span>
+            </p>
+          )}
+        </div>
+      </div>
+
+      {(item.usernameLink || item.username) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {item.usernameLink ? (
+            <a
+              href={item.usernameLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs"
+              style={{ color: "var(--color-accent)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              @{(item.username || "").replace(/^@/, "") || "контакт"}
+              {item.verified && <VerifiedBadge />}
+            </a>
+          ) : (
+            <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+              @{String(item.username || "").replace(/^@/, "")}
+            </span>
+          )}
+
+          {item.reviewsUrl && (
+            <a
+              href={item.reviewsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1"
+              style={{
+                color: "var(--color-accent)",
+                border: "1px solid var(--color-border)",
+                backgroundColor: "var(--color-bg-elevated)",
+                borderRadius: 9999,
+                padding: "2px 8px",
+                fontSize: 12,
+                lineHeight: "16px",
+              }}
+              onClick={(e) => e.stopPropagation()}
+              aria-label="Отзывы"
+            >
+              Отзывы
+              <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3" />
+            </a>
+          )}
+        </div>
+      )}
+
+      {subtitleText && (
+        <p className="text-xs pt-2 border-t" style={{ color: "var(--color-text-muted)", borderColor: "var(--color-border)" }}>
+          {subtitleText}
+        </p>
+      )}
+
+      {links.length > 0 && (
+        <div className="flex flex-wrap gap-2 pt-1">
+          {links.map((l) => (
+            <a
+              key={`${l.url}-${l.label}`}
+              href={l.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center"
+              style={{
+                backgroundColor: "var(--color-bg-elevated)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text)",
+                borderRadius: 10,
+                padding: "6px 10px",
+                fontSize: 12,
+                lineHeight: "16px",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {l.label}
+            </a>
+          ))}
+        </div>
+      )}
+
+      {isOpen && <CardExpandedBlock authorLink={item.usernameLink || ""} />}
+    </article>
+  );
+}
+
+function CurrencySection({
+  openItemId,
+  hotItemIds,
+}: {
+  openItemId?: string | null;
+  hotItemIds?: Set<string>;
+}) {
+  const openItemRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [items, setItems] = useState<CurrencyItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCurrency()
+      .then((res) => {
+        if (!cancelled) {
+          setItems(res.currency ?? []);
+          setLoadError(null);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("[ui] Failed to load currency", error);
+        if (!cancelled) {
+          setItems([]);
+          setLoadError(toErrorMessage(error));
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (openItemId && openItemRef.current) {
+      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [openItemId]);
+
   return (
     <section className="space-y-4">
-      <div
-        className="rounded-xl p-6 flex flex-col items-center justify-center gap-4 min-h-[200px]"
-      >
-        <FontAwesomeIcon
-          icon={faArrowRightArrowLeft}
-          className="shrink-0"
-          style={{ fontSize: 64, color: "var(--color-text-muted)" }}
-        />
-        <p className="text-sm text-center" style={{ color: "var(--color-text-muted)" }}>
-          Обмен валют еще в разработке
-        </p>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-semibold text-sm" style={{ color: "var(--color-text)" }}>
+          Обмен валют
+        </h2>
       </div>
+
+      {loading && (
+        <div
+          className="rounded-xl p-6 flex flex-col items-center justify-center gap-4 min-h-[200px]"
+          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+        >
+          <FontAwesomeIcon icon={faArrowRightArrowLeft} className="shrink-0" style={{ fontSize: 48, color: "var(--color-text-muted)" }} />
+          <p className="text-sm text-center" style={{ color: "var(--color-text-muted)" }}>
+            Загрузка…
+          </p>
+        </div>
+      )}
+
+      {!loading && loadError && (
+        <div
+          className="rounded-xl p-4 text-sm"
+          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
+        >
+          Ошибка загрузки: {loadError}
+        </div>
+      )}
+
+      {!loading && !loadError && items.length === 0 && (
+        <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-muted)" }}>
+          Пока нет доступных обменов.
+        </p>
+      )}
+
+      {!loading && !loadError && items.length > 0 && (
+        <div className="space-y-3">
+          {items.map((it) => (
+            <div key={it.id} ref={String(it.id) === String(openItemId) ? openItemRef : undefined}>
+              <CurrencyCard
+                item={it}
+                isHot={hotItemIds?.has(String(it.id))}
+                defaultOpen={String(it.id) === String(openItemId)}
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

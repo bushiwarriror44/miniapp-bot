@@ -53,6 +53,7 @@ DATASET_FILES = {
     "ads": "ads.json",
     "buyAds": "buyAds.json",
     "buyChannels": "buyChannels.json",
+    "currency": "currency.json",
     "hotOffers": "hot-offers.json",
     "jobs": "jobs.json",
     "other": "other.json",
@@ -228,7 +229,10 @@ def seed_datasets_once(project_root):
     """
     marker_key = "json_seed_v1_done"
     if _has_state(marker_key):
-        return {"status": "already-seeded", "migrated": []}
+        # Still run a non-destructive migration for any newly added datasets
+        # (it will skip existing ones and only create missing datasets).
+        result = migrate_datasets_from_frontend(project_root, overwrite_existing=False)
+        return {"status": "already-seeded", **result}
 
     result = migrate_datasets_from_frontend(project_root, overwrite_existing=False)
     _upsert_state(marker_key, datetime.utcnow().isoformat())

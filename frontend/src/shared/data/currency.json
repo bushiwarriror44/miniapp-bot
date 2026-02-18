@@ -1,0 +1,45 @@
+{
+  "currency": [
+    {
+      "id": "cur-1",
+      "title": "USDT → RUB (СБП)",
+      "rate": "97.25 ₽",
+      "subtitle": "Быстро, без скрытых комиссий",
+      "description": "Обмен USDT на рубли через СБП. Время сделки обычно 5–10 минут. Работаю ежедневно.",
+      "username": "best_exchange",
+      "usernameLink": "https://t.me/best_exchange",
+      "verified": true,
+      "publishedAt": "2026-02-01",
+      "additionalLinks": [
+        { "label": "Канал", "url": "https://t.me/best_exchange_news" },
+        { "label": "Прайс-лист", "url": "https://t.me/best_exchange/12" }
+      ],
+      "reviewsUrl": "https://t.me/best_exchange_reviews"
+    },
+    {
+      "id": "cur-2",
+      "title": "BTC → USDT",
+      "rate": "По рынку",
+      "subtitle": "Крупные суммы, резерв есть",
+      "description": "Меняю BTC на USDT. Уточняйте курс и комиссию перед сделкой. Возможна сделка через гаранта.",
+      "username": "btc_to_usdt",
+      "usernameLink": "https://t.me/btc_to_usdt",
+      "verified": false,
+      "publishedAt": "2026-02-03",
+      "additionalLinks": ["https://t.me/btc_to_usdt/faq"]
+    },
+    {
+      "id": "cur-3",
+      "title": "TON → USDT",
+      "rate": "5.12",
+      "subtitle": "Онлайн 24/7",
+      "description": "Обмен TON на USDT с быстрым подтверждением. Для постоянных клиентов — индивидуальные условия.",
+      "username": "ton_swap",
+      "usernameLink": "https://t.me/ton_swap",
+      "verified": true,
+      "publishedAt": "2026-02-05",
+      "reviewsUrl": "https://t.me/ton_swap_reviews"
+    }
+  ]
+}
+

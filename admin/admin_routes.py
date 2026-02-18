@@ -41,6 +41,7 @@ EXCHANGE_CATEGORIES = [
     "buyAds",
     "jobs",
     "services",
+    "currency",
     "sellChannels",
     "buyChannels",
     "other",
