@@ -686,6 +686,27 @@ def upload_bot_welcome_photo():
     return jsonify({"ok": True, "url": public_url, "filename": filename})
 
 
+def _create_multipart_form_data(fields, files):
+    """Create multipart/form-data body for HTTP request."""
+    boundary = uuid4().hex
+    parts = []
+    for key, value in fields.items():
+        parts.append(f"--{boundary}\r\n".encode("utf-8"))
+        parts.append(f'Content-Disposition: form-data; name="{key}"\r\n\r\n'.encode("utf-8"))
+        parts.append(f"{value}\r\n".encode("utf-8"))
+    for key, (filename, file_data, content_type) in files.items():
+        parts.append(f"--{boundary}\r\n".encode("utf-8"))
+        parts.append(
+            f'Content-Disposition: form-data; name="{key}"; filename="{filename}"\r\n'.encode("utf-8")
+        )
+        parts.append(f"Content-Type: {content_type}\r\n\r\n".encode("utf-8"))
+        parts.append(file_data)
+        parts.append("\r\n".encode("utf-8"))
+    parts.append(f"--{boundary}--\r\n".encode("utf-8"))
+    body = b"".join(parts)
+    return boundary, body
+
+
 @admin_bp.route("/admin/api/bot/send-message", methods=["POST"])
 @require_login
 @require_admin
@@ -694,13 +715,38 @@ def send_bot_message():
     if not token:
         return jsonify({"error": "BOT_TOKEN is not configured on admin service"}), 500
 
-    body = request.get_json(silent=True) or {}
-    message = str(body.get("message") or "").strip()
-    telegram_id = str(body.get("telegramId") or "").strip()
-    send_to_all = bool(body.get("sendToAll"))
+    is_multipart = request.content_type and "multipart/form-data" in request.content_type
+    photo_file = None
+    message = ""
+    telegram_id = ""
+    send_to_all = False
 
-    if not message:
-        return jsonify({"error": "message is required"}), 400
+    if is_multipart:
+        photo_file = request.files.get("photo")
+        message = str(request.form.get("message", "")).strip()
+        telegram_id = str(request.form.get("telegramId", "")).strip()
+        send_to_all = request.form.get("sendToAll", "").lower() == "true"
+    else:
+        body = request.get_json(silent=True) or {}
+        message = str(body.get("message") or "").strip()
+        telegram_id = str(body.get("telegramId") or "").strip()
+        send_to_all = bool(body.get("sendToAll"))
+
+    if not message and not photo_file:
+        return jsonify({"error": "message or photo is required"}), 400
+
+    if photo_file:
+        if not photo_file.filename:
+            return jsonify({"error": "Invalid photo file"}), 400
+        suffix = Path(photo_file.filename).suffix.lower()
+        if suffix not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+            return jsonify({"error": "Only image files are supported (jpg, jpeg, png, webp, gif)"}), 400
+        photo_file.seek(0, os.SEEK_END)
+        file_size = photo_file.tell()
+        photo_file.seek(0)
+        max_size = 10 * 1024 * 1024
+        if file_size > max_size:
+            return jsonify({"error": "Photo size must not exceed 10 MB"}), 400
 
     targets = []
     if send_to_all:
@@ -714,17 +760,39 @@ def send_bot_message():
     else:
         return jsonify({"error": "telegramId is required when sendToAll=false"}), 400
 
+    photo_data = None
+    photo_filename = None
+    photo_content_type = None
+    if photo_file:
+        photo_file.seek(0)
+        photo_data = photo_file.read()
+        photo_filename = photo_file.filename
+        photo_content_type = photo_file.content_type or "image/jpeg"
+
     sent = 0
     failed = []
     for chat_id in sorted(set(targets)):
-        payload = json.dumps({"chat_id": chat_id, "text": message}, ensure_ascii=False).encode("utf-8")
-        req = Request(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            data=payload,
-            method="POST",
-            headers={"Content-Type": "application/json"},
-        )
         try:
+            if photo_file and photo_data:
+                fields = {"chat_id": chat_id}
+                if message:
+                    fields["caption"] = message
+                files = {"photo": (photo_filename, photo_data, photo_content_type)}
+                boundary, body_data = _create_multipart_form_data(fields, files)
+                req = Request(
+                    f"https://api.telegram.org/bot{token}/sendPhoto",
+                    data=body_data,
+                    method="POST",
+                    headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+                )
+            else:
+                payload = json.dumps({"chat_id": chat_id, "text": message}, ensure_ascii=False).encode("utf-8")
+                req = Request(
+                    f"https://api.telegram.org/bot{token}/sendMessage",
+                    data=payload,
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                )
             with urlopen(req, timeout=10) as response:
                 response_data = json.loads(response.read().decode("utf-8"))
                 if response_data.get("ok"):

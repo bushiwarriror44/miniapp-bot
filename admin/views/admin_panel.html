@@ -285,6 +285,17 @@
               </label>
             </div>
             <textarea id="botMessageTextInput" class="textarea" style="min-height:120px;margin-top:8px;" placeholder="Текст сообщения"></textarea>
+            <div id="botMessagePhotoDropZone" style="margin-top:10px;padding:20px;border:2px dashed var(--border-color, #ddd);border-radius:8px;text-align:center;cursor:pointer;transition:background-color 0.2s, border-color 0.2s;" onmouseover="this.style.backgroundColor='var(--color-surface, #f5f5f5)';" onmouseout="this.style.backgroundColor='';">
+              <input id="botMessagePhotoInput" type="file" accept="image/*" style="display:none;" />
+              <p class="muted" style="margin:0 0 8px 0;font-size:13px;">Перетащите изображение сюда или</p>
+              <button type="button" class="btn" onclick="document.getElementById('botMessagePhotoInput').click();">Выбрать файл</button>
+            </div>
+            <div id="botMessagePhotoPreviewWrap" style="margin-top:10px;display:none;">
+              <div style="position:relative;display:inline-block;">
+                <img id="botMessagePhotoPreviewImg" src="" alt="Preview" style="max-width:300px;max-height:300px;border-radius:8px;border:1px solid var(--border-color, #ddd);" />
+                <button id="botMessagePhotoRemoveBtn" type="button" class="btn" style="position:absolute;top:8px;right:8px;background-color:rgba(0,0,0,0.6);color:white;border:none;padding:4px 8px;font-size:12px;">✕</button>
+              </div>
+            </div>
             <div style="margin-top:10px;display:flex;justify-content:flex-end;">
               <button id="sendBotMessageBtn" class="btn btn-primary">Отправить в бота</button>
             </div>

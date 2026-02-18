@@ -150,8 +150,14 @@ const botSupportLinkInput = document.getElementById("botSupportLinkInput");
 const botMessageTelegramIdInput = document.getElementById("botMessageTelegramIdInput");
 const botMessageSendAllInput = document.getElementById("botMessageSendAllInput");
 const botMessageTextInput = document.getElementById("botMessageTextInput");
+const botMessagePhotoInput = document.getElementById("botMessagePhotoInput");
+const botMessagePhotoDropZone = document.getElementById("botMessagePhotoDropZone");
+const botMessagePhotoPreviewWrap = document.getElementById("botMessagePhotoPreviewWrap");
+const botMessagePhotoPreviewImg = document.getElementById("botMessagePhotoPreviewImg");
+const botMessagePhotoRemoveBtn = document.getElementById("botMessagePhotoRemoveBtn");
 const sendBotMessageBtn = document.getElementById("sendBotMessageBtn");
 const botMessageResult = document.getElementById("botMessageResult");
+let botMessagePhotoFile = null;
 const newModeratorPasswordInput = document.getElementById("newModeratorPasswordInput");
 const newModeratorLabelInput = document.getElementById("newModeratorLabelInput");
 const createModeratorBtn = document.getElementById("createModeratorBtn");
@@ -1585,17 +1591,81 @@ async function saveBotConfig() {
   await loadBotConfig();
 }
 
+function renderBotMessagePhotoPreview(file) {
+  if (!botMessagePhotoPreviewWrap || !botMessagePhotoPreviewImg) return;
+  if (!file) {
+    botMessagePhotoPreviewWrap.style.display = "none";
+    if (botMessagePhotoPreviewImg.src) {
+      URL.revokeObjectURL(botMessagePhotoPreviewImg.src);
+      botMessagePhotoPreviewImg.src = "";
+    }
+    return;
+  }
+  const objectUrl = URL.createObjectURL(file);
+  botMessagePhotoPreviewImg.src = objectUrl;
+  botMessagePhotoPreviewWrap.style.display = "block";
+}
+
+function handleBotMessagePhotoFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    alert("Выберите файл изображения");
+    return;
+  }
+  const maxSize = 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    alert("Размер файла не должен превышать 10 МБ");
+    return;
+  }
+  botMessagePhotoFile = file;
+  renderBotMessagePhotoPreview(file);
+}
+
+function clearBotMessagePhoto() {
+  botMessagePhotoFile = null;
+  if (botMessagePhotoInput) botMessagePhotoInput.value = "";
+  renderBotMessagePhotoPreview(null);
+}
+
 async function sendBotMessage() {
-  const payload = {
-    telegramId: (botMessageTelegramIdInput?.value || "").trim(),
-    sendToAll: Boolean(botMessageSendAllInput?.checked),
-    message: (botMessageTextInput?.value || "").trim(),
-  };
-  const result = await apiJson("/admin/api/bot/send-message", "POST", payload);
+  const telegramId = (botMessageTelegramIdInput?.value || "").trim();
+  const sendToAll = Boolean(botMessageSendAllInput?.checked);
+  const message = (botMessageTextInput?.value || "").trim();
+
+  if (!message && !botMessagePhotoFile) {
+    alert("Введите текст сообщения или прикрепите изображение");
+    return;
+  }
+
+  let result;
+  if (botMessagePhotoFile) {
+    const formData = new FormData();
+    formData.append("message", message);
+    formData.append("photo", botMessagePhotoFile);
+    formData.append("telegramId", telegramId);
+    formData.append("sendToAll", sendToAll ? "true" : "false");
+    const res = await fetch("/admin/api/bot/send-message", {
+      method: "POST",
+      credentials: "same-origin",
+      body: formData,
+    });
+    if (!res.ok) {
+      throw new Error(await res.text());
+    }
+    result = await res.json();
+  } else {
+    const payload = {
+      telegramId,
+      sendToAll,
+      message,
+    };
+    result = await apiJson("/admin/api/bot/send-message", "POST", payload);
+  }
   const failedCount = Array.isArray(result.failed) ? result.failed.length : 0;
   botMessageResult.innerHTML = `Отправлено: <strong>${result.sent || 0}</strong> из <strong>${result.total || 0}</strong>${
     failedCount ? `, ошибок: <strong>${failedCount}</strong>` : ""
   }`;
+  clearBotMessagePhoto();
 }
 
 async function loadExchangeOptionsConfig() {
@@ -1957,6 +2027,43 @@ sendBotMessageBtn?.addEventListener("click", async () => {
   } catch (error) {
     botMessageResult.textContent = `Ошибка отправки: ${error instanceof Error ? error.message : String(error)}`;
   }
+});
+
+botMessagePhotoInput?.addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  if (file) handleBotMessagePhotoFile(file);
+});
+
+botMessagePhotoDropZone?.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  botMessagePhotoDropZone.style.backgroundColor = "var(--color-surface, #f5f5f5)";
+  botMessagePhotoDropZone.style.borderColor = "var(--color-accent, #007bff)";
+});
+
+botMessagePhotoDropZone?.addEventListener("dragleave", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  botMessagePhotoDropZone.style.backgroundColor = "";
+  botMessagePhotoDropZone.style.borderColor = "var(--border-color, #ddd)";
+});
+
+botMessagePhotoDropZone?.addEventListener("drop", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  botMessagePhotoDropZone.style.backgroundColor = "";
+  botMessagePhotoDropZone.style.borderColor = "var(--border-color, #ddd)";
+  const file = e.dataTransfer.files?.[0];
+  if (file) handleBotMessagePhotoFile(file);
+});
+
+botMessagePhotoDropZone?.addEventListener("click", () => {
+  botMessagePhotoInput?.click();
+});
+
+botMessagePhotoRemoveBtn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  clearBotMessagePhoto();
 });
 
 createModeratorBtn?.addEventListener("click", async () => {
