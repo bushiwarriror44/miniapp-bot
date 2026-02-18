@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faChevronRight, faFire } from "@fortawesome/free-solid-svg-icons";
 import { fetchHotOffers, type HotOffer } from "@/shared/api/hot-offers";
@@ -75,7 +76,16 @@ export function HotOffersBlock() {
               >
                 {offers.map((offer) => (
                   <div key={offer.id} className="shrink-0" style={{ width: `${100 / offers.length}%` }}>
-                    <OfferSlide offer={offer} />
+                    {offer.type === "ad" && offer.category && offer.itemId ? (
+                      <Link
+                        href={`/exchange?section=${encodeURIComponent(offer.category)}&openItem=${encodeURIComponent(offer.itemId)}`}
+                        style={{ display: "block", height: "100%", textDecoration: "none", color: "inherit" }}
+                      >
+                        <OfferSlide offer={offer} />
+                      </Link>
+                    ) : (
+                      <OfferSlide offer={offer} />
+                    )}
                   </div>
                 ))}
               </div>

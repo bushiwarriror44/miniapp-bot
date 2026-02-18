@@ -54,9 +54,12 @@
             </div>
           </div>
           <div class="card" style="padding:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
               <h2 style="margin:0;font-size:16px;">Горячие предложения</h2>
-              <button id="addHotOfferBtn" class="btn">Добавить предложение</button>
+              <div style="display:flex;gap:8px;">
+                <button id="addHotOfferBtn" class="btn">Добавить предложение</button>
+                <button id="attachAdToHotOfferBtn" class="btn">Привязать объявление</button>
+              </div>
             </div>
             <div id="hotOffersTableWrap" style="margin-top:10px;overflow:auto;"></div>
           </div>
@@ -291,6 +294,29 @@
     <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
       <button id="hotOfferCancelBtn" class="btn" type="button">Отмена</button>
       <button id="hotOfferSaveBtn" class="btn btn-primary" type="button">Сохранить</button>
+    </div>
+  </dialog>
+
+  <dialog id="attachAdHotOfferModal" class="card" style="border:none;max-width:620px;width:calc(100% - 24px);padding:12px;">
+    <h3 style="margin:0 0 10px 0;">Выбор объявления для горячего предложения</h3>
+    <p class="muted" style="margin:0 0 10px 0;font-size:13px;">Выберите категорию и объявление. Оно появится в блоке «Горячие предложения» и по клику будет вести на Биржу.</p>
+    <div style="margin-bottom:10px;">
+      <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Категория</label>
+      <select id="attachAdCategorySelect" class="select" style="width:100%;">
+        <option value="ads">Продам рекламу</option>
+        <option value="buyAds">Куплю рекламу</option>
+        <option value="jobs">Вакансии</option>
+        <option value="services">Услуги</option>
+        <option value="sellChannels">Продам канал</option>
+        <option value="buyChannels">Куплю канал</option>
+        <option value="other">Прочее</option>
+      </select>
+    </div>
+    <div id="attachAdItemsListWrap" style="max-height:280px;overflow:auto;border:1px solid var(--border-color, #ddd);border-radius:6px;padding:8px;">
+      <p class="muted" style="margin:0;font-size:13px;">Выберите категорию</p>
+    </div>
+    <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
+      <button id="attachAdHotOfferCloseBtn" class="btn" type="button">Закрыть</button>
     </div>
   </dialog>
 

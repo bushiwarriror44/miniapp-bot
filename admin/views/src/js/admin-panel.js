@@ -10,6 +10,7 @@ let isAdvancedAdsEdit = false;
 let mainPageConfig = { hotOffers: { offers: [] }, news: { channelUrl: "" } };
 let guarantConfig = { guarantor: {}, commissionTiers: [], aboutText: "" };
 let editingHotOfferIndex = null;
+let attachAdCurrentItems = [];
 let faqItems = [];
 let editingFaqId = null;
 let adminUsers = [];
@@ -27,6 +28,17 @@ const CATEGORY_LABELS = {
   services: "Услуги",
   jobs: "Вакансии",
   other: "Прочее",
+};
+
+/** Backend category name -> frontend exchange section id (for hot offer deep link) */
+const BACKEND_TO_FRONTEND_SECTION = {
+  ads: "sell-ads",
+  buyAds: "buy-ads",
+  jobs: "jobs",
+  services: "designers",
+  sellChannels: "sell-channel",
+  buyChannels: "buy-channel",
+  other: "other",
 };
 
 const tabButtons = Array.from(document.querySelectorAll("[data-tab-btn]"));
@@ -49,6 +61,12 @@ const hotOfferPriceInput = document.getElementById("hotOfferPriceInput");
 const hotOfferSubtitleInput = document.getElementById("hotOfferSubtitleInput");
 const hotOfferCancelBtn = document.getElementById("hotOfferCancelBtn");
 const hotOfferSaveBtn = document.getElementById("hotOfferSaveBtn");
+
+const attachAdToHotOfferBtn = document.getElementById("attachAdToHotOfferBtn");
+const attachAdHotOfferModal = document.getElementById("attachAdHotOfferModal");
+const attachAdCategorySelect = document.getElementById("attachAdCategorySelect");
+const attachAdItemsListWrap = document.getElementById("attachAdItemsListWrap");
+const attachAdHotOfferCloseBtn = document.getElementById("attachAdHotOfferCloseBtn");
 
 const categoriesList = document.getElementById("categoriesList");
 const itemsTableWrap = document.getElementById("itemsTableWrap");
@@ -403,9 +421,15 @@ function renderHotOffersTable() {
   const offers = mainPageConfig?.hotOffers?.offers || [];
   const rows = offers
     .map(
-      (offer, index) => `
+      (offer, index) => {
+        const typeCell =
+          offer.type === "ad"
+            ? `<span title="${escapeHtml(offer.category || "")} / ${escapeHtml(String(offer.itemId || ""))}">Объявление</span>`
+            : "—";
+        return `
       <tr>
         <td>${escapeHtml(offer.id || index + 1)}</td>
+        <td>${typeCell}</td>
         <td>${escapeHtml(offer.title || "")}</td>
         <td>${escapeHtml(offer.price || "")}</td>
         <td>${escapeHtml(offer.subtitle || "")}</td>
@@ -414,7 +438,8 @@ function renderHotOffersTable() {
           <button class="btn" data-hot-action="delete" data-hot-index="${index}">Удалить</button>
         </td>
       </tr>
-    `
+    `;
+      }
     )
     .join("");
 
@@ -423,13 +448,14 @@ function renderHotOffersTable() {
       <thead>
         <tr>
           <th>ID</th>
+          <th>Тип</th>
           <th>Заголовок</th>
           <th>Цена</th>
           <th>Подзаголовок</th>
           <th>Действия</th>
         </tr>
       </thead>
-      <tbody>${rows || '<tr><td colspan="5" class="muted">Пусто</td></tr>'}</tbody>
+      <tbody>${rows || '<tr><td colspan="6" class="muted">Пусто</td></tr>'}</tbody>
     </table>
   `;
 }
@@ -473,12 +499,18 @@ function saveHotOfferFromModal() {
   }
 
   const offers = Array.isArray(mainPageConfig?.hotOffers?.offers) ? [...mainPageConfig.hotOffers.offers] : [];
+  const existing = editingHotOfferIndex != null ? offers[editingHotOfferIndex] : null;
   const record = {
-    id: editingHotOfferIndex == null ? String(Date.now()) : String(offers[editingHotOfferIndex]?.id || Date.now()),
+    id: editingHotOfferIndex == null ? String(Date.now()) : String(existing?.id || Date.now()),
     title,
     price,
     subtitle,
   };
+  if (existing?.type === "ad") {
+    record.type = "ad";
+    record.category = existing.category;
+    record.itemId = existing.itemId;
+  }
 
   if (editingHotOfferIndex == null) offers.push(record);
   else offers[editingHotOfferIndex] = record;
@@ -495,6 +527,109 @@ function deleteHotOffer(index) {
   offers.splice(index, 1);
   mainPageConfig.hotOffers = { offers };
   renderHotOffersTable();
+}
+
+/** Build title, price, subtitle for a hot offer from an exchange item (by backend category). */
+function buildHotOfferFieldsFromItem(item, backendCategory) {
+  const o = item || {};
+  const title = o.theme || o.title || o.name || o.work || o.username || String(o.id || "");
+  let price = "";
+  let subtitle = "";
+  switch (backendCategory) {
+    case "ads":
+      price = o.price != null ? String(o.price) + " ₽" : "";
+      subtitle = o.username || o.channelOrChatLink || "";
+      break;
+    case "buyAds":
+      if (o.priceMin != null || o.priceMax != null) {
+        price = (o.priceMin != null ? o.priceMin : "?") + " – " + (o.priceMax != null ? o.priceMax : "?") + " ₽";
+      }
+      subtitle = o.username || "";
+      break;
+    case "jobs":
+      price = [o.paymentAmount, o.paymentCurrency].filter(Boolean).join(" ") || "";
+      subtitle = o.theme || (o.description || "").slice(0, 60);
+      break;
+    case "services":
+      price = o.price != null ? String(o.price) + " ₽" : "";
+      subtitle = o.theme || o.username || "";
+      break;
+    case "sellChannels":
+      price = o.subscribers != null ? String(o.subscribers) : "";
+      subtitle = o.username || "";
+      break;
+    case "buyChannels":
+      subtitle = o.username || "";
+      break;
+    case "other":
+      price = o.price != null ? String(o.price) + " ₽" : "";
+      subtitle = (o.description || "").slice(0, 60);
+      break;
+    default:
+      price = o.price != null ? String(o.price) : "";
+      subtitle = o.username || o.description || "";
+  }
+  return { title, price, subtitle };
+}
+
+function attachAdItemDisplayLabel(item) {
+  if (!item || typeof item !== "object") return "";
+  return item.theme || item.title || item.name || item.work || item.username || item.usernameLink || String(item.id || "");
+}
+
+async function loadAttachAdItems(backendCategory) {
+  if (!attachAdItemsListWrap) return;
+  attachAdItemsListWrap.innerHTML = "<p class=\"muted\" style=\"margin:0;font-size:13px;\">Загрузка…</p>";
+  try {
+    const data = await apiGet(`/admin/api/categories/${encodeURIComponent(backendCategory)}/items`);
+    const items = data.items || [];
+    attachAdCurrentItems = items;
+    if (items.length === 0) {
+      attachAdItemsListWrap.innerHTML = "<p class=\"muted\" style=\"margin:0;font-size:13px;\">В этой категории пока нет объявлений.</p>";
+      return;
+    }
+    attachAdItemsListWrap.innerHTML = items
+      .map(
+        (item) => {
+          const label = escapeHtml(attachAdItemDisplayLabel(item));
+          const id = escapeHtml(String(item.id ?? ""));
+          return `<div class="stack" style="flex-direction:row;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-color, #eee);">
+  <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:13px;">${label}</span>
+  <button type="button" class="btn btn-primary attach-ad-add-btn" data-attach-ad-id="${id}" data-attach-ad-category="${escapeHtml(backendCategory)}">Добавить</button>
+</div>`;
+        }
+      )
+      .join("");
+  } catch (e) {
+    attachAdItemsListWrap.innerHTML = "<p class=\"muted\" style=\"margin:0;font-size:13px;color:#c00;\">Ошибка загрузки: " + escapeHtml(String(e.message || e)) + "</p>";
+  }
+}
+
+function addHotOfferFromAd(item, backendCategory) {
+  const frontendSection = BACKEND_TO_FRONTEND_SECTION[backendCategory];
+  if (!frontendSection) return;
+  const { title, price, subtitle } = buildHotOfferFieldsFromItem(item, backendCategory);
+  const offers = Array.isArray(mainPageConfig?.hotOffers?.offers) ? [...mainPageConfig.hotOffers.offers] : [];
+  const record = {
+    type: "ad",
+    id: String(Date.now()),
+    category: frontendSection,
+    itemId: String(item.id ?? ""),
+    title: title || "Объявление",
+    price: price || "—",
+    subtitle: subtitle || "",
+  };
+  offers.push(record);
+  mainPageConfig.hotOffers = { offers };
+  closeDialogSafe(attachAdHotOfferModal);
+  renderHotOffersTable();
+  notify("Объявление добавлено в горячие предложения. Сохраните изменения главной.");
+}
+
+function openAttachAdHotOfferModal() {
+  const category = attachAdCategorySelect?.value || "ads";
+  openDialogSafe(attachAdHotOfferModal);
+  loadAttachAdItems(category);
 }
 
 function itemSummary(item) {
@@ -1643,6 +1778,16 @@ hotOfferCancelBtn.addEventListener("click", () => {
   closeDialogSafe(hotOfferModal);
 });
 hotOfferSaveBtn.addEventListener("click", saveHotOfferFromModal);
+attachAdToHotOfferBtn?.addEventListener("click", openAttachAdHotOfferModal);
+attachAdCategorySelect?.addEventListener("change", () => loadAttachAdItems(attachAdCategorySelect.value));
+attachAdHotOfferCloseBtn?.addEventListener("click", () => closeDialogSafe(attachAdHotOfferModal));
+attachAdItemsListWrap?.addEventListener("click", (e) => {
+  const btn = e.target.closest(".attach-ad-add-btn");
+  if (!btn) return;
+  const id = btn.getAttribute("data-attach-ad-id");
+  const item = attachAdCurrentItems.find((it) => String(it.id) === id);
+  if (item) addHotOfferFromAd(item, attachAdCategorySelect?.value || "ads");
+});
 saveGuarantBtn.addEventListener("click", saveGuarantConfig);
 adminUsersSearchBtn?.addEventListener("click", loadAdminUsers);
 adminUsersSearchInput?.addEventListener("keydown", (e) => {

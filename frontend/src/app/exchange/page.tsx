@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faExternalLink } from "@fortawesome/free-solid-svg-icons";
@@ -29,6 +29,7 @@ import { fetchOther, type OtherItem } from "@/shared/api/other";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { submitModerationRequest } from "@/shared/api/moderation";
 import { fetchExchangeOptions, getJobTypeLabel, getCurrencyLabel, type ExchangeOptionsPayload } from "@/shared/api/exchangeOptions";
+import { fetchHotOffers } from "@/shared/api/hot-offers";
 import { safeLocaleNumber } from "@/shared/format";
 import VerifiedBadge from "@/app/components/VerifiedBadge";
 import {
@@ -45,7 +46,18 @@ import {
   faXmark,
   faBox,
   faShieldHalved,
+  faFire,
 } from "@fortawesome/free-solid-svg-icons";
+
+const EXCHANGE_SECTIONS_WITH_ITEMS: ExchangeSection[] = [
+  "buy-ads",
+  "sell-ads",
+  "jobs",
+  "designers",
+  "sell-channel",
+  "buy-channel",
+  "other",
+];
 
 type ExchangeSection = "buy-ads" | "sell-ads" | "jobs" | "designers" | "currency" | "sell-channel" | "buy-channel" | "other";
 
@@ -123,13 +135,42 @@ function ExchangePageContent() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const [exchangeOptions, setExchangeOptions] = useState<ExchangeOptionsPayload | null>(null);
+  const [openItemId, setOpenItemId] = useState<string | null>(null);
+  const [hotItemIdsBySection, setHotItemIdsBySection] = useState<Record<string, Set<string>>>({});
 
   useEffect(() => {
     fetchExchangeOptions().then(setExchangeOptions).catch(() => setExchangeOptions(null));
   }, []);
 
   useEffect(() => {
+    fetchHotOffers()
+      .then((res) => {
+        const offers = res.offers ?? [];
+        const bySection: Record<string, Set<string>> = {};
+        EXCHANGE_SECTIONS_WITH_ITEMS.forEach((s) => {
+          bySection[s] = new Set<string>();
+        });
+        offers.forEach((o) => {
+          if (o.type === "ad" && o.category && o.itemId) {
+            if (!bySection[o.category]) bySection[o.category] = new Set<string>();
+            bySection[o.category].add(String(o.itemId));
+          }
+        });
+        setHotItemIdsBySection(bySection);
+      })
+      .catch(() => setHotItemIdsBySection({}));
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
+    const sectionParam = searchParams.get("section");
+    const openItemParam = searchParams.get("openItem");
+    if (sectionParam && EXCHANGE_SECTIONS_WITH_ITEMS.includes(sectionParam as ExchangeSection)) {
+      setActiveSection(sectionParam as ExchangeSection);
+    }
+    if (openItemParam) {
+      setOpenItemId(openItemParam);
+    }
     if (searchParams.get("openSubmit") === "1") {
       setShowSubmitModal(true);
       const url = new URL(window.location.href);
@@ -326,14 +367,28 @@ function ExchangePageContent() {
       </div>
 
       {/* Контент по выбранному разделу */}
-      {activeSection === "buy-ads" && <BuyAdsSection />}
-      {activeSection === "sell-ads" && <SellAdsSection />}
-      {activeSection === "jobs" && <JobsSection exchangeOptions={exchangeOptions} />}
-      {activeSection === "designers" && <DesignersSection />}
+      {activeSection === "buy-ads" && (
+        <BuyAdsSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["buy-ads"]} />
+      )}
+      {activeSection === "sell-ads" && (
+        <SellAdsSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["sell-ads"]} />
+      )}
+      {activeSection === "jobs" && (
+        <JobsSection exchangeOptions={exchangeOptions} openItemId={openItemId} hotItemIds={hotItemIdsBySection["jobs"]} />
+      )}
+      {activeSection === "designers" && (
+        <DesignersSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["designers"]} />
+      )}
       {activeSection === "currency" && <CurrencySection />}
-      {activeSection === "sell-channel" && <SellChannelSection />}
-      {activeSection === "buy-channel" && <BuyChannelSection />}
-      {activeSection === "other" && <OtherSection />}
+      {activeSection === "sell-channel" && (
+        <SellChannelSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["sell-channel"]} />
+      )}
+      {activeSection === "buy-channel" && (
+        <BuyChannelSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["buy-channel"]} />
+      )}
+      {activeSection === "other" && (
+        <OtherSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["other"]} />
+      )}
     </main>
   );
 }
@@ -712,14 +767,14 @@ function CardExpandedBlock({ authorLink }: { authorLink: string }) {
 }
 
 /* ——— Карточка объявления ——— */
-function AdCard({ ad }: { ad: AdItem }) {
-  const [isOpen, setIsOpen] = useState(false);
+function AdCard({ ad, isHot, defaultOpen }: { ad: AdItem; isHot?: boolean; defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const authorLink = `https://t.me/${(ad.username || "").replace(/^@/, "")}`;
   return (
     <article
       role="button"
       tabIndex={0}
-      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer relative"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
@@ -727,6 +782,11 @@ function AdCard({ ad }: { ad: AdItem }) {
       onClick={() => setIsOpen((v) => !v)}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
+      {isHot && (
+        <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
+          <FontAwesomeIcon icon={faFire} className="w-4 h-4" />
+        </span>
+      )}
       <div className="flex gap-3">
         {ad.imageUrl ? (
           <img
@@ -794,7 +854,14 @@ function AdCard({ ad }: { ad: AdItem }) {
 }
 
 /* ——— Продажа рекламы (фильтр + загрузка по API) ——— */
-function SellAdsSection() {
+function SellAdsSection({
+  openItemId,
+  hotItemIds,
+}: {
+  openItemId?: string | null;
+  hotItemIds?: Set<string>;
+}) {
+  const openItemRef = useRef<HTMLDivElement>(null);
   const [priceFrom, setPriceFrom] = useState("");
   const [priceTo, setPriceTo] = useState("");
   const [reachFrom, setReachFrom] = useState("");
@@ -824,6 +891,12 @@ function SellAdsSection() {
       });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (openItemId && openItemRef.current) {
+      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [openItemId]);
 
   const filteredAds = ads.filter((ad) => {
     const pFrom = priceFrom.trim() ? Number(priceFrom) : null;
@@ -971,15 +1044,28 @@ function SellAdsSection() {
             По фильтрам ничего не найдено.
           </p>
         )}
-        {!loading && filteredAds.length > 0 && filteredAds.map((ad) => <AdCard key={ad.id} ad={ad} />)}
+        {!loading && filteredAds.length > 0 &&
+          filteredAds.map((ad) => (
+            <div key={ad.id} ref={ad.id === openItemId ? openItemRef : undefined}>
+              <AdCard
+                ad={ad}
+                isHot={hotItemIds?.has(String(ad.id))}
+                defaultOpen={ad.id === openItemId}
+              />
+            </div>
+          ))}
       </div>
     </section>
   );
 }
 
 /* ——— Карточка заявки на покупку рекламы ——— */
-function BuyAdCard({ item }: { item: BuyAdItem }) {
-  const [isOpen, setIsOpen] = useState(false);
+function BuyAdCard({
+  item,
+  isHot,
+  defaultOpen,
+}: { item: BuyAdItem; isHot?: boolean; defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const formatPriceRange = (min: number | undefined | null, max: number | undefined | null): string => {
     const m = min != null && typeof min === "number" && !Number.isNaN(min) ? min : null;
     const n = max != null && typeof max === "number" && !Number.isNaN(max) ? max : null;
@@ -1002,7 +1088,7 @@ function BuyAdCard({ item }: { item: BuyAdItem }) {
     <article
       role="button"
       tabIndex={0}
-      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer relative"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
@@ -1010,6 +1096,11 @@ function BuyAdCard({ item }: { item: BuyAdItem }) {
       onClick={() => setIsOpen((v) => !v)}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
+      {isHot && (
+        <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
+          <FontAwesomeIcon icon={faFire} className="w-4 h-4" />
+        </span>
+      )}
       <div className="flex items-center justify-between gap-2">
         <a
           href={item.usernameLink}
@@ -1052,7 +1143,14 @@ function BuyAdCard({ item }: { item: BuyAdItem }) {
 }
 
 /* ——— Покупка рекламы (фильтры + загрузка по API) ——— */
-function BuyAdsSection() {
+function BuyAdsSection({
+  openItemId,
+  hotItemIds,
+}: {
+  openItemId?: string | null;
+  hotItemIds?: Set<string>;
+}) {
+  const openItemRef = useRef<HTMLDivElement>(null);
   const [usernameSearch, setUsernameSearch] = useState("");
   const [priceFrom, setPriceFrom] = useState("");
   const [priceTo, setPriceTo] = useState("");
@@ -1107,6 +1205,12 @@ function BuyAdsSection() {
     if (dateTo.trim() && item.publishedAt > dateTo) return false;
     return true;
   });
+
+  useEffect(() => {
+    if (openItemId && openItemRef.current) {
+      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [openItemId]);
 
   return (
     <section className="space-y-4">
@@ -1287,7 +1391,13 @@ function BuyAdsSection() {
         {!loading && filteredItems.length > 0 && (
           <div className="space-y-3">
             {filteredItems.map((item) => (
-              <BuyAdCard key={item.id} item={item} />
+              <div key={item.id} ref={item.id === openItemId ? openItemRef : undefined}>
+                <BuyAdCard
+                  item={item}
+                  isHot={hotItemIds?.has(String(item.id))}
+                  defaultOpen={item.id === openItemId}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -1297,13 +1407,23 @@ function BuyAdsSection() {
 }
 
 /* ——— Карточка вакансии ——— */
-function JobCard({ job, exchangeOptions }: { job: JobItem; exchangeOptions: ExchangeOptionsPayload | null }) {
-  const [isOpen, setIsOpen] = useState(false);
+function JobCard({
+  job,
+  exchangeOptions,
+  isHot,
+  defaultOpen,
+}: {
+  job: JobItem;
+  exchangeOptions: ExchangeOptionsPayload | null;
+  isHot?: boolean;
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   return (
     <article
       role="button"
       tabIndex={0}
-      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer relative"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
@@ -1311,6 +1431,11 @@ function JobCard({ job, exchangeOptions }: { job: JobItem; exchangeOptions: Exch
       onClick={() => setIsOpen((v) => !v)}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
+      {isHot && (
+        <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
+          <FontAwesomeIcon icon={faFire} className="w-4 h-4" />
+        </span>
+      )}
       <p className="text-xs font-medium" style={{ color: "var(--color-accent)" }}>
         {JOB_OFFER_TYPE_LABELS[job.offerType]}
       </p>
@@ -1380,7 +1505,16 @@ const inputStyle = {
 };
 
 /* ——— Поиск/предложение вакансии (фильтры + загрузка по API) ——— */
-function JobsSection({ exchangeOptions }: { exchangeOptions: ExchangeOptionsPayload | null }) {
+function JobsSection({
+  exchangeOptions,
+  openItemId,
+  hotItemIds,
+}: {
+  exchangeOptions: ExchangeOptionsPayload | null;
+  openItemId?: string | null;
+  hotItemIds?: Set<string>;
+}) {
+  const openItemRef = useRef<HTMLDivElement>(null);
   const [offerType, setOfferType] = useState<JobOfferType | "">("");
   const [work, setWork] = useState<WorkType | "">("");
   const [employmentType, setEmploymentType] = useState<EmploymentType | "">("");
@@ -1426,6 +1560,12 @@ function JobsSection({ exchangeOptions }: { exchangeOptions: ExchangeOptionsPayl
     if (!themeMatch) return false;
     return true;
   });
+
+  useEffect(() => {
+    if (openItemId && openItemRef.current) {
+      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [openItemId]);
 
   return (
     <section className="space-y-4">
@@ -1599,7 +1739,14 @@ function JobsSection({ exchangeOptions }: { exchangeOptions: ExchangeOptionsPayl
       {!loading && filteredJobs.length > 0 && (
         <div className="space-y-3">
           {filteredJobs.map((job) => (
-            <JobCard key={job.id} job={job} exchangeOptions={exchangeOptions} />
+            <div key={job.id} ref={job.id === openItemId ? openItemRef : undefined}>
+              <JobCard
+                job={job}
+                exchangeOptions={exchangeOptions}
+                isHot={hotItemIds?.has(String(job.id))}
+                defaultOpen={job.id === openItemId}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -1608,14 +1755,18 @@ function JobsSection({ exchangeOptions }: { exchangeOptions: ExchangeOptionsPayl
 }
 
 /* ——— Карточка услуги ——— */
-function ServiceCard({ service }: { service: ServiceItem }) {
-  const [isOpen, setIsOpen] = useState(false);
+function ServiceCard({
+  service,
+  isHot,
+  defaultOpen,
+}: { service: ServiceItem; isHot?: boolean; defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const authorLink = `https://t.me/${(service.username || "").replace(/^@/, "")}`;
   return (
     <article
       role="button"
       tabIndex={0}
-      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer relative"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
@@ -1623,6 +1774,11 @@ function ServiceCard({ service }: { service: ServiceItem }) {
       onClick={() => setIsOpen((v) => !v)}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
+      {isHot && (
+        <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
+          <FontAwesomeIcon icon={faFire} className="w-4 h-4" />
+        </span>
+      )}
       <div className="flex items-start justify-between gap-2">
         <p className="font-medium text-sm flex-1 min-w-0" style={{ color: "var(--color-text)" }}>
           {service.title}
@@ -1655,7 +1811,14 @@ function ServiceCard({ service }: { service: ServiceItem }) {
 }
 
 /* ——— Услуги (дизайнеры / монтажеры): загрузка из JSON + фильтры ——— */
-function DesignersSection() {
+function DesignersSection({
+  openItemId,
+  hotItemIds,
+}: {
+  openItemId?: string | null;
+  hotItemIds?: Set<string>;
+}) {
+  const openItemRef = useRef<HTMLDivElement>(null);
   const [titleSearch, setTitleSearch] = useState("");
   const [priceFrom, setPriceFrom] = useState("");
   const [priceTo, setPriceTo] = useState("");
@@ -1707,6 +1870,12 @@ function DesignersSection() {
     if (dateTo.trim() && s.publishedAt > dateTo) return false;
     return true;
   });
+
+  useEffect(() => {
+    if (openItemId && openItemRef.current) {
+      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [openItemId]);
 
   const serviceInputStyle = {
     backgroundColor: "var(--input-bg)",
@@ -1895,7 +2064,13 @@ function DesignersSection() {
       {!loading && filteredServices.length > 0 && (
         <div className="space-y-3">
           {filteredServices.map((s) => (
-            <ServiceCard key={s.id} service={s} />
+            <div key={s.id} ref={s.id === openItemId ? openItemRef : undefined}>
+              <ServiceCard
+                service={s}
+                isHot={hotItemIds?.has(String(s.id))}
+                defaultOpen={s.id === openItemId}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -1924,13 +2099,17 @@ function CurrencySection() {
 }
 
 /* ——— Карточка канала на продажу ——— */
-function SellChannelCard({ channel }: { channel: SellChannelItem }) {
-  const [isOpen, setIsOpen] = useState(false);
+function SellChannelCard({
+  channel,
+  isHot,
+  defaultOpen,
+}: { channel: SellChannelItem; isHot?: boolean; defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   return (
     <article
       role="button"
       tabIndex={0}
-      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer relative"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
@@ -1938,6 +2117,11 @@ function SellChannelCard({ channel }: { channel: SellChannelItem }) {
       onClick={() => setIsOpen((v) => !v)}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
+      {isHot && (
+        <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
+          <FontAwesomeIcon icon={faFire} className="w-4 h-4" />
+        </span>
+      )}
       <div className="flex gap-3">
         {channel.imageUrl ? (
           <img
@@ -1998,7 +2182,14 @@ function SellChannelCard({ channel }: { channel: SellChannelItem }) {
 }
 
 /* ——— Продажа канала (каталог из JSON + фильтры) ——— */
-function SellChannelSection() {
+function SellChannelSection({
+  openItemId,
+  hotItemIds,
+}: {
+  openItemId?: string | null;
+  hotItemIds?: Set<string>;
+}) {
+  const openItemRef = useRef<HTMLDivElement>(null);
   const [nameSearch, setNameSearch] = useState("");
   const [subscribersFrom, setSubscribersFrom] = useState("");
   const [subscribersTo, setSubscribersTo] = useState("");
@@ -2070,6 +2261,12 @@ function SellChannelSection() {
     if (hasPhoto === "no" && ch.imageUrl) return false;
     return nameMatch;
   });
+
+  useEffect(() => {
+    if (openItemId && openItemRef.current) {
+      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [openItemId]);
 
   return (
     <section className="space-y-4">
@@ -2330,7 +2527,13 @@ function SellChannelSection() {
       {!loading && filteredChannels.length > 0 && (
         <div className="space-y-3">
           {filteredChannels.map((ch) => (
-            <SellChannelCard key={ch.id} channel={ch} />
+            <div key={ch.id} ref={ch.id === openItemId ? openItemRef : undefined}>
+              <SellChannelCard
+                channel={ch}
+                isHot={hotItemIds?.has(String(ch.id))}
+                defaultOpen={ch.id === openItemId}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -2348,13 +2551,17 @@ function formatRange(min: number | undefined | null, max: number | undefined | n
   return m != null ? m.toLocaleString("ru-RU") : n != null ? n.toLocaleString("ru-RU") : "—";
 }
 
-function BuyChannelCard({ item }: { item: BuyChannelItem }) {
-  const [isOpen, setIsOpen] = useState(false);
+function BuyChannelCard({
+  item,
+  isHot,
+  defaultOpen,
+}: { item: BuyChannelItem; isHot?: boolean; defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   return (
     <article
       role="button"
       tabIndex={0}
-      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer relative"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
@@ -2362,6 +2569,11 @@ function BuyChannelCard({ item }: { item: BuyChannelItem }) {
       onClick={() => setIsOpen((v) => !v)}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
+      {isHot && (
+        <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
+          <FontAwesomeIcon icon={faFire} className="w-4 h-4" />
+        </span>
+      )}
       <div className="flex items-center justify-between gap-2">
         <a
           href={item.usernameLink}
@@ -2410,7 +2622,14 @@ function BuyChannelCard({ item }: { item: BuyChannelItem }) {
 }
 
 /* ——— Покупка канала (каталог из JSON + фильтры) ——— */
-function BuyChannelSection() {
+function BuyChannelSection({
+  openItemId,
+  hotItemIds,
+}: {
+  openItemId?: string | null;
+  hotItemIds?: Set<string>;
+}) {
+  const openItemRef = useRef<HTMLDivElement>(null);
   const [usernameSearch, setUsernameSearch] = useState("");
   const [verified, setVerified] = useState<"" | "yes" | "no">("");
   const [priceFrom, setPriceFrom] = useState("");
@@ -2477,6 +2696,12 @@ function BuyChannelSection() {
     if (dateTo.trim() && item.publishedAt > dateTo) return false;
     return true;
   });
+
+  useEffect(() => {
+    if (openItemId && openItemRef.current) {
+      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [openItemId]);
 
   return (
     <section className="space-y-4">
@@ -2709,7 +2934,13 @@ function BuyChannelSection() {
       {!loading && filteredItems.length > 0 && (
         <div className="space-y-3">
           {filteredItems.map((item) => (
-            <BuyChannelCard key={item.id} item={item} />
+            <div key={item.id} ref={item.id === openItemId ? openItemRef : undefined}>
+              <BuyChannelCard
+                item={item}
+                isHot={hotItemIds?.has(String(item.id))}
+                defaultOpen={item.id === openItemId}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -2718,13 +2949,17 @@ function BuyChannelSection() {
 }
 
 /* ——— Карточка товара/услуги из раздела Другое ——— */
-function OtherCard({ item }: { item: OtherItem }) {
-  const [isOpen, setIsOpen] = useState(false);
+function OtherCard({
+  item,
+  isHot,
+  defaultOpen,
+}: { item: OtherItem; isHot?: boolean; defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   return (
     <article
       role="button"
       tabIndex={0}
-      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer relative"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
@@ -2732,6 +2967,11 @@ function OtherCard({ item }: { item: OtherItem }) {
       onClick={() => setIsOpen((v) => !v)}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
     >
+      {isHot && (
+        <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
+          <FontAwesomeIcon icon={faFire} className="w-4 h-4" />
+        </span>
+      )}
       <div className="flex items-center justify-between gap-2">
         <a
           href={item.usernameLink}
@@ -2768,7 +3008,14 @@ function OtherCard({ item }: { item: OtherItem }) {
 }
 
 /* ——— Другое (каталог из JSON + фильтры) ——— */
-function OtherSection() {
+function OtherSection({
+  openItemId,
+  hotItemIds,
+}: {
+  openItemId?: string | null;
+  hotItemIds?: Set<string>;
+}) {
+  const openItemRef = useRef<HTMLDivElement>(null);
   const [usernameSearch, setUsernameSearch] = useState("");
   const [verified, setVerified] = useState<"" | "yes" | "no">("");
   const [priceFrom, setPriceFrom] = useState("");
@@ -2817,6 +3064,12 @@ function OtherSection() {
     if (dateTo.trim() && item.publishedAt > dateTo) return false;
     return true;
   });
+
+  useEffect(() => {
+    if (openItemId && openItemRef.current) {
+      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [openItemId]);
 
   return (
     <section className="space-y-4">
@@ -2975,7 +3228,13 @@ function OtherSection() {
       {!loading && filteredItems.length > 0 && (
         <div className="space-y-3">
           {filteredItems.map((item) => (
-            <OtherCard key={item.id} item={item} />
+            <div key={item.id} ref={item.id === openItemId ? openItemRef : undefined}>
+              <OtherCard
+                item={item}
+                isHot={hotItemIds?.has(String(item.id))}
+                defaultOpen={item.id === openItemId}
+              />
+            </div>
           ))}
         </div>
       )}
