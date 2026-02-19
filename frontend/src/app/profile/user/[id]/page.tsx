@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faChevronLeft,
@@ -18,8 +18,10 @@ import {
 
 type LoadedState = "idle" | "loading" | "success" | "error";
 
-export default function PublicUserProfilePage({ params }: { params: { id: string } }) {
+export default function PublicUserProfilePage() {
   const router = useRouter();
+  const params = useParams();
+  const idFromUrl = params?.id as string | undefined;
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [statistics, setStatistics] = useState<UserStatisticsResponse | null>(null);
   const [externalUrl, setExternalUrl] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export default function PublicUserProfilePage({ params }: { params: { id: string
       setError(null);
 
       try {
-        const raw = (params?.id ?? "").toString();
+        const raw = (idFromUrl ?? "").toString();
         const identifier = raw.trim();
 
         const cleanedIdentifier =
@@ -43,7 +45,7 @@ export default function PublicUserProfilePage({ params }: { params: { id: string
 
         // === ДИАГНОСТИКА: логирование и список пользователей ===
         console.group("[ProfilePage] Диагностика загрузки профиля");
-        console.log("1. URL params.id (raw):", JSON.stringify(params?.id));
+        console.log("1. URL params.id (raw):", JSON.stringify(idFromUrl));
         console.log("2. identifier (trimmed):", JSON.stringify(identifier));
         console.log("3. cleanedIdentifier (без @):", JSON.stringify(cleanedIdentifier));
         console.log("4. Сравнение: ищем username =", cleanedIdentifier.toLowerCase());
@@ -124,7 +126,7 @@ export default function PublicUserProfilePage({ params }: { params: { id: string
     return () => {
       cancelled = true;
     };
-  }, [params.id]);
+  }, [idFromUrl]);
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -145,7 +147,7 @@ export default function PublicUserProfilePage({ params }: { params: { id: string
     window.open(externalUrl, "_blank", "noopener,noreferrer");
   };
 
-  const slug = (params?.id ?? "").toString().trim();
+  const slug = (idFromUrl ?? "").toString().trim();
   const baseUsername =
     profile?.username && typeof profile.username === "string"
       ? profile.username.trim()
