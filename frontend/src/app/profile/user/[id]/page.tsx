@@ -36,8 +36,16 @@ export default function PublicUserProfilePage({ params }: { params: { id: string
       try {
         const raw = (params?.id ?? "").toString();
         const identifier = raw.trim();
+
         if (!identifier) {
-          throw new Error("username is required");
+          if (!cancelled) {
+            setStatus("error");
+            setError("Профиль пользователя не найден.");
+            setProfile(null);
+            setStatistics(null);
+            setExternalUrl(null);
+          }
+          return;
         }
 
         const cleanedIdentifier =
@@ -66,7 +74,7 @@ export default function PublicUserProfilePage({ params }: { params: { id: string
       } catch (err) {
         if (cancelled) return;
         setStatus("error");
-        setError(err instanceof Error ? err.message : String(err));
+        setError("Не удалось загрузить профиль. Попробуйте ещё раз позже.");
         setProfile(null);
         setStatistics(null);
         setExternalUrl(null);
