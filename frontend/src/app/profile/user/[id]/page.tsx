@@ -34,14 +34,16 @@ export default function PublicUserProfilePage({ params }: { params: { id: string
       setError(null);
 
       try {
-        const identifier = params.id.trim();
+        const raw = (params?.id ?? "").toString();
+        const identifier = raw.trim();
         if (!identifier) {
           throw new Error("username is required");
         }
 
-        const loadedProfile = await fetchPublicUserProfileByUsername(
-          identifier.startsWith("@") ? identifier.slice(1) : identifier,
-        );
+        const cleanedIdentifier =
+          identifier.charAt(0) === "@" ? identifier.slice(1) : identifier;
+
+        const loadedProfile = await fetchPublicUserProfileByUsername(cleanedIdentifier);
 
         if (cancelled) return;
 
@@ -97,14 +99,18 @@ export default function PublicUserProfilePage({ params }: { params: { id: string
     window.open(externalUrl, "_blank", "noopener,noreferrer");
   };
 
+  const slug = (params?.id ?? "").toString().trim();
+  const baseUsername =
+    profile?.username && typeof profile.username === "string"
+      ? profile.username.trim()
+      : slug;
+
   const usernameToShow =
-    profile?.username && profile.username.trim()
-      ? profile.username.trim().startsWith("@")
-        ? profile.username.trim()
-        : `@${profile.username.trim()}`
-      : params.id.startsWith("@")
-      ? params.id
-      : `@${params.id}`;
+    baseUsername && baseUsername.charAt(0) === "@"
+      ? baseUsername
+      : baseUsername
+      ? `@${baseUsername}`
+      : "@user";
 
   const adsStats = statistics?.ads;
   const dealsStats = statistics?.deals;
