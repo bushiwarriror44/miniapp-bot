@@ -1105,17 +1105,15 @@ function BuyAdCard({
         </span>
       )}
       <div className="flex items-center justify-between gap-2">
-        <a
-          href={item.usernameLink}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href={`/profile/user/${encodeURIComponent(item.username)}`}
           className="inline-flex items-center gap-1.5 text-sm font-medium min-w-0"
           style={{ color: "var(--color-accent)" }}
           onClick={(e) => e.stopPropagation()}
         >
           @{item.username}
           <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
-        </a>
+        </Link>
         {item.verified && <VerifiedBadge />}
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
@@ -2803,17 +2801,15 @@ function BuyChannelCard({
         </span>
       )}
       <div className="flex items-center justify-between gap-2">
-        <a
-          href={item.usernameLink}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href={`/profile/user/${encodeURIComponent(item.username)}`}
           className="inline-flex items-center gap-1.5 text-sm font-medium min-w-0"
           style={{ color: "var(--color-accent)" }}
           onClick={(e) => e.stopPropagation()}
         >
           @{item.username}
           <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
-        </a>
+        </Link>
         {item.verified && <VerifiedBadge />}
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
@@ -3201,17 +3197,15 @@ function OtherCard({
         </span>
       )}
       <div className="flex items-center justify-between gap-2">
-        <a
-          href={item.usernameLink}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href={`/profile/user/${encodeURIComponent(item.username)}`}
           className="inline-flex items-center gap-1.5 text-sm font-medium min-w-0"
           style={{ color: "var(--color-accent)" }}
           onClick={(e) => e.stopPropagation()}
         >
           @{item.username}
           <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
-        </a>
+        </Link>
         {item.verified && <VerifiedBadge />}
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
