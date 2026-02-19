@@ -120,11 +120,20 @@ export async function fetchPublicUserProfileByUsername(
   if (!trimmed) {
     throw new Error("username is required");
   }
-  const res = await fetch(`${API_BASE}/users/by-username?username=${encodeURIComponent(trimmed)}`);
+  const cleaned = trimmed.startsWith("@") ? trimmed.slice(1) : trimmed;
+  const url = `${API_BASE}/users/by-username?username=${encodeURIComponent(cleaned)}`;
+  console.log("[API] Fetching profile by username:", cleaned, "URL:", url);
+  const res = await fetch(url);
   if (!res.ok) {
+    const errorText = await res.text();
+    console.error("[API] Failed to fetch profile:", res.status, res.statusText, errorText);
+    if (res.status === 404) {
+      throw new Error("User not found");
+    }
     throw new Error(`Failed to load public profile: ${res.status} ${res.statusText}`);
   }
   const data = await res.json();
+  console.log("[API] Profile response:", data);
   return data.profile ?? null;
 }
 

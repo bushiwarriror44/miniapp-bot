@@ -467,6 +467,15 @@ def create_item(category):
         item["id"] = str(uuid4())
     items.append(item)
     _save_dataset_items(row, list_key, items)
+    
+    # Update user username if provided in item (for buy-ads and other sections with username)
+    username_from_item = item.get("username")
+    if username_from_item and category == "buyAds":
+        # Try to find telegramId from moderation request if available
+        # For direct creation, we can't update username without telegramId
+        # This is handled in the approve flow
+        pass
+    
     return jsonify({"ok": True, "item": item}), 201
 
 
@@ -1236,13 +1245,16 @@ def admin_moderation_approve(request_id):
         try:
             username_clean = str(username_from_form).lstrip("@").strip()
             if username_clean:
+                print(f"[Admin] Updating username for telegramId={telegram_id}, username={username_clean}")
                 _backend_json(
                     "/users/track",
                     "POST",
                     {"telegramId": telegram_id, "username": username_clean},
                 )
-        except Exception:
-            # Ignore errors when updating username - it's not critical
+                print(f"[Admin] Successfully updated username for telegramId={telegram_id}")
+        except Exception as e:
+            # Log error but don't fail the approval
+            print(f"[Admin] Failed to update username for telegramId={telegram_id}: {e}")
             pass
 
     try:

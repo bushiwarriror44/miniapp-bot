@@ -37,6 +37,8 @@ export default function PublicUserProfilePage({ params }: { params: { id: string
         const raw = (params?.id ?? "").toString();
         const identifier = raw.trim();
 
+        console.log("[ProfilePage] Loading profile for identifier:", identifier);
+
         if (!identifier) {
           if (!cancelled) {
             setStatus("error");
@@ -51,9 +53,13 @@ export default function PublicUserProfilePage({ params }: { params: { id: string
         const cleanedIdentifier =
           identifier.charAt(0) === "@" ? identifier.slice(1) : identifier;
 
+        console.log("[ProfilePage] Cleaned identifier:", cleanedIdentifier);
+
         const loadedProfile = await fetchPublicUserProfileByUsername(cleanedIdentifier);
 
         if (cancelled) return;
+
+        console.log("[ProfilePage] Loaded profile:", loadedProfile);
 
         if (!loadedProfile) {
           setStatus("error");
@@ -74,7 +80,13 @@ export default function PublicUserProfilePage({ params }: { params: { id: string
       } catch (err) {
         if (cancelled) return;
         setStatus("error");
-        setError("Не удалось загрузить профиль. Попробуйте ещё раз позже.");
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.error("[ProfilePage] Failed to load profile:", errorMessage, err);
+        setError(
+          errorMessage.includes("not found") || errorMessage.includes("не найден")
+            ? "Профиль пользователя не найден."
+            : `Не удалось загрузить профиль: ${errorMessage}`
+        );
         setProfile(null);
         setStatistics(null);
         setExternalUrl(null);
