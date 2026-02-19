@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { getTelegramWebApp } from '@/shared/api/client';
 import { PromoBlock } from './components/PromoBlock';
 import { CryptoPrices } from './components/CryptoPrices';
@@ -17,8 +17,12 @@ import { RenderLoggerProvider } from './contexts/RenderLoggerContext';
 export default function Home() {
 	const { logs, logRender, logEvent, clearLogs, appendLog } = useRenderLogger('Home');
 	const hasLoggedMount = useRef(false);
+	const [isMounted, setIsMounted] = useState(false);
 
 	useLayoutEffect(() => {
+		if (typeof window !== 'undefined') {
+			setIsMounted(true);
+		}
 		if (!hasLoggedMount.current) {
 			hasLoggedMount.current = true;
 			logRender('MOUNT', 'Home component render');
@@ -27,6 +31,7 @@ export default function Home() {
 	}, []);
 
 	useEffect(() => {
+		if (typeof window === 'undefined') return;
 		logEvent('useEffect triggered', 'Home mounted');
 
 		const telegram = getTelegramWebApp();
@@ -90,6 +95,11 @@ export default function Home() {
 			});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
+
+	// Не рендерим контент до монтирования на клиенте, чтобы избежать дублирования из-за SSR
+	if (!isMounted) {
+		return null;
+	}
 
 	return (
 		<RenderLoggerProvider onLog={appendLog}>

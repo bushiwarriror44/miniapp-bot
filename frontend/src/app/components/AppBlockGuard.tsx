@@ -13,7 +13,9 @@ function isValidUrl(url: string | null | undefined): url is string {
 }
 
 export function AppBlockGuard({ children }: { children: React.ReactNode }) {
+  const [isMounted, setIsMounted] = useState(false);
   const telegramId = useMemo(() => {
+    if (typeof window === 'undefined') return "";
     const tg = getTelegramWebApp();
     const id = tg?.initDataUnsafe?.user?.id;
     return id ? String(id) : "";
@@ -24,7 +26,15 @@ export function AppBlockGuard({ children }: { children: React.ReactNode }) {
   const [supportLink, setSupportLink] = useState<string>(DEFAULT_SUPPORT_LINK);
 
   useEffect(() => {
-    if (!telegramId) return;
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!telegramId) {
+      setIsReady(true);
+      return;
+    }
 
     Promise.all([fetchUserProfile(telegramId), fetchBotConfig()])
       .then(([profile, botConfig]) => {
@@ -41,7 +51,7 @@ export function AppBlockGuard({ children }: { children: React.ReactNode }) {
       });
   }, [telegramId]);
 
-  if (!isReady) {
+  if (!isMounted || !isReady) {
     return null;
   }
 

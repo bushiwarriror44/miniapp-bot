@@ -8,9 +8,17 @@ import { AppLoader } from "./components/AppLoader";
 import { AppBlockGuard } from "./components/AppBlockGuard";
 import { LayoutLogger } from "./components/LayoutLogger";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Telegram Mini App",
   description: "Front-end для Telegram Mini App",
+  other: {
+    "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    "pragma": "no-cache",
+    "expires": "0",
+  },
 };
 
 export default function RootLayout({
