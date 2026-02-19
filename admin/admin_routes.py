@@ -225,16 +225,52 @@ def _to_number(value, default=0):
         return default
 
 
+def _parse_range(value, default_min=0, default_max=0):
+    """Parse range string like '1000-2000' or '15000' into (min, max) tuple."""
+    if not value or not isinstance(value, str):
+        return (default_min, default_max)
+    
+    value = value.strip()
+    if not value:
+        return (default_min, default_max)
+    
+    # Handle single value (e.g., "15000" or "~15000")
+    if value.startswith("~"):
+        value = value[1:].strip()
+    
+    if "-" not in value:
+        num = _to_number(value, 0)
+        return (num, num)
+    
+    # Handle range (e.g., "1000-2000")
+    parts = value.split("-", 1)
+    if len(parts) == 2:
+        min_val = _to_number(parts[0].strip(), default_min)
+        max_val = _to_number(parts[1].strip(), default_max)
+        return (min_val, max_val)
+    
+    return (default_min, default_max)
+
+
 def _normalize_item_for_dataset(section, form_data):
     today = datetime.utcnow().strftime("%Y-%m-%d")
     if section == "buy-ads":
+        username = str(form_data.get("username") or "").lstrip("@")
+        price_min, price_max = _parse_range(form_data.get("priceRange"))
+        views_min, views_max = _parse_range(form_data.get("viewsRange"))
+        
         return {
             "id": str(uuid4()),
-            "username": str(form_data.get("username") or "").lstrip("@"),
-            "priceRange": str(form_data.get("priceRange") or ""),
-            "viewsRange": str(form_data.get("viewsRange") or ""),
+            "username": username,
+            "usernameLink": f"https://t.me/{username}" if username else "",
+            "verified": False,
+            "priceMin": int(price_min),
+            "priceMax": int(price_max),
+            "viewsMin": int(views_min),
+            "viewsMax": int(views_max),
             "theme": str(form_data.get("theme") or ""),
             "description": str(form_data.get("description") or ""),
+            "publishedAt": today,
         }
     if section == "sell-ads":
         return {
@@ -1191,6 +1227,23 @@ def admin_moderation_approve(request_id):
     new_item = _normalize_item_for_dataset(section, current.get("formData"))
     items.append(new_item)
     _save_dataset_items(row, list_key, items)
+
+    # Update user username if provided in formData
+    telegram_id = current.get("telegramId")
+    form_data = current.get("formData", {})
+    username_from_form = form_data.get("username")
+    if telegram_id and username_from_form:
+        try:
+            username_clean = str(username_from_form).lstrip("@").strip()
+            if username_clean:
+                _backend_json(
+                    "/users/track",
+                    "POST",
+                    {"telegramId": telegram_id, "username": username_clean},
+                )
+        except Exception:
+            # Ignore errors when updating username - it's not critical
+            pass
 
     try:
         approved = _backend_json(
