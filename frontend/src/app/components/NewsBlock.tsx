@@ -26,19 +26,25 @@ export function NewsBlock() {
   });
 
   useEffect(() => {
+    let cancelled = false;
     logger?.logEvent("NewsBlock", "fetching main page data");
     fetchMainPageData()
       .then((data) => {
+        if (cancelled) return;
         const url = data?.news?.channelUrl?.trim();
         logger?.logEvent("NewsBlock", "main page data loaded", `channelUrl: ${url || "none"}`);
         if (url) setChannelUrl(url);
         setLoadError(null);
       })
       .catch((error) => {
+        if (cancelled) return;
         logger?.logEvent("NewsBlock", "error loading", error instanceof Error ? error.message : String(error));
         setLoadError(error instanceof Error ? error.message : "Ошибка загрузки mainPage");
-      })
-  }, [logger]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <section

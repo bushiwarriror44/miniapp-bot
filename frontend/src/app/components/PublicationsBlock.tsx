@@ -76,8 +76,8 @@ export function PublicationsBlock() {
         }
       })
       .catch((err) => {
-        logger?.logEvent("PublicationsBlock", "error loading", err instanceof Error ? err.message : String(err));
         if (!cancelled) {
+          logger?.logEvent("PublicationsBlock", "error loading", err instanceof Error ? err.message : String(err));
           setPublications([]);
           setLoadError(err instanceof Error ? err.message : String(err));
         }
@@ -89,7 +89,7 @@ export function PublicationsBlock() {
       cancelled = true;
       clearTimeout(tid);
     };
-  }, [telegramId, logger]);
+  }, [telegramId]);
 
   const hasPublications = publications.length > 0;
 

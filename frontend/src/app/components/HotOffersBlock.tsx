@@ -44,19 +44,27 @@ export function HotOffersBlock() {
   });
 
   useEffect(() => {
+    let cancelled = false;
     logger?.logEvent("HotOffersBlock", "fetching hot offers");
     fetchHotOffers()
       .then((res) => {
-        logger?.logEvent("HotOffersBlock", "hot offers loaded", `${res.offers?.length ?? 0} offers`);
-        setOffers(res.offers ?? []);
-        setLoadError(null);
+        if (!cancelled) {
+          logger?.logEvent("HotOffersBlock", "hot offers loaded", `${res.offers?.length ?? 0} offers`);
+          setOffers(res.offers ?? []);
+          setLoadError(null);
+        }
       })
       .catch((error) => {
-        logger?.logEvent("HotOffersBlock", "error loading", error instanceof Error ? error.message : String(error));
-        setOffers([]);
-        setLoadError(error instanceof Error ? error.message : "Ошибка загрузки hot offers");
+        if (!cancelled) {
+          logger?.logEvent("HotOffersBlock", "error loading", error instanceof Error ? error.message : String(error));
+          setOffers([]);
+          setLoadError(error instanceof Error ? error.message : "Ошибка загрузки hot offers");
+        }
       });
-  }, [logger]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (offers.length === 0 && !loadError) return null;
 

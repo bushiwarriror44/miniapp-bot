@@ -29,7 +29,7 @@ export function PromoBlock() {
 		} else {
 			logger?.logEvent('PromoBlock', 'promo visible');
 		}
-	}, [logger]);
+	}, []);
 
 	const handleClose = () => {
 		sessionStorage.setItem(STORAGE_KEY, '1');

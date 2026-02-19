@@ -75,15 +75,17 @@ export function TopUsersBlock() {
         }
       })
       .catch((error) => {
-        logger?.logEvent("TopUsersBlock", "error loading", error instanceof Error ? error.message : String(error));
         if (!cancelled) {
+          logger?.logEvent("TopUsersBlock", "error loading", error instanceof Error ? error.message : String(error));
           setData({ users: [] });
           setLoadError(error instanceof Error ? error.message : "Ошибка загрузки top users");
           setLoading(false);
         }
       });
-    return () => { cancelled = true; };
-  }, [logger]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <section

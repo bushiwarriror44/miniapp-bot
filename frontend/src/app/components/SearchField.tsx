@@ -20,7 +20,7 @@ export function SearchField() {
     if (logger) {
       logger.logEvent("SearchField", "mounted");
     }
-  }, [logger]);
+  }, []);
 
   return (
     <div

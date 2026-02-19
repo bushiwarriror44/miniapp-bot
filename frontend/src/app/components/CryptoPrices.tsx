@@ -104,7 +104,7 @@ export function CryptoPrices() {
     if (isError) {
       logger?.logEvent("CryptoPrices", "error loading");
     }
-  }, [data, isLoading, isError, logger]);
+  }, [data, isLoading, isError]);
 
   // Автопрокрутка каждые 7 секунд
   useEffect(() => {
