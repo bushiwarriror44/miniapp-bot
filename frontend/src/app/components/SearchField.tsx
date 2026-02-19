@@ -9,12 +9,16 @@ export function SearchField() {
   const logger = useRenderLoggerContext();
 
   useLayoutEffect(() => {
-    logger?.logRender("SearchField", "MOUNT", "SearchField component render");
-  });
+    if (logger) {
+      logger.logRender("SearchField", "MOUNT", "SearchField component render");
+    }
+  }, [logger]);
 
   useEffect(() => {
-    logger?.logEvent("SearchField", "mounted");
-  });
+    if (logger) {
+      logger.logEvent("SearchField", "mounted");
+    }
+  }, [logger]);
 
   return (
     <div

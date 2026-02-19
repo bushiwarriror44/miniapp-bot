@@ -14,13 +14,15 @@ import { RenderLogger } from './components/RenderLogger';
 import { useRenderLogger } from './hooks/useRenderLogger';
 import { RenderLoggerProvider } from './contexts/RenderLoggerContext';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function Home() {
 	const { logs, logRender, logEvent, clearLogs, appendLog } = useRenderLogger('Home');
 
 	useLayoutEffect(() => {
 		logRender('MOUNT', 'Home component render');
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	});
+	}, [logRender]);
 
 	useEffect(() => {
 		logEvent('useEffect triggered', 'Home mounted');

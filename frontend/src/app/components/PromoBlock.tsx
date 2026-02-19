@@ -13,8 +13,10 @@ export function PromoBlock() {
 	const logger = useRenderLoggerContext();
 
 	useLayoutEffect(() => {
-		logger?.logRender('PromoBlock', 'MOUNT', 'PromoBlock component render');
-	});
+		if (logger) {
+			logger.logRender('PromoBlock', 'MOUNT', 'PromoBlock component render');
+		}
+	}, [logger]);
 
 	useEffect(() => {
 		logger?.logEvent('PromoBlock', 'checking sessionStorage');

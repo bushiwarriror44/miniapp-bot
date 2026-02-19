@@ -43,8 +43,10 @@ export function PublicationsBlock() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useLayoutEffect(() => {
-    logger?.logRender("PublicationsBlock", "MOUNT", "PublicationsBlock component render");
-  });
+    if (logger) {
+      logger.logRender("PublicationsBlock", "MOUNT", "PublicationsBlock component render");
+    }
+  }, [logger]);
 
   useEffect(() => {
     if (!telegramId) {

@@ -12,11 +12,11 @@ type Props = {
 export const Providers = ({ children }: Props) => {
   useLayoutEffect(() => {
     console.log("[Providers] Providers component render");
-  });
+  }, []);
 
   useEffect(() => {
     console.log("[Providers] Providers mounted");
-  });
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -55,8 +55,10 @@ export function TopUsersBlock() {
   const logger = useRenderLoggerContext();
 
   useLayoutEffect(() => {
-    logger?.logRender("TopUsersBlock", "MOUNT", "TopUsersBlock component render");
-  });
+    if (logger) {
+      logger.logRender("TopUsersBlock", "MOUNT", "TopUsersBlock component render");
+    }
+  }, [logger]);
 
   useEffect(() => {
     let cancelled = false;

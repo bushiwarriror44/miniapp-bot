@@ -36,8 +36,10 @@ export function HotOffersBlock() {
   const logger = useRenderLoggerContext();
 
   useLayoutEffect(() => {
-    logger?.logRender("HotOffersBlock", "MOUNT", "HotOffersBlock component render");
-  });
+    if (logger) {
+      logger.logRender("HotOffersBlock", "MOUNT", "HotOffersBlock component render");
+    }
+  }, [logger]);
 
   useEffect(() => {
     logger?.logEvent("HotOffersBlock", "fetching hot offers");

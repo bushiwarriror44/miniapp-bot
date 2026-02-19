@@ -83,8 +83,10 @@ export function CryptoPrices() {
   });
 
   useLayoutEffect(() => {
-    logger?.logRender("CryptoPrices", "MOUNT", "CryptoPrices component render");
-  });
+    if (logger) {
+      logger.logRender("CryptoPrices", "MOUNT", "CryptoPrices component render");
+    }
+  }, [logger]);
 
   useEffect(() => {
     if (data?.length && activeIndex >= data.length) setActiveIndex(Math.max(0, data.length - 1));

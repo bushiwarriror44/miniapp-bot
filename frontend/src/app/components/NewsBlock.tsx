@@ -18,8 +18,10 @@ export function NewsBlock() {
   const logger = useRenderLoggerContext();
 
   useLayoutEffect(() => {
-    logger?.logRender("NewsBlock", "MOUNT", "NewsBlock component render");
-  });
+    if (logger) {
+      logger.logRender("NewsBlock", "MOUNT", "NewsBlock component render");
+    }
+  }, [logger]);
 
   useEffect(() => {
     logger?.logEvent("NewsBlock", "fetching main page data");
