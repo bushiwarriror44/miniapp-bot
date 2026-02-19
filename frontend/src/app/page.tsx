@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { getTelegramWebApp } from '@/shared/api/client';
 import { PromoBlock } from './components/PromoBlock';
 import { CryptoPrices } from './components/CryptoPrices';
@@ -12,12 +12,18 @@ import { SearchField } from './components/SearchField';
 import { trackTelegramUser } from '@/shared/api/users';
 import { RenderLogger } from './components/RenderLogger';
 import { useRenderLogger } from './hooks/useRenderLogger';
+import { RenderLoggerProvider } from './contexts/RenderLoggerContext';
 
 export default function Home() {
-	const { logs, logRender, logEvent, clearLogs } = useRenderLogger('Home');
+	const { logs, logRender, logEvent, clearLogs, appendLog } = useRenderLogger('Home');
+
+	useLayoutEffect(() => {
+		logRender('MOUNT', 'Home component render');
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	});
 
 	useEffect(() => {
-		logRender('MOUNT', 'Home mounted');
+		logEvent('Home', 'useEffect triggered', 'Home mounted');
 
 		const telegram = getTelegramWebApp();
 		if (!telegram) {
@@ -82,18 +88,20 @@ export default function Home() {
 	}, []);
 
 	return (
-		<main className="px-4 py-6">
-			<RenderLogger logs={logs} onClear={clearLogs} title="Home render log" />
+		<RenderLoggerProvider onLog={appendLog}>
+			<main className="px-4 py-6">
+				<RenderLogger logs={logs} onClear={clearLogs} title="Home render log" />
 
-			<SearchField />
-			<PromoBlock />
+				<SearchField />
+				<PromoBlock />
 
-			<CryptoPrices />
-			<HotOffersBlock />
-			<TopUsersBlock />
-			<PublicationsBlock />
-			<NewsBlock />
-		</main>
+				<CryptoPrices />
+				<HotOffersBlock />
+				<TopUsersBlock />
+				<PublicationsBlock />
+				<NewsBlock />
+			</main>
+		</RenderLoggerProvider>
 	);
 }
 

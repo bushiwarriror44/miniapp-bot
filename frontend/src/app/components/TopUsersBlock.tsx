@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrophy } from "@fortawesome/free-solid-svg-icons";
 import { fetchTopUsers, type TopUser } from "@/shared/api/top-users";
+import { useRenderLoggerContext } from "../contexts/RenderLoggerContext";
 
 function UserRow({ user }: { user: TopUser }) {
   return (
@@ -51,19 +52,26 @@ export function TopUsersBlock() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{ users: TopUser[] } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const logger = useRenderLoggerContext();
+
+  useLayoutEffect(() => {
+    logger?.logRender("TopUsersBlock", "MOUNT", "TopUsersBlock component render");
+  });
 
   useEffect(() => {
     let cancelled = false;
+    logger?.logEvent("TopUsersBlock", "fetching top users");
     fetchTopUsers()
       .then((res) => {
         if (!cancelled) {
+          logger?.logEvent("TopUsersBlock", "top users loaded", `${res.users?.length ?? 0} users`);
           setData(res);
           setLoadError(null);
           setLoading(false);
         }
       })
       .catch((error) => {
-        console.error("[ui] Failed to load top users", error);
+        logger?.logEvent("TopUsersBlock", "error loading", error instanceof Error ? error.message : String(error));
         if (!cancelled) {
           setData({ users: [] });
           setLoadError(error instanceof Error ? error.message : "Ошибка загрузки top users");
@@ -71,7 +79,7 @@ export function TopUsersBlock() {
         }
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [logger]);
 
   return (
     <section

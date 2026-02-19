@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCopy, faCheck } from "@fortawesome/free-solid-svg-icons";
 
 export type RenderLog = {
   timestamp: number;
@@ -28,8 +30,28 @@ const formatTime = (ts: number) => {
   )}`;
 };
 
+const formatLogsAsText = (logs: RenderLog[]): string => {
+  return logs
+    .map((log) => {
+      const time = formatTime(log.timestamp);
+      const type = log.type === "RENDER" ? "RENDER" : "EVENT";
+      const renderCount = log.renderCount != null ? ` #${log.renderCount}` : "";
+      const reason = log.reason ? ` — ${log.reason}` : "";
+      const timing =
+        log.sinceMountMs != null || log.sincePrevMs != null
+          ? ` (${log.sinceMountMs != null ? `from start: ${log.sinceMountMs}ms` : ""}${
+              log.sinceMountMs != null && log.sincePrevMs != null ? " | " : ""
+            }${log.sincePrevMs != null ? `since prev: ${log.sincePrevMs}ms` : ""})`
+          : "";
+      const details = log.details ? `\n  ${log.details}` : "";
+      return `[${time}] ${type}${renderCount}\n${log.label}${reason}${timing}${details}`;
+    })
+    .join("\n\n");
+};
+
 export function RenderLogger({ logs, onClear, title = "Render log" }: Props) {
   const [collapsed, setCollapsed] = useState(false);
+  const [copied, setCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -37,6 +59,17 @@ export function RenderLogger({ logs, onClear, title = "Render log" }: Props) {
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [logs]);
+
+  const handleCopy = async () => {
+    try {
+      const text = formatLogsAsText(logs);
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy logs:", err);
+    }
+  };
 
   if (!logs || logs.length === 0) {
     return null;
@@ -74,19 +107,33 @@ export function RenderLogger({ logs, onClear, title = "Render log" }: Props) {
               {title} ({logs.length})
             </span>
           </div>
-          {onClear && (
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={onClear}
-              className="text-[10px] px-2 py-1 rounded"
+              onClick={handleCopy}
+              className="w-6 h-6 rounded flex items-center justify-center text-xs transition-colors"
               style={{
-                backgroundColor: "rgba(148,163,184,0.2)",
-                color: "#e5e7eb",
+                backgroundColor: copied ? "rgba(34,197,94,0.2)" : "rgba(148,163,184,0.2)",
+                color: copied ? "#22c55e" : "#e5e7eb",
               }}
+              title="Копировать логи"
             >
-              Очистить
+              <FontAwesomeIcon icon={copied ? faCheck : faCopy} className="w-3 h-3" />
             </button>
-          )}
+            {onClear && (
+              <button
+                type="button"
+                onClick={onClear}
+                className="text-[10px] px-2 py-1 rounded"
+                style={{
+                  backgroundColor: "rgba(148,163,184,0.2)",
+                  color: "#e5e7eb",
+                }}
+              >
+                Очистить
+              </button>
+            )}
+          </div>
         </div>
         {!collapsed && (
           <div

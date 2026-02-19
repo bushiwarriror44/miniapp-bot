@@ -6,6 +6,7 @@ import { Providers } from "./providers";
 import { BottomNav } from "./components/BottomNav";
 import { AppLoader } from "./components/AppLoader";
 import { AppBlockGuard } from "./components/AppBlockGuard";
+import { LayoutLogger } from "./components/LayoutLogger";
 
 export const metadata: Metadata = {
   title: "Telegram Mini App",
@@ -20,13 +21,15 @@ export default function RootLayout({
   return (
     <html lang="ru" suppressHydrationWarning data-theme="dark" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className="min-h-screen antialiased font-sans" style={{ backgroundColor: "var(--color-bg)", color: "var(--color-text)" }} suppressHydrationWarning>
-        <Providers>
-          <AppLoader />
-          <AppBlockGuard>
-            <div className="main-content">{children}</div>
-            <BottomNav />
-          </AppBlockGuard>
-        </Providers>
+        <LayoutLogger>
+          <Providers>
+            <AppLoader />
+            <AppBlockGuard>
+              <div className="main-content">{children}</div>
+              <BottomNav />
+            </AppBlockGuard>
+          </Providers>
+        </LayoutLogger>
       </body>
     </html>
   );

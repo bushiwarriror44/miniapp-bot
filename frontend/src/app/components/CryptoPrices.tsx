@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCryptoPrices, type CryptoPriceItem, type CryptoId } from "@/shared/api/crypto";
+import { useRenderLoggerContext } from "../contexts/RenderLoggerContext";
 import btcIcon from "@/app/assets/btc.svg";
 import ethIcon from "@/app/assets/eth.svg";
 import tonIcon from "@/app/assets/ton.svg";
@@ -73,6 +74,7 @@ function CryptoCard({ item }: { item: CryptoPriceItem }) {
 
 export function CryptoPrices() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const logger = useRenderLoggerContext();
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["crypto-prices"],
     queryFn: fetchCryptoPrices,
@@ -80,9 +82,25 @@ export function CryptoPrices() {
     staleTime: 30_000,
   });
 
+  useLayoutEffect(() => {
+    logger?.logRender("CryptoPrices", "MOUNT", "CryptoPrices component render");
+  });
+
   useEffect(() => {
     if (data?.length && activeIndex >= data.length) setActiveIndex(Math.max(0, data.length - 1));
   }, [data?.length, activeIndex]);
+
+  useEffect(() => {
+    if (data) {
+      logger?.logEvent("CryptoPrices", "data loaded", `${data.length} items`);
+    }
+    if (isLoading) {
+      logger?.logEvent("CryptoPrices", "loading");
+    }
+    if (isError) {
+      logger?.logEvent("CryptoPrices", "error loading");
+    }
+  }, [data, isLoading, isError, logger]);
 
   // Автопрокрутка каждые 7 секунд
   useEffect(() => {

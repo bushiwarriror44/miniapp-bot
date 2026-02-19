@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useLayoutEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faNewspaper } from "@fortawesome/free-solid-svg-icons";
 import telegramIco from "@/app/assets/telegram-ico.svg";
 import { fetchMainPageData } from "@/shared/api/main-page";
+import { useRenderLoggerContext } from "../contexts/RenderLoggerContext";
 
 function svgSrc(value: string | { default?: string; src?: string }): string {
   if (typeof value === "string") return value;
@@ -14,19 +15,26 @@ function svgSrc(value: string | { default?: string; src?: string }): string {
 export function NewsBlock() {
   const [channelUrl, setChannelUrl] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const logger = useRenderLoggerContext();
+
+  useLayoutEffect(() => {
+    logger?.logRender("NewsBlock", "MOUNT", "NewsBlock component render");
+  });
 
   useEffect(() => {
+    logger?.logEvent("NewsBlock", "fetching main page data");
     fetchMainPageData()
       .then((data) => {
         const url = data?.news?.channelUrl?.trim();
+        logger?.logEvent("NewsBlock", "main page data loaded", `channelUrl: ${url || "none"}`);
         if (url) setChannelUrl(url);
         setLoadError(null);
       })
       .catch((error) => {
-        console.error("[ui] Failed to load mainPage.news", error);
+        logger?.logEvent("NewsBlock", "error loading", error instanceof Error ? error.message : String(error));
         setLoadError(error instanceof Error ? error.message : "Ошибка загрузки mainPage");
       })
-  }, []);
+  }, [logger]);
 
   return (
     <section

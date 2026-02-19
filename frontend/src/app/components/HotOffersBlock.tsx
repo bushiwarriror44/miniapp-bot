@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faChevronRight, faFire } from "@fortawesome/free-solid-svg-icons";
 import { fetchHotOffers, type HotOffer } from "@/shared/api/hot-offers";
+import { useRenderLoggerContext } from "../contexts/RenderLoggerContext";
 
 function OfferSlide({ offer }: { offer: HotOffer }) {
   return (
@@ -32,19 +33,26 @@ export function HotOffersBlock() {
   const [offers, setOffers] = useState<HotOffer[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const logger = useRenderLoggerContext();
+
+  useLayoutEffect(() => {
+    logger?.logRender("HotOffersBlock", "MOUNT", "HotOffersBlock component render");
+  });
 
   useEffect(() => {
+    logger?.logEvent("HotOffersBlock", "fetching hot offers");
     fetchHotOffers()
       .then((res) => {
+        logger?.logEvent("HotOffersBlock", "hot offers loaded", `${res.offers?.length ?? 0} offers`);
         setOffers(res.offers ?? []);
         setLoadError(null);
       })
       .catch((error) => {
-        console.error("[ui] Failed to load hot offers", error);
+        logger?.logEvent("HotOffersBlock", "error loading", error instanceof Error ? error.message : String(error));
         setOffers([]);
         setLoadError(error instanceof Error ? error.message : "Ошибка загрузки hot offers");
       });
-  }, []);
+  }, [logger]);
 
   if (offers.length === 0 && !loadError) return null;
 

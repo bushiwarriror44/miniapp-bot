@@ -1,19 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useLayoutEffect } from 'react';
 import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserTie, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { useRenderLoggerContext } from '../contexts/RenderLoggerContext';
 
 const STORAGE_KEY = 'miniapp-promo-closed';
 
 export function PromoBlock() {
 	const [visible, setVisible] = useState(true);
+	const logger = useRenderLoggerContext();
+
+	useLayoutEffect(() => {
+		logger?.logRender('PromoBlock', 'MOUNT', 'PromoBlock component render');
+	});
 
 	useEffect(() => {
+		logger?.logEvent('PromoBlock', 'checking sessionStorage');
 		if (typeof window === 'undefined') return;
-		if (sessionStorage.getItem(STORAGE_KEY) === '1') setVisible(false);
-	}, []);
+		if (sessionStorage.getItem(STORAGE_KEY) === '1') {
+			setVisible(false);
+			logger?.logEvent('PromoBlock', 'promo already closed in session');
+		} else {
+			logger?.logEvent('PromoBlock', 'promo visible');
+		}
+	}, [logger]);
 
 	const handleClose = () => {
 		sessionStorage.setItem(STORAGE_KEY, '1');

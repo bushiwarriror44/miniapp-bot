@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useLayoutEffect } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faClipboard } from "@fortawesome/free-solid-svg-icons";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { fetchMyPublications, type MyPublicationItem } from "@/shared/api/users";
+import { useRenderLoggerContext } from "../contexts/RenderLoggerContext";
 
 function formatPublicationDate(iso: string): string {
   try {
@@ -30,6 +31,7 @@ function publicationTitle(item: MyPublicationItem): string {
 }
 
 export function PublicationsBlock() {
+  const logger = useRenderLoggerContext();
   const telegramId = useMemo(() => {
     const telegram = getTelegramWebApp();
     const userId = telegram?.initDataUnsafe?.user?.id;
@@ -40,8 +42,13 @@ export function PublicationsBlock() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  useLayoutEffect(() => {
+    logger?.logRender("PublicationsBlock", "MOUNT", "PublicationsBlock component render");
+  });
+
   useEffect(() => {
     if (!telegramId) {
+      logger?.logEvent("PublicationsBlock", "no telegramId", "skipping fetch");
       queueMicrotask(() => {
         setLoading(false);
         setPublications([]);
@@ -49,6 +56,7 @@ export function PublicationsBlock() {
       return;
     }
     let cancelled = false;
+    logger?.logEvent("PublicationsBlock", "fetching publications", `telegramId: ${telegramId}`);
     const tid = setTimeout(() => {
       if (!cancelled) {
         setLoading(true);
@@ -58,11 +66,13 @@ export function PublicationsBlock() {
     fetchMyPublications(telegramId)
       .then((list) => {
         if (!cancelled) {
+          logger?.logEvent("PublicationsBlock", "publications loaded", `${list.length} items`);
           setPublications(list);
           setLoadError(null);
         }
       })
       .catch((err) => {
+        logger?.logEvent("PublicationsBlock", "error loading", err instanceof Error ? err.message : String(err));
         if (!cancelled) {
           setPublications([]);
           setLoadError(err instanceof Error ? err.message : String(err));
@@ -75,7 +85,7 @@ export function PublicationsBlock() {
       cancelled = true;
       clearTimeout(tid);
     };
-  }, [telegramId]);
+  }, [telegramId, logger]);
 
   const hasPublications = publications.length > 0;
 

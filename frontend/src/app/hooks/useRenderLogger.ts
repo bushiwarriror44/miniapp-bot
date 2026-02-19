@@ -72,6 +72,7 @@ export function useRenderLogger(label: string) {
     logRender,
     logEvent,
     clearLogs,
+    appendLog,
   };
 }
 
