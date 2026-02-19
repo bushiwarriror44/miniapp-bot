@@ -360,6 +360,7 @@ export class AppService {
         id: profile.id,
         rank: index + 1,
         name,
+        username: profile.username || null,
         rating: profile.rating.total,
         dealsCount: profile.statistics?.deals?.total || 0,
       };

@@ -11,12 +11,18 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import {
   fetchPublicUserProfileByUsername,
-  fetchListUsers,
   type UserProfileResponse,
   type UserStatisticsResponse,
 } from "@/shared/api/users";
 
 type LoadedState = "idle" | "loading" | "success" | "error";
+
+function getUserAvatarUrl(username: string | null): string {
+  if (!username) {
+    return "/assets/telegram-ico.svg";
+  }
+  return `https://t.me/i/userpic/320/${username}.jpg`;
+}
 
 export default function PublicUserProfilePage() {
   const router = useRouter();
@@ -42,37 +48,6 @@ export default function PublicUserProfilePage() {
 
         const cleanedIdentifier =
           identifier.charAt(0) === "@" ? identifier.slice(1) : identifier;
-
-        // === ДИАГНОСТИКА: логирование и список пользователей ===
-        console.group("[ProfilePage] Диагностика загрузки профиля");
-        console.log("1. URL params.id (raw):", JSON.stringify(idFromUrl));
-        console.log("2. identifier (trimmed):", JSON.stringify(identifier));
-        console.log("3. cleanedIdentifier (без @):", JSON.stringify(cleanedIdentifier));
-        console.log("4. Сравнение: ищем username =", cleanedIdentifier.toLowerCase());
-
-        let allUsers: { id: string; telegramId: string; username: string | null }[] = [];
-        try {
-          allUsers = await fetchListUsers("");
-          console.log("5. Всего пользователей в БД:", allUsers.length);
-          console.log("6. Список всех пользователей (id, telegramId, username):");
-          allUsers.forEach((u, i) => {
-            const match = u.username?.toLowerCase() === cleanedIdentifier.toLowerCase();
-            console.log(
-              `   [${i + 1}] id=${u.id} telegramId=${u.telegramId} username=${JSON.stringify(u.username)} ${match ? " <-- СОВПАДЕНИЕ" : ""}`
-            );
-          });
-          const matchByUsername = allUsers.find(
-            (u) => u.username?.toLowerCase() === cleanedIdentifier.toLowerCase()
-          );
-          const matchByPartial = allUsers.find((u) =>
-            (u.username ?? "").toLowerCase().includes(cleanedIdentifier.toLowerCase())
-          );
-          console.log("7. Точное совпадение по username:", matchByUsername ?? "не найдено");
-          console.log("8. Частичное совпадение по username:", matchByPartial ?? "не найдено");
-        } catch (listErr) {
-          console.warn("Не удалось загрузить список пользователей:", listErr);
-        }
-        console.groupEnd();
 
         if (!identifier) {
           if (!cancelled) {
@@ -178,6 +153,23 @@ export default function PublicUserProfilePage() {
       <h1 className="text-xl font-semibold mb-3" style={{ color: "var(--color-text)" }}>
         Профиль пользователя
       </h1>
+
+      {/* Аватар пользователя */}
+      {status === "success" && profile && (
+        <div className="flex justify-center mb-4">
+          <div className="relative">
+            <img
+              src={getUserAvatarUrl(profile.username)}
+              alt={usernameToShow}
+              className="w-20 h-20 rounded-full object-cover"
+              style={{ border: "2px solid var(--color-border)" }}
+              onError={(e) => {
+                e.currentTarget.src = "/assets/telegram-ico.svg";
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Состояние загрузки / ошибок */}
       {status === "loading" && (

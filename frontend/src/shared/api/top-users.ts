@@ -4,6 +4,7 @@ export type TopUser = {
   id: string;
   rank: number;
   name: string;
+  username: string | null;
   rating: number;
   dealsCount: number;
 };

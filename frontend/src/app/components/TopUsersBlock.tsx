@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrophy } from "@fortawesome/free-solid-svg-icons";
 import { fetchTopUsers, type TopUser } from "@/shared/api/top-users";
 import { useRenderLoggerContext } from "../contexts/RenderLoggerContext";
 
 function UserRow({ user }: { user: TopUser }) {
-  return (
+  const content = (
     <div
-      className="flex items-center gap-3 py-2.5 border-b border-(--color-border) last:border-b-0"
+      className="flex items-center gap-3 py-2.5 border-b border-(--color-border) last:border-b-0 transition-opacity"
       style={{ borderColor: "var(--color-border)" }}
     >
       <span
@@ -33,6 +34,20 @@ function UserRow({ user }: { user: TopUser }) {
       </div>
     </div>
   );
+
+  if (user.username) {
+    return (
+      <Link
+        href={`/profile/user/${encodeURIComponent(user.username)}`}
+        className="block hover:opacity-80 transition-opacity"
+        style={{ textDecoration: "none", color: "inherit" }}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }
 
 function SkeletonRow() {
