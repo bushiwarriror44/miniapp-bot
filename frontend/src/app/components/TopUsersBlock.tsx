@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrophy } from "@fortawesome/free-solid-svg-icons";
 import { fetchTopUsers, type TopUser } from "@/shared/api/top-users";
@@ -53,12 +53,14 @@ export function TopUsersBlock() {
   const [data, setData] = useState<{ users: TopUser[] } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const logger = useRenderLoggerContext();
+  const hasLoggedMount = useRef(false);
 
   useLayoutEffect(() => {
-    if (logger) {
+    if (!hasLoggedMount.current && logger) {
+      hasLoggedMount.current = true;
       logger.logRender("TopUsersBlock", "MOUNT", "TopUsersBlock component render");
     }
-  }, [logger]);
+  });
 
   useEffect(() => {
     let cancelled = false;

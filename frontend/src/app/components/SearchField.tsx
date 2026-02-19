@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { useRenderLoggerContext } from "../contexts/RenderLoggerContext";
 
 export function SearchField() {
   const logger = useRenderLoggerContext();
+  const hasLoggedMount = useRef(false);
 
   useLayoutEffect(() => {
-    if (logger) {
+    if (!hasLoggedMount.current && logger) {
+      hasLoggedMount.current = true;
       logger.logRender("SearchField", "MOUNT", "SearchField component render");
     }
-  }, [logger]);
+  });
 
   useEffect(() => {
     if (logger) {

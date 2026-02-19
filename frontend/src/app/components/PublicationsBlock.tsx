@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useLayoutEffect } from "react";
+import { useEffect, useMemo, useState, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faClipboard } from "@fortawesome/free-solid-svg-icons";
@@ -32,6 +32,7 @@ function publicationTitle(item: MyPublicationItem): string {
 
 export function PublicationsBlock() {
   const logger = useRenderLoggerContext();
+  const hasLoggedMount = useRef(false);
   const telegramId = useMemo(() => {
     const telegram = getTelegramWebApp();
     const userId = telegram?.initDataUnsafe?.user?.id;
@@ -43,10 +44,11 @@ export function PublicationsBlock() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useLayoutEffect(() => {
-    if (logger) {
+    if (!hasLoggedMount.current && logger) {
+      hasLoggedMount.current = true;
       logger.logRender("PublicationsBlock", "MOUNT", "PublicationsBlock component render");
     }
-  }, [logger]);
+  });
 
   useEffect(() => {
     if (!telegramId) {

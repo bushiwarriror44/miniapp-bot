@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useLayoutEffect } from 'react';
+import { useEffect, useState, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserTie, faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -11,12 +11,14 @@ const STORAGE_KEY = 'miniapp-promo-closed';
 export function PromoBlock() {
 	const [visible, setVisible] = useState(true);
 	const logger = useRenderLoggerContext();
+	const hasLoggedMount = useRef(false);
 
 	useLayoutEffect(() => {
-		if (logger) {
+		if (!hasLoggedMount.current && logger) {
+			hasLoggedMount.current = true;
 			logger.logRender('PromoBlock', 'MOUNT', 'PromoBlock component render');
 		}
-	}, [logger]);
+	});
 
 	useEffect(() => {
 		logger?.logEvent('PromoBlock', 'checking sessionStorage');

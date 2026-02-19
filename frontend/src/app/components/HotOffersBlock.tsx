@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faChevronRight, faFire } from "@fortawesome/free-solid-svg-icons";
@@ -34,12 +34,14 @@ export function HotOffersBlock() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const logger = useRenderLoggerContext();
+  const hasLoggedMount = useRef(false);
 
   useLayoutEffect(() => {
-    if (logger) {
+    if (!hasLoggedMount.current && logger) {
+      hasLoggedMount.current = true;
       logger.logRender("HotOffersBlock", "MOUNT", "HotOffersBlock component render");
     }
-  }, [logger]);
+  });
 
   useEffect(() => {
     logger?.logEvent("HotOffersBlock", "fetching hot offers");

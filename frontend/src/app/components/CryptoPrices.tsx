@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCryptoPrices, type CryptoPriceItem, type CryptoId } from "@/shared/api/crypto";
 import { useRenderLoggerContext } from "../contexts/RenderLoggerContext";
@@ -75,6 +75,7 @@ function CryptoCard({ item }: { item: CryptoPriceItem }) {
 export function CryptoPrices() {
   const [activeIndex, setActiveIndex] = useState(0);
   const logger = useRenderLoggerContext();
+  const hasLoggedMount = useRef(false);
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["crypto-prices"],
     queryFn: fetchCryptoPrices,
@@ -83,10 +84,11 @@ export function CryptoPrices() {
   });
 
   useLayoutEffect(() => {
-    if (logger) {
+    if (!hasLoggedMount.current && logger) {
+      hasLoggedMount.current = true;
       logger.logRender("CryptoPrices", "MOUNT", "CryptoPrices component render");
     }
-  }, [logger]);
+  });
 
   useEffect(() => {
     if (data?.length && activeIndex >= data.length) setActiveIndex(Math.max(0, data.length - 1));

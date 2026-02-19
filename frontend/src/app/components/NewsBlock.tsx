@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useLayoutEffect } from "react";
+import { useEffect, useState, useLayoutEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faNewspaper } from "@fortawesome/free-solid-svg-icons";
 import telegramIco from "@/app/assets/telegram-ico.svg";
@@ -16,12 +16,14 @@ export function NewsBlock() {
   const [channelUrl, setChannelUrl] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const logger = useRenderLoggerContext();
+  const hasLoggedMount = useRef(false);
 
   useLayoutEffect(() => {
-    if (logger) {
+    if (!hasLoggedMount.current && logger) {
+      hasLoggedMount.current = true;
       logger.logRender("NewsBlock", "MOUNT", "NewsBlock component render");
     }
-  }, [logger]);
+  });
 
   useEffect(() => {
     logger?.logEvent("NewsBlock", "fetching main page data");

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { getTelegramWebApp } from '@/shared/api/client';
 import { PromoBlock } from './components/PromoBlock';
 import { CryptoPrices } from './components/CryptoPrices';
@@ -16,10 +16,15 @@ import { RenderLoggerProvider } from './contexts/RenderLoggerContext';
 
 export default function Home() {
 	const { logs, logRender, logEvent, clearLogs, appendLog } = useRenderLogger('Home');
+	const hasLoggedMount = useRef(false);
 
 	useLayoutEffect(() => {
-		logRender('MOUNT', 'Home component render');
-	}, [logRender]);
+		if (!hasLoggedMount.current) {
+			hasLoggedMount.current = true;
+			logRender('MOUNT', 'Home component render');
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	useEffect(() => {
 		logEvent('useEffect triggered', 'Home mounted');
