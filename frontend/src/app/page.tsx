@@ -23,7 +23,7 @@ export default function Home() {
 	});
 
 	useEffect(() => {
-		logEvent('Home', 'useEffect triggered', 'Home mounted');
+		logEvent('useEffect triggered', 'Home mounted');
 
 		const telegram = getTelegramWebApp();
 		if (!telegram) {
