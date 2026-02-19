@@ -167,6 +167,18 @@ export class AppController {
     return { users };
   }
 
+  @Get('users/by-username')
+  async getUserByUsername(@Query('username') username?: string) {
+    if (!username) {
+      throw new HttpException('username is required', HttpStatus.BAD_REQUEST);
+    }
+    const profile = await this.appService.getUserProfileByUsername(username);
+    if (!profile) {
+      return { profile: null };
+    }
+    return { profile };
+  }
+
   @Get('users/top')
   async getTopUsers(@Query('limit') limit?: string) {
     const limitNum = limit ? parseInt(limit, 10) : 10;

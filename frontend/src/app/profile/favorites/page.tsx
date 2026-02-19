@@ -52,16 +52,14 @@ function FavoriteAdCard({ ad }: { ad: AdItem }) {
             </span>
             {ad.verified && <VerifiedBadge />}
           </div>
-          <a
-            href={ad.channelOrChatLink}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href={`/profile/user/${encodeURIComponent(ad.username)}`}
             className="text-xs inline-flex items-center gap-1 truncate max-w-full"
             style={{ color: "var(--color-accent)" }}
           >
-            Ссылка на канал/чат
+            Открыть профиль
             <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
-          </a>
+          </Link>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">

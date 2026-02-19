@@ -11,6 +11,7 @@ export type AdItem = {
   imageUrl: string | null;
   verified: boolean;
   username: string;
+  authorUserId?: string | null;
   price: number;
   pinned: boolean;
   underGuarantee: boolean;

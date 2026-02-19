@@ -112,3 +112,47 @@ export async function fetchMyPublications(
   const data = await res.json();
   return Array.isArray(data.publications) ? data.publications : [];
 }
+
+export async function fetchPublicUserProfileByUsername(
+  username: string,
+): Promise<UserProfileResponse | null> {
+  const trimmed = username.trim();
+  if (!trimmed) {
+    throw new Error("username is required");
+  }
+  const res = await fetch(`${API_BASE}/users/by-username?username=${encodeURIComponent(trimmed)}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load public profile: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  return data.profile ?? null;
+}
+
+export async function fetchPublicUserProfileById(id: string): Promise<UserProfileResponse | null> {
+  const trimmed = id.trim();
+  if (!trimmed) {
+    throw new Error("id is required");
+  }
+  const res = await fetch(`${API_BASE}/users/${encodeURIComponent(trimmed)}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load public profile by id: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  // backend returns { user: profile }
+  return data.user ?? null;
+}
+
+export async function fetchPublicUserStatisticsById(
+  id: string,
+): Promise<UserStatisticsResponse | null> {
+  const trimmed = id.trim();
+  if (!trimmed) {
+    throw new Error("id is required");
+  }
+  const res = await fetch(`${API_BASE}/users/${encodeURIComponent(trimmed)}/statistics`);
+  if (!res.ok) {
+    throw new Error(`Failed to load public statistics by id: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  return data.statistics ?? null;
+}

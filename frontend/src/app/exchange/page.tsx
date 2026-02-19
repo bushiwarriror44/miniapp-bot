@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faExternalLink } from "@fortawesome/free-solid-svg-icons";
@@ -816,17 +817,15 @@ function AdCard({ ad, isHot, defaultOpen }: { ad: AdItem; isHot?: boolean; defau
             </span>
             {ad.verified && <VerifiedBadge />}
           </div>
-          <a
-            href={ad.channelOrChatLink}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href={`/profile/user/${encodeURIComponent(ad.username)}`}
             className="text-xs inline-flex items-center gap-1 truncate max-w-full"
             style={{ color: "var(--color-accent)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            Ссылка на канал/чат
+            Открыть профиль
             <FontAwesomeIcon icon={faExternalLink} className="w-3 h-3 shrink-0" />
-          </a>
+          </Link>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">

@@ -280,6 +280,19 @@ export class AppService {
     return this.buildUserProfile(user);
   }
 
+  async getUserProfileByUsername(username: string) {
+    const raw = String(username || '').trim();
+    const normalized = raw.startsWith('@') ? raw.slice(1) : raw;
+    if (!normalized) {
+      throw new Error('username is required');
+    }
+    const user = await this.usersRepository.findOne({ where: { username: normalized } });
+    if (!user) {
+      return null;
+    }
+    return this.buildUserProfile(user);
+  }
+
   async getUserStatisticsByTelegramId(telegramId: string | number): Promise<UserStatistics | null> {
     const normalized = String(telegramId || '').trim();
     if (!normalized) {
