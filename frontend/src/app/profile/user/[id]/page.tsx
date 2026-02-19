@@ -11,6 +11,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import {
   fetchPublicUserProfileByUsername,
+  fetchListUsers,
   type UserProfileResponse,
   type UserStatisticsResponse,
 } from "@/shared/api/users";
@@ -37,7 +38,39 @@ export default function PublicUserProfilePage({ params }: { params: { id: string
         const raw = (params?.id ?? "").toString();
         const identifier = raw.trim();
 
-        console.log("[ProfilePage] Loading profile for identifier:", identifier);
+        const cleanedIdentifier =
+          identifier.charAt(0) === "@" ? identifier.slice(1) : identifier;
+
+        // === ДИАГНОСТИКА: логирование и список пользователей ===
+        console.group("[ProfilePage] Диагностика загрузки профиля");
+        console.log("1. URL params.id (raw):", JSON.stringify(params?.id));
+        console.log("2. identifier (trimmed):", JSON.stringify(identifier));
+        console.log("3. cleanedIdentifier (без @):", JSON.stringify(cleanedIdentifier));
+        console.log("4. Сравнение: ищем username =", cleanedIdentifier.toLowerCase());
+
+        let allUsers: { id: string; telegramId: string; username: string | null }[] = [];
+        try {
+          allUsers = await fetchListUsers("");
+          console.log("5. Всего пользователей в БД:", allUsers.length);
+          console.log("6. Список всех пользователей (id, telegramId, username):");
+          allUsers.forEach((u, i) => {
+            const match = u.username?.toLowerCase() === cleanedIdentifier.toLowerCase();
+            console.log(
+              `   [${i + 1}] id=${u.id} telegramId=${u.telegramId} username=${JSON.stringify(u.username)} ${match ? " <-- СОВПАДЕНИЕ" : ""}`
+            );
+          });
+          const matchByUsername = allUsers.find(
+            (u) => u.username?.toLowerCase() === cleanedIdentifier.toLowerCase()
+          );
+          const matchByPartial = allUsers.find((u) =>
+            (u.username ?? "").toLowerCase().includes(cleanedIdentifier.toLowerCase())
+          );
+          console.log("7. Точное совпадение по username:", matchByUsername ?? "не найдено");
+          console.log("8. Частичное совпадение по username:", matchByPartial ?? "не найдено");
+        } catch (listErr) {
+          console.warn("Не удалось загрузить список пользователей:", listErr);
+        }
+        console.groupEnd();
 
         if (!identifier) {
           if (!cancelled) {
@@ -50,16 +83,9 @@ export default function PublicUserProfilePage({ params }: { params: { id: string
           return;
         }
 
-        const cleanedIdentifier =
-          identifier.charAt(0) === "@" ? identifier.slice(1) : identifier;
-
-        console.log("[ProfilePage] Cleaned identifier:", cleanedIdentifier);
-
         const loadedProfile = await fetchPublicUserProfileByUsername(cleanedIdentifier);
 
         if (cancelled) return;
-
-        console.log("[ProfilePage] Loaded profile:", loadedProfile);
 
         if (!loadedProfile) {
           setStatus("error");

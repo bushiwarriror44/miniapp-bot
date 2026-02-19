@@ -113,6 +113,29 @@ export async function fetchMyPublications(
   return Array.isArray(data.publications) ? data.publications : [];
 }
 
+export type ListUserItem = {
+  id: string;
+  telegramId: string;
+  username: string | null;
+  verified: boolean;
+  isScam: boolean;
+  isBlocked: boolean;
+  ratingTotal: number;
+  ratingAuto: number;
+  ratingManualDelta: number;
+  createdAt: string;
+};
+
+export async function fetchListUsers(query = ""): Promise<ListUserItem[]> {
+  const url = `${API_BASE}/users${query ? `?q=${encodeURIComponent(query)}` : ""}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to list users: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  return Array.isArray(data.users) ? data.users : [];
+}
+
 export async function fetchPublicUserProfileByUsername(
   username: string,
 ): Promise<UserProfileResponse | null> {
