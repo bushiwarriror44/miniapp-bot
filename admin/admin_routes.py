@@ -408,7 +408,8 @@ def admin_logout():
 @require_login
 def admin_panel():
     role = session.get("role", "admin")
-    return render_template("admin_panel.html", role=role)
+    miniapp_base_url = os.environ.get("MINIAPP_BASE_URL", "").rstrip("/")
+    return render_template("admin_panel.html", role=role, miniapp_base_url=miniapp_base_url)
 
 
 @admin_bp.route("/admin/api/categories", methods=["GET"])

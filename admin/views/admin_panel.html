@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Админ-панель{% endblock %}
 {% block body %}
-  <script>window.ADMIN_ROLE = "{{ role }}";</script>
+  <script>window.ADMIN_ROLE = "{{ role }}"; window.MINIAPP_BASE_URL = {{ (miniapp_base_url or '')|tojson }};</script>
   <main class="container">
     <header class="card" style="padding:14px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;">
       <div>

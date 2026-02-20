@@ -1,19 +1,28 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { fetchBanners, type BannerItem } from "@/shared/api/banners";
 
 function BannerSlide({ banner }: { banner: BannerItem }) {
+  const [loaded, setLoaded] = useState(false);
   return (
     <div className="relative w-full overflow-hidden rounded-xl" style={{ minHeight: 140 }}>
+      {!loaded && (
+        <div
+          className="absolute inset-0 rounded-xl animate-pulse"
+          style={{ backgroundColor: "var(--color-surface)" }}
+        />
+      )}
       <img
         src={banner.imageUrl}
         alt=""
         className="w-full h-full object-cover rounded-xl"
-        style={{ minHeight: 140, maxHeight: 200 }}
+        style={{ minHeight: 140, maxHeight: 200, opacity: loaded ? 1 : 0 }}
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
       />
     </div>
   );
