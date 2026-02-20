@@ -991,6 +991,145 @@ def admin_users_patch_blocked(user_id):
         return jsonify({"error": f"Failed to update blocked flag: {exc}"}), 502
 
 
+@admin_bp.route("/admin/api/labels", methods=["GET"])
+@require_login
+@require_admin
+def admin_labels_list():
+    try:
+        data = _backend_get_json("/labels")
+        return jsonify(data)
+    except (HTTPError, URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to fetch labels from backend: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/labels", methods=["POST"])
+@require_login
+@require_admin
+def admin_labels_create():
+    body = request.get_json(silent=True) or {}
+    name = body.get("name")
+    if not name or not isinstance(name, str):
+        return jsonify({"error": "name is required and must be string"}), 400
+    default_color = body.get("defaultColor")
+    try:
+        payload = {"name": name}
+        if default_color:
+            payload["defaultColor"] = default_color
+        data = _backend_json("/labels", "POST", payload)
+        return jsonify(data), 201
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to create label: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/labels/<label_id>", methods=["PATCH"])
+@require_login
+@require_admin
+def admin_labels_update(label_id):
+    body = request.get_json(silent=True) or {}
+    payload = {}
+    if "name" in body:
+        if not isinstance(body["name"], str):
+            return jsonify({"error": "name must be string"}), 400
+        payload["name"] = body["name"]
+    if "defaultColor" in body:
+        if not isinstance(body["defaultColor"], str):
+            return jsonify({"error": "defaultColor must be string"}), 400
+        payload["defaultColor"] = body["defaultColor"]
+    if not payload:
+        return jsonify({"error": "At least one field (name or defaultColor) must be provided"}), 400
+    try:
+        data = _backend_json(f"/labels/{label_id}", "PATCH", payload)
+        return jsonify(data)
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to update label: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/labels/<label_id>", methods=["DELETE"])
+@require_login
+@require_admin
+def admin_labels_delete(label_id):
+    try:
+        data = _backend_json(f"/labels/{label_id}", "DELETE", {})
+        return jsonify(data)
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to delete label: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/users/<user_id>/labels", methods=["GET"])
+@require_login
+@require_admin
+def admin_users_labels_list(user_id):
+    try:
+        data = _backend_get_json(f"/users/{user_id}/labels")
+        return jsonify(data)
+    except (HTTPError, URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to fetch user labels from backend: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/users/<user_id>/labels", methods=["POST"])
+@require_login
+@require_admin
+def admin_users_labels_add(user_id):
+    body = request.get_json(silent=True) or {}
+    label_id = body.get("labelId")
+    if not label_id or not isinstance(label_id, str):
+        return jsonify({"error": "labelId is required and must be string"}), 400
+    payload = {"labelId": label_id}
+    if "customColor" in body:
+        payload["customColor"] = body["customColor"]
+    try:
+        data = _backend_json(f"/users/{user_id}/labels", "POST", payload)
+        return jsonify(data), 201
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to add label to user: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/users/<user_id>/labels/<label_id>", methods=["DELETE"])
+@require_login
+@require_admin
+def admin_users_labels_remove(user_id, label_id):
+    try:
+        data = _backend_json(f"/users/{user_id}/labels/{label_id}", "DELETE", {})
+        return jsonify(data)
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to remove label from user: {exc}"}), 502
+
+
+@admin_bp.route("/admin/api/users/<user_id>/labels/<label_id>", methods=["PATCH"])
+@require_login
+@require_admin
+def admin_users_labels_update_color(user_id, label_id):
+    body = request.get_json(silent=True) or {}
+    payload = {}
+    if "customColor" in body:
+        payload["customColor"] = body["customColor"]
+    if not payload:
+        return jsonify({"error": "customColor must be provided"}), 400
+    try:
+        data = _backend_json(f"/users/{user_id}/labels/{label_id}", "PATCH", payload)
+        return jsonify(data)
+    except HTTPError as exc:
+        status = exc.code if exc.code else 502
+        return jsonify({"error": f"Backend returned {status}"}), status
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": f"Failed to update label color: {exc}"}), 502
+
+
 @admin_bp.route("/admin/api/moderators", methods=["GET"])
 @require_login
 @require_admin

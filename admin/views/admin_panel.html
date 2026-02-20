@@ -18,6 +18,7 @@
         <button class="btn tab-btn" data-tab-btn="exchange" data-admin-only>Биржа</button>
         <button class="btn tab-btn" data-tab-btn="guarant" data-admin-only>Гарант</button>
         <button class="btn tab-btn" data-tab-btn="users" data-admin-only>Пользователи</button>
+        <button class="btn tab-btn" data-tab-btn="labels" data-admin-only>Метки</button>
         <button class="btn tab-btn" data-tab-btn="rating" data-admin-only>Рейтинг</button>
         <button class="btn tab-btn" data-tab-btn="moderation">Модерация</button>
         <button class="btn tab-btn" data-tab-btn="moderators" data-admin-only>Модераторы</button>
@@ -121,6 +122,24 @@
           <section class="card" style="padding:12px;">
             <h2 style="margin:0 0 8px 0;font-size:16px;">Карточка пользователя</h2>
             <div id="adminUserDetailsWrap" class="muted">Выберите пользователя в таблице выше.</div>
+          </section>
+        </section>
+
+        <section id="tab-labels" class="tab-view stack" style="display:none;" data-admin-only>
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 8px 0;font-size:16px;">Управление метками</h2>
+            <div id="adminLabelsListWrap"></div>
+            <div style="margin-top:12px;">
+              <input id="adminNewLabelNameInput" class="input" placeholder="Название метки" />
+              <input
+                id="adminNewLabelColorInput"
+                type="color"
+                class="input"
+                style="width:80px;margin-left:8px;"
+                value="#0070f3"
+              />
+              <button id="adminCreateLabelBtn" class="btn" style="margin-left:8px;">Создать метку</button>
+            </div>
           </section>
         </section>
 

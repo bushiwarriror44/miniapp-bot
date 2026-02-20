@@ -45,7 +45,6 @@ export function PromoBlock() {
 					href="/exchange?openSubmit=1"
 					className="relative flex w-full min-w-0 items-center gap-4 rounded-xl px-4 py-3 pr-12 shrink-0 cursor-pointer transition-opacity hover:opacity-95 no-underline"
 					style={{ backgroundColor: 'var(--color-accent)' }}>
-					{/* Крестик — закрыть до следующего запуска */}
 					<button
 						type="button"
 						onClick={(e) => {
@@ -58,14 +57,12 @@ export function PromoBlock() {
 						<FontAwesomeIcon icon={faXmark} className="w-4 h-4" />
 					</button>
 
-					{/* Круглая иконка слева */}
 					<div
 						className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center"
 						style={{ backgroundColor: 'rgba(0,0,0,0.35)' }}>
 						<FontAwesomeIcon icon={faUserTie} className="w-6 h-6 text-white" />
 					</div>
 
-					{/* Текст */}
 					<div className="min-w-0 flex-1">
 						<p className="font-bold text-white text-sm leading-tight">
 							Хочешь разместить свою услугу?

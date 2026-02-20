@@ -12,6 +12,8 @@ import { SupportRequestEntity } from './entities/support-request.entity';
 import { UserEntity } from './entities/user.entity';
 import { UserActivityEntity } from './entities/user-activity.entity';
 import { UserAdLinkEntity } from './entities/user-ad-link.entity';
+import { UserLabelEntity } from './entities/user-label.entity';
+import { UserUserLabelEntity } from './entities/user-user-label.entity';
 
 type TrackUserPayload = {
   telegramId: string | number;
@@ -96,6 +98,10 @@ export class AppService {
     private readonly moderationRequestsRepository: Repository<ModerationRequestEntity>,
     @InjectRepository(SupportRequestEntity)
     private readonly supportRequestsRepository: Repository<SupportRequestEntity>,
+    @InjectRepository(UserLabelEntity)
+    private readonly userLabelsRepository: Repository<UserLabelEntity>,
+    @InjectRepository(UserUserLabelEntity)
+    private readonly userUserLabelsRepository: Repository<UserUserLabelEntity>,
   ) {}
 
   getHello(): string {
@@ -212,7 +218,6 @@ export class AppService {
     const dealStats = await this.getDealStatsForUser(user.id);
     const viewStats = await this.getProfileViewsStats(user.id);
 
-    // Подсчет статистики объявлений из ModerationRequestEntity по статусам
     const baseQuery = this.moderationRequestsRepository
       .createQueryBuilder('m')
       .where('(m.userId = :userId OR m.telegramId = :telegramId)', {
@@ -226,7 +231,6 @@ export class AppService {
       baseQuery.clone().andWhere('m.status = :status', { status: 'pending' }).getCount(),
     ]);
 
-    // Детальное логирование для диагностики
     console.log('[buildUserStatistics]', {
       userId: user.id,
       telegramId: user.telegramId,
@@ -234,7 +238,7 @@ export class AppService {
       adsActive,
       adsHidden,
       adsOnModeration,
-      adsCompleted: 0, // Пока оставляем 0
+      adsCompleted: 0,
     });
 
     const dealsTotal = dealStats.total || activity.dealsTotal;
@@ -244,7 +248,7 @@ export class AppService {
     return {
       ads: {
         active: adsActive,
-        completed: 0, // Можно расширить логику позже
+        completed: 0,
         hidden: adsHidden,
         onModeration: adsOnModeration,
       },
@@ -262,6 +266,7 @@ export class AppService {
     const daysInProject = this.calculateDaysInProject(user);
     const ratingAuto = this.calculateAutoRating(user, stats, daysInProject);
     const ratingTotal = Math.round((ratingAuto + (user.ratingManualDelta || 0)) * 10) / 10;
+    const userLabels = await this.getUserLabels(user.id);
 
     return {
       id: user.id,
@@ -279,6 +284,11 @@ export class AppService {
       },
       statistics: stats,
       daysInProject,
+      labels: userLabels.map((ul) => ({
+        id: ul.labelId,
+        name: ul.labelName,
+        color: ul.color,
+      })),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -631,5 +641,109 @@ export class AppService {
       order: { createdAt: 'DESC' },
       take: 500,
     });
+  }
+
+  private getDefaultColorForLabelName(name: string): string {
+    const presetColors: Record<string, string> = {
+      Дизайнер: '#8b5cf6',
+      Монтажер: '#06b6d4',
+      Рекламщик: '#f59e0b',
+      SEO: '#10b981',
+      Копирайтер: '#ec4899',
+      Разработчик: '#3b82f6',
+      Маркетолог: '#f97316',
+    };
+    return presetColors[name] || '#0070f3';
+  }
+
+  async getAllLabels() {
+    return this.userLabelsRepository.find({
+      order: { name: 'ASC' },
+    });
+  }
+
+  async createLabel(name: string, defaultColor?: string) {
+    const color = defaultColor || this.getDefaultColorForLabelName(name);
+    const label = this.userLabelsRepository.create({
+      name: name.trim(),
+      defaultColor: color,
+    });
+    return this.userLabelsRepository.save(label);
+  }
+
+  async updateLabel(id: string, name?: string, defaultColor?: string) {
+    const label = await this.userLabelsRepository.findOne({ where: { id } });
+    if (!label) {
+      return null;
+    }
+    if (name !== undefined) {
+      label.name = name.trim();
+    }
+    if (defaultColor !== undefined) {
+      label.defaultColor = defaultColor;
+    }
+    return this.userLabelsRepository.save(label);
+  }
+
+  async deleteLabel(id: string) {
+    const label = await this.userLabelsRepository.findOne({ where: { id } });
+    if (!label) {
+      return false;
+    }
+    await this.userLabelsRepository.remove(label);
+    return true;
+  }
+
+  async getUserLabels(userId: string) {
+    const userLabels = await this.userUserLabelsRepository.find({
+      where: { userId },
+      relations: ['label'],
+    });
+    return userLabels.map((ul) => ({
+      labelId: ul.labelId,
+      labelName: ul.label.name,
+      color: ul.customColor || ul.label.defaultColor,
+    }));
+  }
+
+  async addLabelToUser(userId: string, labelId: string, customColor?: string) {
+    const existing = await this.userUserLabelsRepository.findOne({
+      where: { userId, labelId },
+    });
+    if (existing) {
+      if (customColor !== undefined) {
+        existing.customColor = customColor || null;
+        return this.userUserLabelsRepository.save(existing);
+      }
+      return existing;
+    }
+    const userLabel = this.userUserLabelsRepository.create({
+      userId,
+      labelId,
+      customColor: customColor || null,
+    });
+    return this.userUserLabelsRepository.save(userLabel);
+  }
+
+  async removeLabelFromUser(userId: string, labelId: string) {
+    const userLabel = await this.userUserLabelsRepository.findOne({
+      where: { userId, labelId },
+    });
+    if (!userLabel) {
+      return false;
+    }
+    await this.userUserLabelsRepository.remove(userLabel);
+    return true;
+  }
+
+  async updateUserLabelColor(userId: string, labelId: string, customColor?: string) {
+    const userLabel = await this.userUserLabelsRepository.findOne({
+      where: { userId, labelId },
+    });
+    if (!userLabel) {
+      return null;
+    }
+    userLabel.customColor = customColor || null;
+    return this.userUserLabelsRepository.save(userLabel);
   }
 }

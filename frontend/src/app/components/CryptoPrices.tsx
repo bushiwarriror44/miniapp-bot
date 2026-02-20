@@ -106,7 +106,6 @@ export function CryptoPrices() {
     }
   }, [data, isLoading, isError]);
 
-  // Автопрокрутка каждые 7 секунд
   useEffect(() => {
     if (!data?.length) return;
     const t = setInterval(() => {
@@ -115,7 +114,6 @@ export function CryptoPrices() {
     return () => clearInterval(t);
   }, [data?.length]);
 
-  // Свайп по горизонтали
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const handleTouchStart = (e: React.TouchEvent) => setTouchStartX(e.targetTouches[0].clientX);
   const handleTouchEnd = (e: React.TouchEvent) => {

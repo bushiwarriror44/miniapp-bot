@@ -89,7 +89,6 @@ export function PublicationsBlock() {
       cancelled = true;
       clearTimeout(tid);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [telegramId]);
 
   const hasPublications = publications.length > 0;

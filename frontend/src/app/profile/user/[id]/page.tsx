@@ -14,6 +14,7 @@ import {
   type UserProfileResponse,
   type UserStatisticsResponse,
 } from "@/shared/api/users";
+import { UserLabelBadge } from "@/app/components/UserLabelBadge";
 
 type LoadedState = "idle" | "loading" | "success" | "error";
 
@@ -76,7 +77,6 @@ export default function PublicUserProfilePage() {
         setProfile(loadedProfile);
         setStatistics(loadedProfile.statistics ?? null);
 
-        // Детальное логирование для диагностики
         console.log("[ProfilePage] Loaded profile:", {
           id: loadedProfile.id,
           telegramId: loadedProfile.telegramId,
@@ -159,7 +159,6 @@ export default function PublicUserProfilePage() {
   const adsStats = statistics?.ads;
   const dealsStats = statistics?.deals;
 
-  // Логирование перед рендерингом статистики
   if (status === "success" && profile) {
     console.log("[ProfilePage] Rendering statistics:", {
       adsStats: {
@@ -192,7 +191,6 @@ export default function PublicUserProfilePage() {
         Профиль пользователя
       </h1>
 
-      {/* Аватар пользователя */}
       {status === "success" && profile && (
         <div className="flex justify-center mb-4">
           <div className="relative">
@@ -209,7 +207,6 @@ export default function PublicUserProfilePage() {
         </div>
       )}
 
-      {/* Состояние загрузки / ошибок */}
       {status === "loading" && (
         <section
           className="rounded-xl p-4 space-y-3 animate-pulse"
@@ -246,7 +243,6 @@ export default function PublicUserProfilePage() {
 
       {status === "success" && profile && (
         <>
-          {/* Имя и рейтинг */}
           <section
             className="rounded-xl p-4 mb-4"
             style={{
@@ -255,10 +251,21 @@ export default function PublicUserProfilePage() {
             }}
           >
             <div className="flex items-center justify-between gap-3 mb-3">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text)" }}>
-                  {usernameToShow}
-                </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text)" }}>
+                    {usernameToShow}
+                  </p>
+                  {profile.isScam && (
+                    <UserLabelBadge name="SCAM!" color="#dc2626" />
+                  )}
+                  {profile.isBlocked && (
+                    <UserLabelBadge name="Заблокирован" color="#dc2626" />
+                  )}
+                  {profile.labels?.map((label) => (
+                    <UserLabelBadge key={label.id} name={label.name} color={label.color} />
+                  ))}
+                </div>
                 {profile.firstName && (
                   <p className="text-xs mt-0.5 truncate" style={{ color: "var(--color-text-muted)" }}>
                     {profile.firstName} {profile.lastName || ""}
@@ -287,7 +294,6 @@ export default function PublicUserProfilePage() {
             </p>
           </section>
 
-          {/* Статистика объявлений и сделок */}
           <section
             className="rounded-xl p-4 mb-4"
             style={{
@@ -318,7 +324,6 @@ export default function PublicUserProfilePage() {
             </div>
           </section>
 
-          {/* Метки */}
           <section
             className="rounded-xl p-4 mb-4"
             style={{
@@ -368,7 +373,6 @@ export default function PublicUserProfilePage() {
             </div>
           </section>
 
-          {/* Кнопка перехода во внешний профиль */}
           {externalUrl && (
             <section className="mb-4">
               <button
@@ -388,7 +392,6 @@ export default function PublicUserProfilePage() {
         </>
       )}
 
-      {/* Модальное окно-предупреждение */}
       {showExternalWarning && externalUrl && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"

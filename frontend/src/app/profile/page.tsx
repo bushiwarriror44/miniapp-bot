@@ -8,6 +8,7 @@ import { useTheme } from "@/shared/theme/ThemeContext";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { submitSupportRequest } from "@/shared/api/support";
 import { fetchUserProfile, type UserProfileResponse } from "@/shared/api/users";
+import { UserLabelBadge } from "@/app/components/UserLabelBadge";
 
 const ADMIN_TG_LINK = "https://t.me/miniapp_admin_example";
 
@@ -114,7 +115,6 @@ export default function ProfilePage() {
 
   return (
     <main className="px-4 py-6 relative">
-      {/* Переключатель темы в правом верхнем углу */}
       <button
         type="button"
         onClick={toggleTheme}
@@ -133,7 +133,6 @@ export default function ProfilePage() {
         Профиль
       </h1>
 
-      {/* Аватар, ник и ID */}
       <section className="flex flex-col items-center mb-6">
         <div className="w-20 h-20 rounded-full overflow-hidden mb-3">
           <img
@@ -147,15 +146,25 @@ export default function ProfilePage() {
             }}
           />
         </div>
-        <p className="font-semibold text-sm" style={{ color: "var(--color-text)" }}>
-          @{tgUsername || "user"}
-        </p>
+        <div className="flex items-center gap-2 flex-wrap justify-center">
+          <p className="font-semibold text-sm" style={{ color: "var(--color-text)" }}>
+            @{tgUsername || "user"}
+          </p>
+          {profile?.isScam && (
+            <UserLabelBadge name="SCAM!" color="#dc2626" />
+          )}
+          {profile?.isBlocked && (
+            <UserLabelBadge name="Заблокирован" color="#dc2626" />
+          )}
+          {profile?.labels?.map((label) => (
+            <UserLabelBadge key={label.id} name={label.name} color={label.color} />
+          ))}
+        </div>
         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
           ID: {tgUserId}
         </p>
       </section>
 
-      {/* Верификация */}
       <section className="mb-4">
         {profile?.verified ? (
           <div
@@ -191,7 +200,6 @@ export default function ProfilePage() {
         )}
       </section>
 
-      {/* Рейтинг */}
       <section
         className="rounded-xl p-4 mb-4"
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
@@ -219,7 +227,6 @@ export default function ProfilePage() {
         )}
       </section>
 
-      {/* Ссылки на подстраницы: Статистика, Избранное, Частые вопросы */}
       <div className="space-y-2 mb-4">
         <Link
           href="/profile/statistics"
@@ -253,7 +260,6 @@ export default function ProfilePage() {
         </Link>
       </div>
 
-      {/* Нашли проблему в приложении? */}
       <section
         className="rounded-xl p-4 mb-4"
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
@@ -287,7 +293,6 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {/* Модалка верификации */}
       {showVerifyModal && (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
@@ -340,7 +345,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Модалка поддержки */}
       {showSupportModal && (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
@@ -390,7 +394,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Уведомление внизу */}
       {notice && (
         <div
           className="fixed left-4 right-4 bottom-6 z-[100] rounded-xl p-4 shadow-lg animate-fade-in"

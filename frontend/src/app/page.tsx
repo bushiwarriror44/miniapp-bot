@@ -27,7 +27,6 @@ export default function Home() {
 			hasLoggedMount.current = true;
 			logRender('MOUNT', 'Home component render');
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	useEffect(() => {
@@ -93,10 +92,8 @@ export default function Home() {
 					err instanceof Error ? err.message : String(err),
 				);
 			});
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// Не рендерим контент до монтирования на клиенте, чтобы избежать дублирования из-за SSR
 	if (!isMounted) {
 		return null;
 	}

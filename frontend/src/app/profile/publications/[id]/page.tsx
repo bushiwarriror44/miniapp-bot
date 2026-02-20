@@ -29,7 +29,6 @@ function formatRange(value: string | number | null | undefined): string {
   const str = String(value).trim();
   if (!str) return "—";
   
-  // Проверяем, является ли это диапазоном (например, "1000-2000" или "1000 - 2000")
   const rangeMatch = str.match(/^(\d+)\s*[-–—]\s*(\d+)$/);
   if (rangeMatch) {
     const min = parseInt(rangeMatch[1], 10);
@@ -42,7 +41,6 @@ function formatRange(value: string | number | null | undefined): string {
     }
   }
   
-  // Проверяем, является ли это числом
   const num = parseFloat(str);
   if (!isNaN(num)) {
     return num.toLocaleString("ru-RU");
@@ -78,9 +76,9 @@ function getStatusColor(status: string): string {
     case "pending":
       return "var(--color-accent)";
     case "approved":
-      return "#16a34a"; // dark green
+      return "#16a34a";
     case "rejected":
-      return "#dc2626"; // red
+      return "#dc2626";
     default:
       return "var(--color-text-muted)";
   }
@@ -370,7 +368,6 @@ export default function PublicationDetailPage() {
             </>
           )}
 
-          {/* Для других секций отображаем все поля из formData */}
           {section !== "buy-ads" && section !== "sell-ads" && (
             <>
               {Object.entries(formData).map(([key, value]) => {

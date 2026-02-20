@@ -18,7 +18,6 @@ const META: Record<CryptoId, { symbol: string; name: string }> = {
   binancecoin: { symbol: "BNB", name: "BNB" },
 };
 
-/** Символы пар на Binance (USDT) */
 const BINANCE_SYMBOLS: Record<CryptoId, string> = {
   bitcoin: "BTCUSDT",
   ethereum: "ETHUSDT",

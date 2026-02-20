@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* Шрифты Geist (Vercel) — переменные задаются в layout через GeistSans.variable / GeistMono.variable */
 @theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
@@ -8,7 +7,6 @@
   --color-foreground: var(--color-text);
 }
 
-/* Палитра в стиле Vercel / Geist Design System — тёмная тема */
 :root,
 [data-theme="dark"] {
   --color-bg: #0a0a0a;
@@ -33,7 +31,6 @@
   --input-focus-ring: 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
-/* Светлая тема — Vercel / Geist */
 [data-theme="light"] {
   --color-bg: #ffffff;
   --color-bg-elevated: #fafafa;
@@ -66,7 +63,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Типографика в духе Geist: заголовки с чёткой иерархией */
 h1 {
   font-size: 1.5rem;
   font-weight: 600;
@@ -85,13 +81,11 @@ h3, h4, h5, h6 {
   line-height: 1.4;
 }
 
-/* Область контента над нижней навигацией */
 .main-content {
   min-height: 100vh;
   padding-bottom: 72px;
 }
 
-/* Анимация прогресс-бара загрузки (0% → 100% за 400ms) */
 @keyframes loaderProgress {
   from {
     width: 0%;
@@ -106,7 +100,6 @@ h3, h4, h5, h6 {
   animation: loaderProgress 400ms linear forwards;
 }
 
-/* Скрыть полосу прокрутки, оставив скролл */
 .scrollbar-none {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -115,7 +108,6 @@ h3, h4, h5, h6 {
   display: none;
 }
 
-/* Горизонтальная полоса прокрутки акцентного цвета */
 .scrollbar-accent {
   scrollbar-width: thin;
   scrollbar-color: var(--color-accent) var(--color-surface);
@@ -143,7 +135,6 @@ h3, h4, h5, h6 {
   animation: fadeIn 0.2s ease-out forwards;
 }
 
-/* Инпуты и текстареи в стиле Next.js (цветовая палитра) */
 .input-next,
 input[type="text"],
 input[type="number"],
@@ -183,7 +174,6 @@ textarea:focus,
   box-shadow: var(--input-focus-ring);
 }
 
-/* Выпадающие списки: без нативного вида, своя стрелка (цвет как в Next.js) */
 .select-next {
   appearance: none;
   -webkit-appearance: none;
@@ -195,7 +185,6 @@ textarea:focus,
   background-size: 1.25rem;
 }
 
-/* Подсветка обязательных полей с ошибкой (форма заявки на бирже) */
 .input-error,
 input.input-error,
 textarea.input-error,

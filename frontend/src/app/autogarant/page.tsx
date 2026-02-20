@@ -44,7 +44,6 @@ export default function AutogarantPage() {
         </p>
       )}
 
-			{/* Блок профиля гаранта */}
 			<section
 				className="rounded-xl p-4 mb-4"
 				style={{
@@ -94,7 +93,6 @@ export default function AutogarantPage() {
 				</p>
 			</section>
 
-			{/* Блок с текущей ставкой комиссии */}
 			<section
 				className="rounded-xl p-4 mb-4"
 				style={{
@@ -138,7 +136,6 @@ export default function AutogarantPage() {
         )}
 			</section>
 
-			{/* Наша статистика */}
 			<section
 				className="rounded-xl p-4"
 				style={{

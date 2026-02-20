@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpException,
@@ -66,6 +67,25 @@ type CreateSupportRequest = {
   telegramId?: string | number;
   username?: string | null;
   message?: string;
+};
+
+type CreateLabelRequest = {
+  name?: string;
+  defaultColor?: string;
+};
+
+type UpdateLabelRequest = {
+  name?: string;
+  defaultColor?: string;
+};
+
+type AddLabelToUserRequest = {
+  labelId?: string;
+  customColor?: string;
+};
+
+type UpdateUserLabelColorRequest = {
+  customColor?: string;
 };
 
 @Controller()
@@ -389,5 +409,88 @@ export class AppController {
   async listSupportRequests() {
     const requests = await this.appService.listSupportRequests();
     return { requests };
+  }
+
+  @Get('labels')
+  async getAllLabels() {
+    const labels = await this.appService.getAllLabels();
+    return { labels };
+  }
+
+  @Post('labels')
+  @HttpCode(201)
+  async createLabel(@Body() body: CreateLabelRequest) {
+    if (!body?.name || typeof body.name !== 'string') {
+      throw new HttpException('name is required', HttpStatus.BAD_REQUEST);
+    }
+    const label = await this.appService.createLabel(body.name, body.defaultColor);
+    return { ok: true, label };
+  }
+
+  @Patch('labels/:id')
+  async updateLabel(@Param('id') id: string, @Body() body: UpdateLabelRequest) {
+    const label = await this.appService.updateLabel(id, body.name, body.defaultColor);
+    if (!label) {
+      throw new HttpException('Label not found', HttpStatus.NOT_FOUND);
+    }
+    return { ok: true, label };
+  }
+
+  @Delete('labels/:id')
+  async deleteLabel(@Param('id') id: string) {
+    const deleted = await this.appService.deleteLabel(id);
+    if (!deleted) {
+      throw new HttpException('Label not found', HttpStatus.NOT_FOUND);
+    }
+    return { ok: true };
+  }
+
+  @Get('users/:id/labels')
+  async getUserLabels(@Param('id') id: string) {
+    const labels = await this.appService.getUserLabels(id);
+    return { labels };
+  }
+
+  @Post('users/:id/labels')
+  @HttpCode(201)
+  async addLabelToUser(
+    @Param('id') id: string,
+    @Body() body: AddLabelToUserRequest,
+  ) {
+    if (!body?.labelId || typeof body.labelId !== 'string') {
+      throw new HttpException('labelId is required', HttpStatus.BAD_REQUEST);
+    }
+    const userLabel = await this.appService.addLabelToUser(
+      id,
+      body.labelId,
+      body.customColor,
+    );
+    return { ok: true, userLabel };
+  }
+
+  @Delete('users/:id/labels/:labelId')
+  async removeLabelFromUser(@Param('id') id: string, @Param('labelId') labelId: string) {
+    const deleted = await this.appService.removeLabelFromUser(id, labelId);
+    if (!deleted) {
+      throw new HttpException('User label not found', HttpStatus.NOT_FOUND);
+    }
+    return { ok: true };
+  }
+
+  @Patch('users/:id/labels/:labelId')
+  async updateUserLabelColor(
+    @Param('id') id: string,
+    @Param('labelId') labelId: string,
+    @Body() body: UpdateUserLabelColorRequest,
+  ) {
+    const userLabel = await this.appService.updateUserLabelColor(
+      id,
+      labelId,
+      body.customColor,
+    );
+    if (!userLabel) {
+      throw new HttpException('User label not found', HttpStatus.NOT_FOUND);
+    }
+    return { ok: true, userLabel };
   }
 }

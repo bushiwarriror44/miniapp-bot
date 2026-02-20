@@ -232,7 +232,6 @@ function ExchangePageContent() {
 
   return (
     <main className="px-4 py-6">
-      {/* Блок размещения объявления — открывает попап заявки */}
       <button
         type="button"
         onClick={openSubmitModal}
@@ -250,7 +249,6 @@ function ExchangePageContent() {
         </div>
       </button>
 
-      {/* Уведомление об отправке заявки */}
       {showSuccessNotice && (
         <div
           className="fixed left-4 right-4 bottom-6 z-100 rounded-xl p-4 shadow-lg animate-fade-in"
@@ -263,7 +261,6 @@ function ExchangePageContent() {
         </div>
       )}
 
-      {/* Попап заявки на размещение */}
       {showSubmitModal && (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
@@ -347,7 +344,6 @@ function ExchangePageContent() {
         Биржа
       </h1>
 
-      {/* Табы разделов — горизонтальный скролл с видимой полосой акцентного цвета */}
       <div className="mb-6 overflow-x-auto overflow-y-hidden scrollbar-accent -mx-4 px-4" style={{ paddingBottom: 5 }}>
         <div className="flex gap-2 min-w-0" style={{ marginBottom: 5 }}>
           {SECTIONS.map(({ id, label, icon }) => (
@@ -369,7 +365,6 @@ function ExchangePageContent() {
         </div>
       </div>
 
-      {/* Контент по выбранному разделу */}
       {activeSection === "buy-ads" && (
         <BuyAdsSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["buy-ads"]} />
       )}
@@ -406,7 +401,6 @@ export default function ExchangePage() {
   );
 }
 
-/* ——— Поля формы заявки в зависимости от раздела ——— */
 function SubmitFormBySection({
   section,
   formData,
@@ -735,7 +729,6 @@ function SubmitFormBySection({
   return null;
 }
 
-/* ——— Блок при раскрытии карточки: гарант, рейтинг, Написать ——— */
 function CardExpandedBlock({ authorLink }: { authorLink: string }) {
   const rating: number | null = null;
   return (
@@ -771,7 +764,6 @@ function CardExpandedBlock({ authorLink }: { authorLink: string }) {
   );
 }
 
-/* ——— Карточка объявления ——— */
 function AdCard({ ad, isHot, defaultOpen }: { ad: AdItem; isHot?: boolean; defaultOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   const authorLink = `https://t.me/${(ad.username || "").replace(/^@/, "")}`;
@@ -856,7 +848,6 @@ function AdCard({ ad, isHot, defaultOpen }: { ad: AdItem; isHot?: boolean; defau
   );
 }
 
-/* ——— Продажа рекламы (фильтр + загрузка по API) ——— */
 function SellAdsSection({
   openItemId,
   hotItemIds,
@@ -908,7 +899,6 @@ function SellAdsSection({
     if (pTo != null && !Number.isNaN(pTo) && ad.price > pTo) return false;
     const rFrom = reachFrom.trim() ? Number(reachFrom) : null;
     if (rFrom != null && !Number.isNaN(rFrom)) {
-      // Для охвата можно использовать описание или другие поля, пока просто пропускаем
     }
     const themeMatch = !theme.trim() || ad.theme.toLowerCase().includes(theme.trim().toLowerCase());
     if (!themeMatch) return false;
@@ -1062,7 +1052,6 @@ function SellAdsSection({
   );
 }
 
-/* ——— Карточка заявки на покупку рекламы ——— */
 function BuyAdCard({
   item,
   isHot,
@@ -1143,7 +1132,6 @@ function BuyAdCard({
   );
 }
 
-/* ——— Покупка рекламы (фильтры + загрузка по API) ——— */
 function BuyAdsSection({
   openItemId,
   hotItemIds,
@@ -1407,7 +1395,6 @@ function BuyAdsSection({
   );
 }
 
-/* ——— Карточка вакансии ——— */
 function JobCard({
   job,
   exchangeOptions,
@@ -1505,7 +1492,6 @@ const inputStyle = {
   color: "var(--input-text)",
 };
 
-/* ——— Поиск/предложение вакансии (фильтры + загрузка по API) ——— */
 function JobsSection({
   exchangeOptions,
   openItemId,
@@ -1755,7 +1741,6 @@ function JobsSection({
   );
 }
 
-/* ——— Карточка услуги ——— */
 function ServiceCard({
   service,
   isHot,
@@ -1811,7 +1796,6 @@ function ServiceCard({
   );
 }
 
-/* ——— Услуги (дизайнеры / монтажеры): загрузка из JSON + фильтры ——— */
 function DesignersSection({
   openItemId,
   hotItemIds,
@@ -2079,7 +2063,6 @@ function DesignersSection({
   );
 }
 
-/* ——— Обмен валют (отдельный раздел) ——— */
 function CurrencyCard({
   item,
   isHot,
@@ -2324,7 +2307,6 @@ function CurrencySection({
   );
 }
 
-/* ——— Карточка канала на продажу ——— */
 function SellChannelCard({
   channel,
   isHot,
@@ -2407,7 +2389,6 @@ function SellChannelCard({
   );
 }
 
-/* ——— Продажа канала (каталог из JSON + фильтры) ——— */
 function SellChannelSection({
   openItemId,
   hotItemIds,
@@ -2767,7 +2748,6 @@ function SellChannelSection({
   );
 }
 
-/* ——— Карточка заявки на покупку канала ——— */
 function formatRange(min: number | undefined | null, max: number | undefined | null): string {
   const m = min != null && typeof min === "number" && !Number.isNaN(min) ? min : null;
   const n = max != null && typeof max === "number" && !Number.isNaN(max) ? max : null;
@@ -2845,7 +2825,6 @@ function BuyChannelCard({
   );
 }
 
-/* ——— Покупка канала (каталог из JSON + фильтры) ——— */
 function BuyChannelSection({
   openItemId,
   hotItemIds,
@@ -3172,7 +3151,6 @@ function BuyChannelSection({
   );
 }
 
-/* ——— Карточка товара/услуги из раздела Другое ——— */
 function OtherCard({
   item,
   isHot,
@@ -3229,7 +3207,6 @@ function OtherCard({
   );
 }
 
-/* ——— Другое (каталог из JSON + фильтры) ——— */
 function OtherSection({
   openItemId,
   hotItemIds,

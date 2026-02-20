@@ -23,7 +23,6 @@ export default function ProfileStatisticsPage() {
       return;
     }
     
-    // Логирование telegramId перед загрузкой
     console.log("[StatisticsPage] Loading statistics for telegramId:", telegramId);
     
     fetchUserStatistics(telegramId)
@@ -31,7 +30,6 @@ export default function ProfileStatisticsPage() {
         setStatistics(response);
         setLoadError(null);
         
-        // Детальное логирование загруженной статистики
         console.log("[StatisticsPage] Loaded statistics:", response);
         console.log("[StatisticsPage] Statistics breakdown:", {
           ads: {

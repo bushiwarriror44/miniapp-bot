@@ -55,6 +55,11 @@ export type UserProfileResponse = {
     profileViews: { week: number; month: number };
   };
   daysInProject: number;
+  labels?: Array<{
+    id: string;
+    name: string;
+    color: string;
+  }>;
 };
 
 export type UserStatisticsResponse = {
@@ -170,7 +175,6 @@ export async function fetchPublicUserProfileById(id: string): Promise<UserProfil
     throw new Error(`Failed to load public profile by id: ${res.status} ${res.statusText}`);
   }
   const data = await res.json();
-  // backend returns { user: profile }
   return data.user ?? null;
 }
 

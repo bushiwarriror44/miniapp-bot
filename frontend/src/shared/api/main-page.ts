@@ -5,7 +5,6 @@ export type HotOffer = {
   title: string;
   price: string;
   subtitle: string;
-  /** Ad-linked offer: links to an exchange item */
   type?: "ad";
   category?: string;
   itemId?: string;

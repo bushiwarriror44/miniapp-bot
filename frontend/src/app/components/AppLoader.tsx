@@ -29,7 +29,6 @@ export function AppLoader() {
         className="shrink-0 object-contain"
         priority
       />
-      {/* Горизонтальный прогресс-бар */}
       <div
         className="w-full max-w-[200px] h-1.5 rounded-full overflow-hidden"
         style={{ backgroundColor: "var(--color-surface)" }}

@@ -15,6 +15,7 @@ let faqItems = [];
 let editingFaqId = null;
 let adminUsers = [];
 let selectedAdminUserId = null;
+let allLabels = [];
 let ratingUsers = [];
 let selectedRatingUserId = null;
 let botConfig = { welcomeMessage: "", welcomePhotoUrl: null, supportLink: "" };
@@ -1124,6 +1125,16 @@ function renderAdminUserDetails(user, statistics) {
       </div>
     </div>
     <hr style="margin:12px 0;border:none;border-top:1px solid var(--color-border);" />
+    <h3 style="margin:12px 0 8px 0;font-size:14px;">Кастомные метки</h3>
+    <div id="adminUserLabelsWrap"></div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <select id="adminUserAddLabelSelect" class="input" style="flex:1;">
+        <option value="">Выберите метку...</option>
+      </select>
+      <input id="adminUserLabelColorInput" type="color" class="input" style="width:60px;" />
+      <button id="adminUserAddLabelBtn" class="btn">Добавить</button>
+    </div>
+    <hr style="margin:12px 0;border:none;border-top:1px solid var(--color-border);" />
     <h3 style="margin:0 0 8px 0;font-size:14px;">Статистика активности</h3>
     <div style="display:grid;grid-template-columns:repeat(2, minmax(0,1fr));gap:8px;">
       <div class="card" style="padding:8px;">
@@ -1158,11 +1169,80 @@ async function loadAdminUsers() {
 
 async function openAdminUserCard(userId) {
   selectedAdminUserId = userId;
-  const [userData, statisticsData] = await Promise.all([
+  const [userData, statisticsData, labelsData] = await Promise.all([
     apiGet(`/admin/api/users/${encodeURIComponent(userId)}`),
     apiGet(`/admin/api/users/${encodeURIComponent(userId)}/statistics`),
+    apiGet(`/admin/api/users/${encodeURIComponent(userId)}/labels`).catch(() => ({ labels: [] })),
   ]);
   renderAdminUserDetails(userData.user, statisticsData.statistics);
+  await loadAllLabels();
+  renderUserLabels(userId, labelsData.labels || []);
+}
+
+async function loadAllLabels() {
+  try {
+    const data = await apiGet("/admin/api/labels");
+    allLabels = data.labels || [];
+    const select = document.getElementById("adminUserAddLabelSelect");
+    if (select) {
+      select.innerHTML = '<option value="">Выберите метку...</option>' + allLabels.map((label) => `<option value="${escapeHtml(label.id)}">${escapeHtml(label.name)}</option>`).join("");
+    }
+  } catch (e) {
+    console.error("[admin] Failed to load labels", e);
+    allLabels = [];
+  }
+}
+
+function renderUserLabels(userId, userLabels) {
+  const wrap = document.getElementById("adminUserLabelsWrap");
+  if (!wrap) return;
+  if (userLabels.length === 0) {
+    wrap.innerHTML = '<p class="muted" style="margin:0;font-size:12px;">У пользователя нет кастомных меток.</p>';
+    return;
+  }
+  const rows = userLabels
+    .map(
+      (ul) => {
+        const label = allLabels.find((l) => l.id === ul.labelId);
+        const labelName = label ? label.name : ul.labelName || "Неизвестная метка";
+        return `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px;border:1px solid var(--color-border);border-radius:4px;margin-bottom:4px;font-size:12px;">
+        <span style="display:inline-block;width:16px;height:16px;border-radius:3px;background-color:${escapeHtml(ul.color)};border:1px solid var(--color-border);"></span>
+        <span style="flex:1;">${escapeHtml(labelName)}</span>
+        <button class="btn" data-user-label-remove-id="${escapeHtml(ul.labelId)}" style="font-size:11px;padding:2px 6px;">Удалить</button>
+      </div>
+    `;
+      }
+    )
+    .join("");
+  wrap.innerHTML = rows;
+}
+
+async function addLabelToUser(userId, labelId, color) {
+  if (!labelId) {
+    alert("Выберите метку");
+    return;
+  }
+  try {
+    await apiJson(`/admin/api/users/${encodeURIComponent(userId)}/labels`, "POST", {
+      labelId,
+      customColor: color || undefined,
+    });
+    await openAdminUserCard(userId);
+  } catch (e) {
+    console.error("[admin] Failed to add label to user", e);
+    alert("Ошибка добавления метки: " + (e.message || String(e)));
+  }
+}
+
+async function removeLabelFromUser(userId, labelId) {
+  try {
+    await apiJson(`/admin/api/users/${encodeURIComponent(userId)}/labels/${encodeURIComponent(labelId)}`, "DELETE", {});
+    await openAdminUserCard(userId);
+  } catch (e) {
+    console.error("[admin] Failed to remove label from user", e);
+    alert("Ошибка удаления метки: " + (e.message || String(e)));
+  }
 }
 
 async function saveAdminUserRating() {
@@ -1207,6 +1287,88 @@ async function saveAdminUserBlocked() {
   });
   await loadAdminUsers();
   await openAdminUserCard(selectedAdminUserId);
+}
+
+async function loadLabels() {
+  try {
+    const data = await apiGet("/admin/api/labels");
+    allLabels = data.labels || [];
+    renderLabelsList();
+  } catch (e) {
+    console.error("[admin] Failed to load labels", e);
+    allLabels = [];
+    renderLabelsList();
+  }
+}
+
+function renderLabelsList() {
+  const wrap = document.getElementById("adminLabelsListWrap");
+  if (!wrap) return;
+  if (allLabels.length === 0) {
+    wrap.innerHTML = '<p class="muted" style="margin:0;">Нет меток. Создайте первую метку ниже.</p>';
+    return;
+  }
+  const rows = allLabels
+    .map(
+      (label) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--color-border);border-radius:4px;margin-bottom:8px;">
+      <span style="display:inline-block;width:20px;height:20px;border-radius:4px;background-color:${escapeHtml(label.defaultColor)};border:1px solid var(--color-border);"></span>
+      <span style="flex:1;font-weight:500;">${escapeHtml(label.name)}</span>
+      <button class="btn" data-label-edit-id="${escapeHtml(label.id)}" style="font-size:12px;padding:4px 8px;">Изменить</button>
+      <button class="btn" data-label-delete-id="${escapeHtml(label.id)}" style="font-size:12px;padding:4px 8px;">Удалить</button>
+    </div>
+  `
+    )
+    .join("");
+  wrap.innerHTML = rows;
+}
+
+async function createLabel() {
+  const nameInput = document.getElementById("adminNewLabelNameInput");
+  const colorInput = document.getElementById("adminNewLabelColorInput");
+  const name = nameInput?.value?.trim();
+  if (!name) {
+    alert("Введите название метки");
+    return;
+  }
+  try {
+    await apiJson("/admin/api/labels", "POST", {
+      name,
+      defaultColor: colorInput?.value || undefined,
+    });
+    nameInput.value = "";
+    if (colorInput) colorInput.value = "#0070f3";
+    await loadLabels();
+  } catch (e) {
+    console.error("[admin] Failed to create label", e);
+    alert("Ошибка создания метки: " + (e.message || String(e)));
+  }
+}
+
+async function updateLabel(labelId) {
+  const name = prompt("Введите новое название метки:");
+  if (!name) return;
+  const color = prompt("Введите новый цвет (HEX, например #0070f3):");
+  try {
+    const payload = { name };
+    if (color) payload.defaultColor = color;
+    await apiJson(`/admin/api/labels/${encodeURIComponent(labelId)}`, "PATCH", payload);
+    await loadLabels();
+  } catch (e) {
+    console.error("[admin] Failed to update label", e);
+    alert("Ошибка обновления метки: " + (e.message || String(e)));
+  }
+}
+
+async function deleteLabel(labelId) {
+  if (!confirm("Удалить метку? Это также удалит её у всех пользователей.")) return;
+  try {
+    await apiJson(`/admin/api/labels/${encodeURIComponent(labelId)}`, "DELETE", {});
+    await loadLabels();
+  } catch (e) {
+    console.error("[admin] Failed to delete label", e);
+    alert("Ошибка удаления метки: " + (e.message || String(e)));
+  }
 }
 
 async function loadRatingUsers() {
@@ -1810,6 +1972,7 @@ async function switchTab(tabId) {
   if (tabId === "exchange") await loadCategories();
   if (tabId === "guarant") await loadGuarantConfig();
   if (tabId === "users") await loadAdminUsers();
+  if (tabId === "labels") await loadLabels();
   if (tabId === "rating") await loadRatingUsers();
   if (tabId === "moderation") await loadModerationRequests();
   if (tabId === "moderators") await loadModerators();
@@ -2193,6 +2356,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (evt.target?.id === "adminUserSaveBlockedBtn") {
       await saveAdminUserBlocked();
+    }
+    if (evt.target?.id === "adminCreateLabelBtn") {
+      await createLabel();
+    }
+    const labelEditBtn = evt.target?.closest("[data-label-edit-id]");
+    if (labelEditBtn) {
+      await updateLabel(labelEditBtn.dataset.labelEditId);
+    }
+    const labelDeleteBtn = evt.target?.closest("[data-label-delete-id]");
+    if (labelDeleteBtn) {
+      await deleteLabel(labelDeleteBtn.dataset.labelDeleteId);
+    }
+    if (evt.target?.id === "adminUserAddLabelBtn" && selectedAdminUserId) {
+      const select = document.getElementById("adminUserAddLabelSelect");
+      const colorInput = document.getElementById("adminUserLabelColorInput");
+      await addLabelToUser(selectedAdminUserId, select?.value || "", colorInput?.value || "");
+      if (select) select.value = "";
+      if (colorInput) colorInput.value = "#000000";
+    }
+    const userLabelRemoveBtn = evt.target?.closest("[data-user-label-remove-id]");
+    if (userLabelRemoveBtn && selectedAdminUserId) {
+      await removeLabelFromUser(selectedAdminUserId, userLabelRemoveBtn.dataset.userLabelRemoveId);
     }
     if (evt.target?.id === "moderationSaveBtn") {
       await saveModerationRequest();

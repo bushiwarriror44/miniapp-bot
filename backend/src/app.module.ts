@@ -9,6 +9,8 @@ import { SupportRequestEntity } from './entities/support-request.entity';
 import { UserEntity } from './entities/user.entity';
 import { UserActivityEntity } from './entities/user-activity.entity';
 import { UserAdLinkEntity } from './entities/user-ad-link.entity';
+import { UserLabelEntity } from './entities/user-label.entity';
+import { UserUserLabelEntity } from './entities/user-user-label.entity';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { UserAdLinkEntity } from './entities/user-ad-link.entity';
       DealEntity,
       ModerationRequestEntity,
       SupportRequestEntity,
+      UserLabelEntity,
+      UserUserLabelEntity,
     ]),
   ],
   controllers: [AppController],

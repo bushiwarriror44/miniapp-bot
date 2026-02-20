@@ -12,6 +12,7 @@ import { DealEntity } from './deal.entity';
 import { ProfileViewEntity } from './profile-view.entity';
 import { UserActivityEntity } from './user-activity.entity';
 import { UserAdLinkEntity } from './user-ad-link.entity';
+import { UserUserLabelEntity } from './user-user-label.entity';
 
 @Entity({ name: 'users' })
 export class UserEntity {
@@ -66,6 +67,9 @@ export class UserEntity {
 
   @OneToMany(() => DealEntity, (deal) => deal.sellerUser)
   sellDeals?: DealEntity[];
+
+  @OneToMany(() => UserUserLabelEntity, (userLabel) => userLabel.user)
+  userLabels?: UserUserLabelEntity[];
 
   @CreateDateColumn()
   createdAt: Date;

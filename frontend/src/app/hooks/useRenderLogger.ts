@@ -14,7 +14,6 @@ export function useRenderLogger(label: string) {
   const appendLog = useCallback((log: RenderLog) => {
     setLogs((prev) => {
       const next = [...prev, log];
-      // ограничиваем размер, чтобы не разрастался бесконечно
       return next.length > 100 ? next.slice(next.length - 100) : next;
     });
   }, []);
