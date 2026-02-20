@@ -238,7 +238,7 @@ export default function PublicationDetailPage() {
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                   <span style={{ color: "var(--color-text-muted)" }}>Сумма:</span>
                   <span style={{ color: "var(--color-text)" }}>
-                    {formatPriceRange(formData.priceRange)}
+                    {formatPriceRange(formData.priceRange as string | number | null | undefined)}
                   </span>
                 </div>
               )}
@@ -246,7 +246,7 @@ export default function PublicationDetailPage() {
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                   <span style={{ color: "var(--color-text-muted)" }}>Просмотров:</span>
                   <span style={{ color: "var(--color-text)" }}>
-                    {formatViewsRange(formData.viewsRange)}
+                    {formatViewsRange(formData.viewsRange as string | number | null | undefined)}
                   </span>
                 </div>
               )}
