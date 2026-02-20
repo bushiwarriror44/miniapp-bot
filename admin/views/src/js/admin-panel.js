@@ -8,6 +8,7 @@ let editingItemId = null;
 let editingItemDraft = null;
 let isAdvancedAdsEdit = false;
 let mainPageConfig = { hotOffers: { offers: [] }, news: { channelUrl: "" } };
+let bannersConfig = { banners: [] };
 let guarantConfig = { guarantor: {}, commissionTiers: [], aboutText: "" };
 let editingHotOfferIndex = null;
 let attachAdCurrentItems = [];
@@ -499,6 +500,99 @@ async function saveMainPageConfig() {
   await apiJson("/admin/api/config/main-page", "PUT", { payload });
   notify("Главная страница обновлена");
   await loadMainPageConfig();
+}
+
+async function loadBannersConfig() {
+  const data = await apiGet("/admin/api/config/banners");
+  bannersConfig = data.payload && Array.isArray(data.payload.banners) ? { banners: data.payload.banners } : { banners: [] };
+  renderBannersList();
+}
+
+function renderBannersList() {
+  const wrap = document.getElementById("bannersListWrap");
+  if (!wrap) return;
+  const list = (bannersConfig.banners || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  if (list.length === 0) {
+    wrap.innerHTML = "<p class=\"muted\" style=\"margin:0;font-size:13px;\">Нет баннеров. Загрузите изображение ниже.</p>";
+    return;
+  }
+  wrap.innerHTML = list
+    .map(
+      (b, index) => {
+        const isRelative = (b.imageUrl || "").startsWith("/") && !(b.imageUrl || "").startsWith("//");
+        const imgSrc = isRelative ? "" : (b.imageUrl || "");
+        const previewHtml = imgSrc
+          ? `<img src="${escapeHtml(imgSrc)}" alt="" style="width:80px;height:50px;object-fit:cover;border-radius:6px;display:block;" onerror="this.style.display='none';this.nextElementSibling.style.display='block';" /><span style="display:none;font-size:12px;color:var(--color-text-muted);">Превью</span>`
+          : `<span class="muted" style="font-size:12px;">${escapeHtml(b.imageUrl || "Баннер")}</span>`;
+        return `<div class="stack" style="flex-direction:row;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border-color,#eee);">
+  <div style="width:80px;height:50px;flex-shrink:0;background:var(--surface,#f5f5f5);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;">${previewHtml}</div>
+  <span style="font-size:13px;">#${index + 1}</span>
+  <div style="flex:1;min-width:0;">
+    <span class="muted" style="font-size:12px;word-break:break-all;">${escapeHtml(b.imageUrl || "")}</span>
+  </div>
+  <div style="display:flex;gap:4px;">
+    <button type="button" class="btn" data-banner-action="up" data-banner-index="${index}" ${index === 0 ? "disabled" : ""}>Вверх</button>
+    <button type="button" class="btn" data-banner-action="down" data-banner-index="${index}" ${index === list.length - 1 ? "disabled" : ""}>Вниз</button>
+    <button type="button" class="btn" data-banner-action="delete" data-banner-index="${index}">Удалить</button>
+  </div>
+</div>`;
+      }
+    )
+    .join("");
+}
+
+async function saveBannersConfig() {
+  const list = (bannersConfig.banners || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const payload = { banners: list.map((b, i) => ({ ...b, order: i })) };
+  await apiJson("/admin/api/config/banners", "PUT", { payload });
+  notify("Баннеры сохранены");
+  await loadBannersConfig();
+}
+
+function bannerMoveUp(index) {
+  const list = (bannersConfig.banners || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  if (index <= 0) return;
+  [list[index - 1], list[index]] = [list[index], list[index - 1]];
+  bannersConfig.banners = list.map((b, i) => ({ ...b, order: i }));
+  saveBannersConfig();
+}
+
+function bannerMoveDown(index) {
+  const list = (bannersConfig.banners || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  if (index >= list.length - 1) return;
+  [list[index], list[index + 1]] = [list[index + 1], list[index]];
+  bannersConfig.banners = list.map((b, i) => ({ ...b, order: i }));
+  saveBannersConfig();
+}
+
+function bannerDelete(index) {
+  if (!confirm("Удалить этот баннер?")) return;
+  const list = (bannersConfig.banners || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  list.splice(index, 1);
+  bannersConfig.banners = list.map((b, i) => ({ ...b, order: i }));
+  saveBannersConfig();
+}
+
+async function uploadBanner() {
+  const input = document.getElementById("bannerFileInput");
+  if (!input || !input.files || !input.files[0]) {
+    alert("Выберите файл изображения");
+    return;
+  }
+  const file = input.files[0];
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch("/admin/api/banners/upload", { method: "POST", credentials: "same-origin", body: form });
+  if (!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  const url = data.url;
+  if (!url) throw new Error("Нет url в ответе");
+  const list = (bannersConfig.banners || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const maxOrder = list.length === 0 ? -1 : Math.max(...list.map((b) => b.order ?? 0));
+  list.push({ id: `banner-${Date.now()}`, imageUrl: url, order: maxOrder + 1 });
+  bannersConfig.banners = list;
+  await saveBannersConfig();
+  input.value = "";
 }
 
 function openHotOfferModal(offer) {
@@ -2004,6 +2098,7 @@ async function switchTab(tabId) {
 
   if (tabId === "home") await loadDashboard();
   if (tabId === "main-edit") await loadMainPageConfig();
+  if (tabId === "banners") await loadBannersConfig();
   if (tabId === "exchange") await loadCategories();
   if (tabId === "guarant") await loadGuarantConfig();
   if (tabId === "users") await loadAdminUsers();
@@ -2054,6 +2149,14 @@ document.addEventListener("click", async (e) => {
     } else if (hotActionBtn.dataset.hotAction === "delete") {
       deleteHotOffer(index);
     }
+  }
+
+  const bannerActionBtn = e.target.closest("[data-banner-action]");
+  if (bannerActionBtn) {
+    const index = Number(bannerActionBtn.dataset.bannerIndex);
+    if (bannerActionBtn.dataset.bannerAction === "up") bannerMoveUp(index);
+    else if (bannerActionBtn.dataset.bannerAction === "down") bannerMoveDown(index);
+    else if (bannerActionBtn.dataset.bannerAction === "delete") bannerDelete(index);
   }
 
   const userSelectBtn = e.target.closest("[data-user-select-id]");
@@ -2194,6 +2297,7 @@ userSearchInput.addEventListener("keydown", (e) => {
 });
 refreshKpiBtn.addEventListener("click", loadDashboard);
 saveMainPageBtn.addEventListener("click", saveMainPageConfig);
+document.getElementById("bannerUploadBtn")?.addEventListener("click", () => uploadBanner().catch((err) => notify("Ошибка загрузки: " + (err.message || err))));
 addHotOfferBtn.addEventListener("click", () => {
   editingHotOfferIndex = null;
   openHotOfferModal(null);

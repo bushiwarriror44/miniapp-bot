@@ -15,6 +15,7 @@
       <aside class="card sidebar">
         <button class="btn tab-btn active" data-tab-btn="home" data-admin-only>Главная страница</button>
         <button class="btn tab-btn" data-tab-btn="main-edit" data-admin-only>Изменение главной страницы</button>
+        <button class="btn tab-btn" data-tab-btn="banners" data-admin-only>Баннеры</button>
         <button class="btn tab-btn" data-tab-btn="exchange" data-admin-only>Биржа</button>
         <button class="btn tab-btn" data-tab-btn="guarant" data-admin-only>Гарант</button>
         <button class="btn tab-btn" data-tab-btn="users" data-admin-only>Пользователи</button>
@@ -65,6 +66,21 @@
             </div>
             <div id="hotOffersTableWrap" style="margin-top:10px;overflow:auto;"></div>
           </div>
+        </section>
+
+        <section id="tab-banners" class="tab-view stack" style="display:none;" data-admin-only>
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 10px 0;font-size:16px;">Баннеры главной страницы</h2>
+            <p class="muted" style="margin:0 0 10px 0;font-size:13px;">Порядок в списке соответствует порядку показа на главной. Можно удалять и менять порядок кнопками «Вверх» / «Вниз».</p>
+            <div id="bannersListWrap" style="margin-top:10px;"></div>
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color,#eee);">
+              <label class="muted" style="font-size:13px;">Добавить баннер (изображение)</label>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+                <input id="bannerFileInput" type="file" accept="image/*" class="input" style="max-width:240px;" />
+                <button id="bannerUploadBtn" class="btn btn-primary">Загрузить</button>
+              </div>
+            </div>
+          </section>
         </section>
 
         <section id="tab-exchange" class="tab-view stack" style="display:none;" data-admin-only>

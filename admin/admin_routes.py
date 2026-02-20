@@ -585,6 +585,56 @@ def put_main_page_config():
     return jsonify({"ok": True, "updatedAt": row.updated_at.isoformat() if row.updated_at else None})
 
 
+DEFAULT_BANNERS_PAYLOAD = {"banners": [{"id": "default-1", "imageUrl": "/1.png", "order": 0}]}
+
+
+@admin_bp.route("/admin/api/config/banners", methods=["GET"])
+@require_login
+@require_admin
+def get_banners_config():
+    row = Dataset.query.filter_by(name="banners").first()
+    if not row:
+        return jsonify({"name": "banners", "payload": DEFAULT_BANNERS_PAYLOAD})
+    payload = _dataset_payload(row)
+    banners = payload.get("banners")
+    if not isinstance(banners, list):
+        payload = DEFAULT_BANNERS_PAYLOAD
+    return jsonify({"name": "banners", "payload": payload})
+
+
+@admin_bp.route("/admin/api/config/banners", methods=["PUT"])
+@require_login
+@require_admin
+def put_banners_config():
+    body = request.get_json(silent=True) or {}
+    payload = body.get("payload")
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Body must contain object field 'payload'"}), 400
+    if not isinstance(payload.get("banners"), list):
+        return jsonify({"error": "payload.banners must be an array"}), 400
+    row = _upsert_dataset("banners", payload)
+    return jsonify({"ok": True, "updatedAt": row.updated_at.isoformat() if row.updated_at else None})
+
+
+@admin_bp.route("/admin/api/banners/upload", methods=["POST"])
+@require_login
+@require_admin
+def upload_banner():
+    file = request.files.get("file")
+    if not file or not file.filename:
+        return jsonify({"error": "File is required"}), 400
+    suffix = Path(file.filename).suffix.lower()
+    if suffix not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+        return jsonify({"error": "Only image files (jpg, png, webp, gif) are supported"}), 400
+    banners_dir = _uploads_dir() / "banners"
+    banners_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid4().hex}{suffix}"
+    destination = banners_dir / filename
+    file.save(destination)
+    public_url = _build_admin_public_url(f"/admin/uploads/banners/{filename}")
+    return jsonify({"ok": True, "url": public_url, "filename": filename})
+
+
 @admin_bp.route("/admin/api/config/guarant", methods=["GET"])
 @require_login
 @require_admin

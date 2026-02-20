@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { getTelegramWebApp } from '@/shared/api/client';
 import { PromoBlock } from './components/PromoBlock';
+import { BannersBlock } from './components/BannersBlock';
 import { CryptoPrices } from './components/CryptoPrices';
 import { HotOffersBlock } from './components/HotOffersBlock';
 import { TopUsersBlock } from './components/TopUsersBlock';
@@ -106,6 +107,7 @@ export default function Home() {
 				<SearchField />
 				<PromoBlock />
 
+				<BannersBlock />
 				<CryptoPrices />
 				<HotOffersBlock />
 				<TopUsersBlock />

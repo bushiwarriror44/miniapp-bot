@@ -44,6 +44,9 @@ def get_dataset(dataset_name):
         if dataset_name == 'exchangeOptions':
             payload = DEFAULT_DATASETS.get('exchangeOptions', {'jobTypes': [], 'currencies': []})
             return jsonify({'name': 'exchangeOptions', 'payload': payload, 'updatedAt': None})
+        if dataset_name == 'banners':
+            payload = {'banners': [{'id': 'default-1', 'imageUrl': '/1.png', 'order': 0}]}
+            return jsonify({'name': 'banners', 'payload': payload, 'updatedAt': None})
         return jsonify({'error': f'Dataset "{dataset_name}" not found'}), 404
 
     try:
