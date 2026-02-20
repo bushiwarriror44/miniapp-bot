@@ -5,7 +5,7 @@ from pathlib import Path
 from functools import wraps
 from uuid import uuid4
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from flask import (
@@ -626,17 +626,41 @@ def banner_preview():
     path = (request.args.get("url") or "").strip()
     if not path.startswith("/") or path.startswith("//"):
         return "", 404
+    
+    # Получаем базовый URL мини-апа
     base = os.environ.get("MINIAPP_BASE_URL", "").strip().rstrip("/")
+    
+    # Fallback: если не задан, пытаемся вывести из ADMIN_PUBLIC_BASE_URL
     if not base:
+        admin_base = os.environ.get("ADMIN_PUBLIC_BASE_URL", "").strip().rstrip("/")
+        if admin_base:
+            # Пробуем заменить admin. на miniapp. или убрать поддомен
+            parsed = urlparse(admin_base)
+            hostname = parsed.netloc or parsed.path
+            if hostname.startswith("admin."):
+                # admin.144.172.116.22.nip.io -> miniapp.144.172.116.22.nip.io
+                base = f"{parsed.scheme}://miniapp.{hostname[6:]}"
+            else:
+                # Если нет поддомена admin, используем как есть
+                base = admin_base
+    
+    if not base:
+        current_app.logger.warning("MINIAPP_BASE_URL not set and cannot derive from ADMIN_PUBLIC_BASE_URL")
         return "", 404
+    
     try:
         full_url = base + path
+        current_app.logger.debug(f"Fetching banner preview from: {full_url}")
         req = Request(full_url, headers={"User-Agent": "TeleDoska-Admin/1.0"})
         with urlopen(req, timeout=10) as resp:
             data = resp.read()
             content_type = resp.headers.get("Content-Type", "image/png")
             return Response(data, mimetype=content_type)
-    except (HTTPError, URLError, OSError):
+    except HTTPError as e:
+        current_app.logger.warning(f"HTTP error fetching banner preview from {full_url}: {e.code}")
+        return "", 404
+    except (URLError, OSError) as e:
+        current_app.logger.warning(f"Error fetching banner preview from {full_url}: {e}")
         return "", 404
 
 
