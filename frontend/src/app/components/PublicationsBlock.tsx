@@ -89,16 +89,21 @@ export function PublicationsBlock() {
       cancelled = true;
       clearTimeout(tid);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [telegramId]);
 
   const hasPublications = publications.length > 0;
+  const displayedPublications = publications.slice(0, 3);
+  const hasMorePublications = publications.length > 3;
 
   if (loading) {
     return (
       <section className="mb-6 p-0">
-        <h2 className="font-semibold text-sm mb-4 text-left" style={{ color: "var(--color-text)" }}>
-          Ваши публикации
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-sm text-left" style={{ color: "var(--color-text)" }}>
+            Ваши публикации
+          </h2>
+        </div>
         <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
           Загрузка…
         </p>
@@ -109,9 +114,11 @@ export function PublicationsBlock() {
   if (!hasPublications) {
     return (
       <section className="mb-6 p-0">
-        <h2 className="font-semibold text-sm mb-4 text-left" style={{ color: "var(--color-text)" }}>
-          Ваши публикации
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-sm text-left" style={{ color: "var(--color-text)" }}>
+            Ваши публикации
+          </h2>
+        </div>
         <div className="flex flex-col items-center">
           <FontAwesomeIcon
             icon={faClipboard}
@@ -146,52 +153,67 @@ export function PublicationsBlock() {
 
   return (
     <section className="mb-6 p-0">
-      <h2 className="font-semibold text-sm mb-4 text-left" style={{ color: "var(--color-text)" }}>
-        Ваши публикации
-      </h2>
-      <ul className="space-y-3 list-none p-0 m-0">
-        {publications.map((item) => (
-          <li
-            key={item.id}
-            className="rounded-xl p-3 border"
-            style={{
-              backgroundColor: "var(--color-bg-elevated)",
-              borderColor: "var(--color-border)",
-            }}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-semibold text-sm text-left" style={{ color: "var(--color-text)" }}>
+          Ваши публикации
+        </h2>
+        {hasMorePublications && (
+          <Link
+            href="/profile/publications"
+            className="text-xs font-medium"
+            style={{ color: "var(--color-accent)" }}
           >
-            <p className="text-sm font-medium mb-1" style={{ color: "var(--color-text)" }}>
-              {publicationTitle(item)}
-            </p>
-            <p className="text-xs mb-2" style={{ color: "var(--color-text-muted)" }}>
-              {formatPublicationDate(item.createdAt)}
-            </p>
-            {item.status === "pending" && (
-              <span
-                className="inline-block rounded-lg px-2 py-0.5 text-xs font-medium"
-                style={{
-                  backgroundColor: "var(--color-surface)",
-                  color: "var(--color-accent)",
-                }}
-              >
-                на модерации
-              </span>
-            )}
-            {item.status === "approved" && (
-              <span
-                className="inline-block rounded-lg px-2 py-0.5 text-xs"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                Опубликовано
-              </span>
-            )}
-            {item.status === "rejected" && (
-              <span
-                className="inline-block rounded-lg px-2 py-0.5 text-xs"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                Отклонено
-              </span>
-            )}
+            Смотреть все
+          </Link>
+        )}
+      </div>
+      <ul className="space-y-3 list-none p-0 m-0">
+        {displayedPublications.map((item) => (
+          <li key={item.id}>
+            <Link
+              href={`/profile/publications/${item.id}`}
+              className="block rounded-xl p-3 border transition-opacity hover:opacity-80"
+              style={{
+                backgroundColor: "var(--color-bg-elevated)",
+                borderColor: "var(--color-border)",
+                textDecoration: "none",
+                color: "inherit",
+              }}
+            >
+              <p className="text-sm font-medium mb-1" style={{ color: "var(--color-text)" }}>
+                {publicationTitle(item)}
+              </p>
+              <p className="text-xs mb-2" style={{ color: "var(--color-text-muted)" }}>
+                {formatPublicationDate(item.createdAt)}
+              </p>
+              {item.status === "pending" && (
+                <span
+                  className="inline-block rounded-lg px-2 py-0.5 text-xs font-medium"
+                  style={{
+                    backgroundColor: "var(--color-surface)",
+                    color: "var(--color-accent)",
+                  }}
+                >
+                  на модерации
+                </span>
+              )}
+              {item.status === "approved" && (
+                <span
+                  className="inline-block rounded-lg px-2 py-0.5 text-xs"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  Опубликовано
+                </span>
+              )}
+              {item.status === "rejected" && (
+                <span
+                  className="inline-block rounded-lg px-2 py-0.5 text-xs"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  Отклонено
+                </span>
+              )}
+            </Link>
           </li>
         ))}
       </ul>
