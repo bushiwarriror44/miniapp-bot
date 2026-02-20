@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faClipboard } from "@fortawesome/free-solid-svg-icons";
+import { faClipboard, faCheckCircle, faXmarkCircle } from "@fortawesome/free-solid-svg-icons";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { fetchMyPublications, type MyPublicationItem } from "@/shared/api/users";
 import { useRenderLoggerContext } from "../contexts/RenderLoggerContext";
@@ -199,17 +199,19 @@ export function PublicationsBlock() {
               )}
               {item.status === "approved" && (
                 <span
-                  className="inline-block rounded-lg px-2 py-0.5 text-xs"
-                  style={{ color: "var(--color-text-muted)" }}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
+                  style={{ color: "#16a34a" }}
                 >
+                  <FontAwesomeIcon icon={faCheckCircle} className="w-3 h-3" style={{ color: "#16a34a" }} />
                   Опубликовано
                 </span>
               )}
               {item.status === "rejected" && (
                 <span
-                  className="inline-block rounded-lg px-2 py-0.5 text-xs"
-                  style={{ color: "var(--color-text-muted)" }}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
+                  style={{ color: "#dc2626" }}
                 >
+                  <FontAwesomeIcon icon={faXmarkCircle} className="w-3 h-3" style={{ color: "#dc2626" }} />
                   Отклонено
                 </span>
               )}

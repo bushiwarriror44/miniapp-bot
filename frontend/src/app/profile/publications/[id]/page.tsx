@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronLeft, faClipboard } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faClipboard, faCheckCircle, faXmarkCircle } from "@fortawesome/free-solid-svg-icons";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { fetchMyPublications, type MyPublicationItem } from "@/shared/api/users";
 import { formatServiceDate } from "@/shared/api/services";
@@ -78,9 +78,9 @@ function getStatusColor(status: string): string {
     case "pending":
       return "var(--color-accent)";
     case "approved":
-      return "var(--color-text-muted)";
+      return "#16a34a"; // dark green
     case "rejected":
-      return "var(--color-text-muted)";
+      return "#dc2626"; // red
     default:
       return "var(--color-text-muted)";
   }
@@ -199,17 +199,23 @@ export default function PublicationDetailPage() {
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
       >
         <div className="flex items-center justify-between mb-4">
-          <h1 className="font-semibold flex items-center gap-2 text-lg" style={{ color: "var(--color-text)" }}>
+          <h1 className="font-semibold flex items-center gap-2 text-sm" style={{ color: "var(--color-text)" }}>
             <FontAwesomeIcon icon={faClipboard} className="w-4 h-4 shrink-0" style={{ color: "var(--color-accent)" }} />
             Детали публикации
           </h1>
           <span
-            className="inline-block rounded-lg px-2 py-0.5 text-xs font-medium"
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
             style={{
               backgroundColor: publication.status === "pending" ? "var(--color-surface)" : "transparent",
               color: getStatusColor(publication.status),
             }}
           >
+            {publication.status === "approved" && (
+              <FontAwesomeIcon icon={faCheckCircle} className="w-3 h-3" style={{ color: "#16a34a" }} />
+            )}
+            {publication.status === "rejected" && (
+              <FontAwesomeIcon icon={faXmarkCircle} className="w-3 h-3" style={{ color: "#dc2626" }} />
+            )}
             {getStatusLabel(publication.status)}
           </span>
         </div>
