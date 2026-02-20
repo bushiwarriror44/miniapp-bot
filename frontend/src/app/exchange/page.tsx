@@ -848,6 +848,39 @@ function AdCard({ ad, isHot, defaultOpen }: { ad: AdItem; isHot?: boolean; defau
   );
 }
 
+function ExchangeCardSkeleton() {
+  return (
+    <div
+      className="rounded-xl p-4 min-w-0 animate-pulse"
+      style={{
+        backgroundColor: "var(--color-bg-elevated)",
+        border: "1px solid var(--color-border)",
+      }}
+    >
+      <div className="h-4 rounded mb-2" style={{ backgroundColor: "var(--color-surface)", width: "80%" }} />
+      <div className="h-3 rounded mb-2" style={{ backgroundColor: "var(--color-surface)", width: "50%" }} />
+      <div className="h-3 rounded mb-2" style={{ backgroundColor: "var(--color-surface)", width: "40%" }} />
+      <div className="h-3 rounded" style={{ backgroundColor: "var(--color-surface)", width: "30%" }} />
+    </div>
+  );
+}
+
+function CurrencyCardSkeleton() {
+  return (
+    <div
+      className="rounded-xl p-4 min-w-0 animate-pulse"
+      style={{
+        backgroundColor: "var(--color-bg-elevated)",
+        border: "1px solid var(--color-border)",
+      }}
+    >
+      <div className="h-4 rounded mb-2" style={{ backgroundColor: "var(--color-surface)", width: "70%" }} />
+      <div className="h-3 rounded mb-2" style={{ backgroundColor: "var(--color-surface)", width: "50%" }} />
+      <div className="h-6 rounded mt-2" style={{ backgroundColor: "var(--color-surface)", width: "40%" }} />
+    </div>
+  );
+}
+
 function SellAdsSection({
   openItemId,
   hotItemIds,
@@ -1006,25 +1039,10 @@ function SellAdsSection({
           </p>
         )}
         {loading && (
-          <div
-            className="rounded-xl p-4 min-w-0"
-            style={{
-              backgroundColor: "var(--color-bg-elevated)",
-              border: "1px solid var(--color-border)",
-            }}
-          >
-            <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>
-              Загрузка объявлений…
-            </p>
-            <div
-              className="w-full h-1.5 rounded-full overflow-hidden"
-              style={{ backgroundColor: "var(--color-surface)" }}
-            >
-              <div
-                className="loader-progress h-full rounded-full"
-                style={{ backgroundColor: "var(--color-accent)" }}
-              />
-            </div>
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <ExchangeCardSkeleton key={i} />
+            ))}
           </div>
         )}
         {!loading && ads.length === 0 && (
@@ -1346,25 +1364,10 @@ function BuyAdsSection({
           </p>
         )}
         {loading && (
-          <div
-            className="rounded-xl p-4 min-w-0"
-            style={{
-              backgroundColor: "var(--color-bg-elevated)",
-              border: "1px solid var(--color-border)",
-            }}
-          >
-            <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>
-              Загрузка заявок…
-            </p>
-            <div
-              className="w-full h-1.5 rounded-full overflow-hidden"
-              style={{ backgroundColor: "var(--color-surface)" }}
-            >
-              <div
-                className="loader-progress h-full rounded-full"
-                style={{ backgroundColor: "var(--color-accent)" }}
-              />
-            </div>
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <ExchangeCardSkeleton key={i} />
+            ))}
           </div>
         )}
         {!loading && items.length === 0 && (
@@ -1692,25 +1695,10 @@ function JobsSection({
         </p>
       )}
       {loading && (
-        <div
-          className="rounded-xl p-4 min-w-0"
-          style={{
-            backgroundColor: "var(--color-bg-elevated)",
-            border: "1px solid var(--color-border)",
-          }}
-        >
-          <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>
-            Загрузка вакансий…
-          </p>
-          <div
-            className="w-full h-1.5 rounded-full overflow-hidden"
-            style={{ backgroundColor: "var(--color-surface)" }}
-          >
-            <div
-              className="loader-progress h-full rounded-full"
-              style={{ backgroundColor: "var(--color-accent)" }}
-            />
-          </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <ExchangeCardSkeleton key={i} />
+          ))}
         </div>
       )}
       {!loading && jobs.length === 0 && (
@@ -2015,25 +2003,10 @@ function DesignersSection({
         </p>
       )}
       {loading && (
-        <div
-          className="rounded-xl p-4 min-w-0"
-          style={{
-            backgroundColor: "var(--color-bg-elevated)",
-            border: "1px solid var(--color-border)",
-          }}
-        >
-          <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>
-            Загрузка услуг…
-          </p>
-          <div
-            className="w-full h-1.5 rounded-full overflow-hidden"
-            style={{ backgroundColor: "var(--color-surface)" }}
-          >
-            <div
-              className="loader-progress h-full rounded-full"
-              style={{ backgroundColor: "var(--color-accent)" }}
-            />
-          </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <ExchangeCardSkeleton key={i} />
+          ))}
         </div>
       )}
       {!loading && services.length === 0 && (
@@ -2264,14 +2237,10 @@ function CurrencySection({
       </div>
 
       {loading && (
-        <div
-          className="rounded-xl p-6 flex flex-col items-center justify-center gap-4 min-h-[200px]"
-          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-        >
-          <FontAwesomeIcon icon={faArrowRightArrowLeft} className="shrink-0" style={{ fontSize: 48, color: "var(--color-text-muted)" }} />
-          <p className="text-sm text-center" style={{ color: "var(--color-text-muted)" }}>
-            Загрузка…
-          </p>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <CurrencyCardSkeleton key={i} />
+          ))}
         </div>
       )}
 
@@ -2700,25 +2669,10 @@ function SellChannelSection({
         </p>
       )}
       {loading && (
-        <div
-          className="rounded-xl p-4 min-w-0"
-          style={{
-            backgroundColor: "var(--color-bg-elevated)",
-            border: "1px solid var(--color-border)",
-          }}
-        >
-          <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>
-            Загрузка каналов…
-          </p>
-          <div
-            className="w-full h-1.5 rounded-full overflow-hidden"
-            style={{ backgroundColor: "var(--color-surface)" }}
-          >
-            <div
-              className="loader-progress h-full rounded-full"
-              style={{ backgroundColor: "var(--color-accent)" }}
-            />
-          </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <ExchangeCardSkeleton key={i} />
+          ))}
         </div>
       )}
       {!loading && channels.length === 0 && (
@@ -3103,25 +3057,10 @@ function BuyChannelSection({
         </p>
       )}
       {loading && (
-        <div
-          className="rounded-xl p-4 min-w-0"
-          style={{
-            backgroundColor: "var(--color-bg-elevated)",
-            border: "1px solid var(--color-border)",
-          }}
-        >
-          <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>
-            Загрузка заявок…
-          </p>
-          <div
-            className="w-full h-1.5 rounded-full overflow-hidden"
-            style={{ backgroundColor: "var(--color-surface)" }}
-          >
-            <div
-              className="loader-progress h-full rounded-full"
-              style={{ backgroundColor: "var(--color-accent)" }}
-            />
-          </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <ExchangeCardSkeleton key={i} />
+          ))}
         </div>
       )}
       {!loading && items.length === 0 && (
@@ -3393,25 +3332,10 @@ function OtherSection({
         </p>
       )}
       {loading && (
-        <div
-          className="rounded-xl p-4 min-w-0"
-          style={{
-            backgroundColor: "var(--color-bg-elevated)",
-            border: "1px solid var(--color-border)",
-          }}
-        >
-          <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>
-            Загрузка товаров и услуг…
-          </p>
-          <div
-            className="w-full h-1.5 rounded-full overflow-hidden"
-            style={{ backgroundColor: "var(--color-surface)" }}
-          >
-            <div
-              className="loader-progress h-full rounded-full"
-              style={{ backgroundColor: "var(--color-accent)" }}
-            />
-          </div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <ExchangeCardSkeleton key={i} />
+          ))}
         </div>
       )}
       {!loading && items.length === 0 && (

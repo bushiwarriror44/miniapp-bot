@@ -29,8 +29,25 @@ function OfferSlide({ offer }: { offer: HotOffer }) {
   );
 }
 
+function OfferSlideSkeleton() {
+  return (
+    <article
+      className="rounded-xl p-4 w-full h-full min-h-[100px] flex flex-col justify-center animate-pulse"
+      style={{
+        backgroundColor: "var(--color-bg-elevated)",
+        border: "1px solid var(--color-border)",
+      }}
+    >
+      <div className="h-4 rounded mb-2" style={{ backgroundColor: "var(--color-surface)", width: "75%" }} />
+      <div className="h-6 w-24 rounded mb-2" style={{ backgroundColor: "var(--color-surface)" }} />
+      <div className="h-3 w-full rounded" style={{ backgroundColor: "var(--color-surface)" }} />
+    </article>
+  );
+}
+
 export function HotOffersBlock() {
   const [offers, setOffers] = useState<HotOffer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const logger = useRenderLoggerContext();
@@ -52,6 +69,7 @@ export function HotOffersBlock() {
           logger?.logEvent("HotOffersBlock", "hot offers loaded", `${res.offers?.length ?? 0} offers`);
           setOffers(res.offers ?? []);
           setLoadError(null);
+          setLoading(false);
         }
       })
       .catch((error) => {
@@ -59,6 +77,7 @@ export function HotOffersBlock() {
           logger?.logEvent("HotOffersBlock", "error loading", error instanceof Error ? error.message : String(error));
           setOffers([]);
           setLoadError(error instanceof Error ? error.message : "Ошибка загрузки hot offers");
+          setLoading(false);
         }
       });
     return () => {
@@ -66,7 +85,7 @@ export function HotOffersBlock() {
     };
   }, []);
 
-  if (offers.length === 0 && !loadError) return null;
+  if (!loading && offers.length === 0 && !loadError) return null;
 
   const safeActiveIndex = offers.length > 0 ? Math.min(activeIndex, offers.length - 1) : 0;
   const goPrev = () => setActiveIndex((i) => (i - 1 + offers.length) % offers.length);
@@ -83,7 +102,19 @@ export function HotOffersBlock() {
           Ошибка загрузки: {loadError}
         </p>
       )}
-      {offers.length > 0 && (
+      {loading && (
+        <div className="overflow-hidden rounded-xl">
+          <div className="flex">
+            <div className="shrink-0 w-full pr-2">
+              <OfferSlideSkeleton />
+            </div>
+            <div className="shrink-0 w-full pl-2">
+              <OfferSlideSkeleton />
+            </div>
+          </div>
+        </div>
+      )}
+      {!loading && offers.length > 0 && (
         <>
           <div className="relative">
             <div className="overflow-hidden rounded-xl">

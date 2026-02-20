@@ -1127,13 +1127,18 @@ function renderAdminUserDetails(user, statistics) {
     <hr style="margin:12px 0;border:none;border-top:1px solid var(--color-border);" />
     <h3 style="margin:12px 0 8px 0;font-size:14px;">Кастомные метки</h3>
     <div id="adminUserLabelsWrap"></div>
-    <div style="display:flex;gap:8px;margin-top:8px;">
-      <select id="adminUserAddLabelSelect" class="input" style="flex:1;">
+    <p class="muted" style="margin:12px 0 6px 0;font-size:12px;">Добавить метку пользователю</p>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+      <select id="adminUserAddLabelSelect" class="input" style="flex:1;min-width:0;">
         <option value="">Выберите метку...</option>
       </select>
-      <input id="adminUserLabelColorInput" type="color" class="input" style="width:60px;" value="#0070f3" />
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+        <input id="adminUserLabelColorInput" type="color" value="#0070f3" style="width:44px;height:36px;padding:2px;border:1px solid var(--color-border);border-radius:6px;cursor:pointer;background:#0070f3;" title="Цвет метки" />
+        <span id="adminUserLabelColorPreview" style="display:inline-block;width:28px;height:28px;border-radius:4px;border:1px solid var(--color-border);background:#0070f3;" title="Выбранный цвет"></span>
+      </div>
       <button id="adminUserAddLabelBtn" class="btn">Добавить</button>
     </div>
+    <p id="adminUserAddLabelHint" class="muted" style="margin:6px 0 0 0;font-size:11px;display:none;"></p>
     <hr style="margin:12px 0;border:none;border-top:1px solid var(--color-border);" />
     <h3 style="margin:0 0 8px 0;font-size:14px;">Статистика активности</h3>
     <div style="display:grid;grid-template-columns:repeat(2, minmax(0,1fr));gap:8px;">
@@ -1181,6 +1186,17 @@ async function openAdminUserCard(userId) {
   if (colorInput && !colorInput.value) {
     colorInput.value = "#0070f3";
   }
+  updateAdminUserLabelColorPreview();
+}
+
+function updateAdminUserLabelColorPreview() {
+  const colorInput = document.getElementById("adminUserLabelColorInput");
+  const preview = document.getElementById("adminUserLabelColorPreview");
+  if (colorInput && preview) {
+    const hex = colorInput.value || "#0070f3";
+    preview.style.backgroundColor = hex;
+    colorInput.style.background = hex;
+  }
 }
 
 async function loadAllLabels() {
@@ -1191,10 +1207,16 @@ async function loadAllLabels() {
     const colorInput = document.getElementById("adminUserLabelColorInput");
     if (select) {
       select.innerHTML = '<option value="">Выберите метку...</option>' + allLabels.map((label) => `<option value="${escapeHtml(label.id)}" data-color="${escapeHtml(label.defaultColor)}">${escapeHtml(label.name)}</option>`).join("");
+      const hint = document.getElementById("adminUserAddLabelHint");
+      if (hint) {
+        hint.textContent = allLabels.length === 0 ? "Сначала создайте метки во вкладке «Метки»." : "";
+        hint.style.display = allLabels.length === 0 ? "block" : "none";
+      }
     }
     if (colorInput && !colorInput.value) {
       colorInput.value = "#0070f3";
     }
+    updateAdminUserLabelColorPreview();
   } catch (e) {
     console.error("[admin] Failed to load labels", e);
     allLabels = [];
@@ -2366,10 +2388,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (selectedOption && selectedOption.value) {
           const defaultColor = selectedOption.dataset.color || "#0070f3";
           colorInput.value = defaultColor;
+          colorInput.style.background = defaultColor;
         } else {
           colorInput.value = "#0070f3";
+          colorInput.style.background = "#0070f3";
         }
+        updateAdminUserLabelColorPreview();
       }
+    }
+    if (evt.target?.id === "adminUserLabelColorInput") {
+      updateAdminUserLabelColorPreview();
+    }
+  });
+  document.body.addEventListener("input", (evt) => {
+    if (evt.target?.id === "adminUserLabelColorInput") {
+      updateAdminUserLabelColorPreview();
     }
   });
   document.body.addEventListener("click", async (evt) => {

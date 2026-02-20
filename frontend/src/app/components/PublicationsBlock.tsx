@@ -30,6 +30,31 @@ function publicationTitle(item: MyPublicationItem): string {
   return "Без названия";
 }
 
+function PublicationSkeleton() {
+  return (
+    <div
+      className="rounded-xl p-3 border animate-pulse"
+      style={{
+        backgroundColor: "var(--color-bg-elevated)",
+        borderColor: "var(--color-border)",
+      }}
+    >
+      <div
+        className="h-4 rounded mb-2"
+        style={{ backgroundColor: "var(--color-surface)", width: "75%" }}
+      />
+      <div
+        className="h-3 rounded mb-2"
+        style={{ backgroundColor: "var(--color-surface)", width: "50%" }}
+      />
+      <div
+        className="h-3 rounded"
+        style={{ backgroundColor: "var(--color-surface)", width: "30%" }}
+      />
+    </div>
+  );
+}
+
 export function PublicationsBlock() {
   const logger = useRenderLoggerContext();
   const hasLoggedMount = useRef(false);
@@ -103,9 +128,11 @@ export function PublicationsBlock() {
             Ваши публикации
           </h2>
         </div>
-        <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Загрузка…
-        </p>
+        <ul className="space-y-3 list-none p-0 m-0">
+          <li><PublicationSkeleton /></li>
+          <li><PublicationSkeleton /></li>
+          <li><PublicationSkeleton /></li>
+        </ul>
       </section>
     );
   }

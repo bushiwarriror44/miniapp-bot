@@ -54,6 +54,7 @@ export default function ProfilePage() {
   const [supportText, setSupportText] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
 
   const toggleTheme = () => {
@@ -101,15 +102,20 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    if (!tgUserId || tgUserId === "-") return;
+    if (!tgUserId || tgUserId === "-") {
+      queueMicrotask(() => setProfileLoading(false));
+      return;
+    }
     fetchUserProfile(tgUserId)
       .then((response) => {
         setProfile(response);
         setProfileLoadError(null);
+        setProfileLoading(false);
       })
       .catch((error) => {
         console.error("Failed to load profile data:", error);
         setProfileLoadError(error instanceof Error ? error.message : String(error));
+        setProfileLoading(false);
       });
   }, [tgUserId]);
 
@@ -135,16 +141,23 @@ export default function ProfilePage() {
 
       <section className="flex flex-col items-center mb-6">
         <div className="w-20 h-20 rounded-full overflow-hidden mb-3">
-          <img
-            src={tgAvatarUrl}
-            alt={tgUsername || "user"}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              const target = e.currentTarget;
-              target.onerror = null;
-              target.src = "/assets/telegram-ico.svg";
-            }}
-          />
+          {profileLoading ? (
+            <div
+              className="w-full h-full rounded-full animate-pulse"
+              style={{ backgroundColor: "var(--color-surface)" }}
+            />
+          ) : (
+            <img
+              src={tgAvatarUrl}
+              alt={tgUsername || "user"}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.onerror = null;
+                target.src = "/assets/telegram-ico.svg";
+              }}
+            />
+          )}
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-center">
           <p className="font-semibold text-sm" style={{ color: "var(--color-text)" }}>

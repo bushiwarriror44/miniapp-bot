@@ -31,6 +31,31 @@ function formatPrice(usd: number): string {
   return usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 }
 
+function CryptoCardSkeleton() {
+  return (
+    <article
+      className="flex items-center gap-4 rounded-xl p-4 animate-pulse"
+      style={{
+        backgroundColor: "var(--color-bg-elevated)",
+        border: "1px solid var(--color-border)",
+      }}
+    >
+      <div
+        className="w-10 h-10 shrink-0 rounded-full"
+        style={{ backgroundColor: "var(--color-surface)" }}
+      />
+      <div className="min-w-0 flex-1 space-y-2">
+        <div className="h-4 w-12 rounded" style={{ backgroundColor: "var(--color-surface)" }} />
+        <div className="h-3 w-20 rounded" style={{ backgroundColor: "var(--color-surface)" }} />
+      </div>
+      <div className="text-right shrink-0 space-y-1">
+        <div className="h-4 w-14 rounded ml-auto" style={{ backgroundColor: "var(--color-surface)" }} />
+        <div className="h-3 w-10 rounded ml-auto" style={{ backgroundColor: "var(--color-surface)" }} />
+      </div>
+    </article>
+  );
+}
+
 function CryptoCard({ item }: { item: CryptoPriceItem }) {
   const change = item.usd_24h_change;
   const isPositive = change != null && change >= 0;
@@ -146,9 +171,10 @@ export function CryptoPrices() {
         </button>
       </div>
       {isLoading && (
-        <p className="py-4 text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Загрузка…
-        </p>
+        <div className="space-y-3">
+          <CryptoCardSkeleton />
+          <CryptoCardSkeleton />
+        </div>
       )}
       {isError && (
         <p className="py-4 text-sm" style={{ color: "var(--color-text-muted)" }}>
