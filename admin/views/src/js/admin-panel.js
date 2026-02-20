@@ -1131,7 +1131,7 @@ function renderAdminUserDetails(user, statistics) {
       <select id="adminUserAddLabelSelect" class="input" style="flex:1;">
         <option value="">Выберите метку...</option>
       </select>
-      <input id="adminUserLabelColorInput" type="color" class="input" style="width:60px;" />
+      <input id="adminUserLabelColorInput" type="color" class="input" style="width:60px;" value="#0070f3" />
       <button id="adminUserAddLabelBtn" class="btn">Добавить</button>
     </div>
     <hr style="margin:12px 0;border:none;border-top:1px solid var(--color-border);" />
@@ -1177,6 +1177,10 @@ async function openAdminUserCard(userId) {
   renderAdminUserDetails(userData.user, statisticsData.statistics);
   await loadAllLabels();
   renderUserLabels(userId, labelsData.labels || []);
+  const colorInput = document.getElementById("adminUserLabelColorInput");
+  if (colorInput && !colorInput.value) {
+    colorInput.value = "#0070f3";
+  }
 }
 
 async function loadAllLabels() {
@@ -1184,8 +1188,12 @@ async function loadAllLabels() {
     const data = await apiGet("/admin/api/labels");
     allLabels = data.labels || [];
     const select = document.getElementById("adminUserAddLabelSelect");
+    const colorInput = document.getElementById("adminUserLabelColorInput");
     if (select) {
-      select.innerHTML = '<option value="">Выберите метку...</option>' + allLabels.map((label) => `<option value="${escapeHtml(label.id)}">${escapeHtml(label.name)}</option>`).join("");
+      select.innerHTML = '<option value="">Выберите метку...</option>' + allLabels.map((label) => `<option value="${escapeHtml(label.id)}" data-color="${escapeHtml(label.defaultColor)}">${escapeHtml(label.name)}</option>`).join("");
+    }
+    if (colorInput && !colorInput.value) {
+      colorInput.value = "#0070f3";
     }
   } catch (e) {
     console.error("[admin] Failed to load labels", e);
@@ -1205,9 +1213,10 @@ function renderUserLabels(userId, userLabels) {
       (ul) => {
         const label = allLabels.find((l) => l.id === ul.labelId);
         const labelName = label ? label.name : ul.labelName || "Неизвестная метка";
+        const displayColor = ul.color || (label ? label.defaultColor : "#0070f3");
         return `
       <div style="display:flex;align-items:center;gap:8px;padding:6px;border:1px solid var(--color-border);border-radius:4px;margin-bottom:4px;font-size:12px;">
-        <span style="display:inline-block;width:16px;height:16px;border-radius:3px;background-color:${escapeHtml(ul.color)};border:1px solid var(--color-border);"></span>
+        <span style="display:inline-block;width:16px;height:16px;border-radius:3px;background-color:${escapeHtml(displayColor)};border:1px solid var(--color-border);"></span>
         <span style="flex:1;">${escapeHtml(labelName)}</span>
         <button class="btn" data-user-label-remove-id="${escapeHtml(ul.labelId)}" style="font-size:11px;padding:2px 6px;">Удалить</button>
       </div>
@@ -1224,10 +1233,14 @@ async function addLabelToUser(userId, labelId, color) {
     return;
   }
   try {
-    await apiJson(`/admin/api/users/${encodeURIComponent(userId)}/labels`, "POST", {
-      labelId,
-      customColor: color || undefined,
-    });
+    const payload = { labelId };
+    if (color && color !== "#0070f3") {
+      const selectedLabel = allLabels.find((l) => l.id === labelId);
+      if (selectedLabel && color !== selectedLabel.defaultColor) {
+        payload.customColor = color;
+      }
+    }
+    await apiJson(`/admin/api/users/${encodeURIComponent(userId)}/labels`, "POST", payload);
     await openAdminUserCard(userId);
   } catch (e) {
     console.error("[admin] Failed to add label to user", e);
@@ -2344,6 +2357,21 @@ document.addEventListener("DOMContentLoaded", async () => {
       closeDialogSafe(adModal, adModalFallbackNote, { forceFallback: true });
     }
   });
+  document.body.addEventListener("change", (evt) => {
+    if (evt.target?.id === "adminUserAddLabelSelect") {
+      const select = evt.target;
+      const colorInput = document.getElementById("adminUserLabelColorInput");
+      if (select && colorInput) {
+        const selectedOption = select.options[select.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+          const defaultColor = selectedOption.dataset.color || "#0070f3";
+          colorInput.value = defaultColor;
+        } else {
+          colorInput.value = "#0070f3";
+        }
+      }
+    }
+  });
   document.body.addEventListener("click", async (evt) => {
     if (evt.target?.id === "adminUserSaveRatingBtn") {
       await saveAdminUserRating();
@@ -2371,9 +2399,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (evt.target?.id === "adminUserAddLabelBtn" && selectedAdminUserId) {
       const select = document.getElementById("adminUserAddLabelSelect");
       const colorInput = document.getElementById("adminUserLabelColorInput");
-      await addLabelToUser(selectedAdminUserId, select?.value || "", colorInput?.value || "");
+      const labelId = select?.value || "";
+      const color = colorInput?.value || "";
+      if (!labelId) {
+        alert("Выберите метку для добавления");
+        return;
+      }
+      await addLabelToUser(selectedAdminUserId, labelId, color);
       if (select) select.value = "";
-      if (colorInput) colorInput.value = "#000000";
+      if (colorInput) colorInput.value = "#0070f3";
     }
     const userLabelRemoveBtn = evt.target?.closest("[data-user-label-remove-id]");
     if (userLabelRemoveBtn && selectedAdminUserId) {
