@@ -8,7 +8,7 @@ import { faChevronLeft, faClipboard } from "@fortawesome/free-solid-svg-icons";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { fetchMyPublications, type MyPublicationItem } from "@/shared/api/users";
 import { formatServiceDate } from "@/shared/api/services";
-import { AD_TYPE_LABELS, PAYMENT_LABELS } from "@/shared/api/ads";
+import { AD_TYPE_LABELS, PAYMENT_LABELS, type AdType, type PaymentMethod } from "@/shared/api/ads";
 import { safeLocaleNumber } from "@/shared/format";
 
 function formatPublicationDate(iso: string): string {
@@ -305,7 +305,7 @@ export default function PublicationDetailPage() {
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                   <span style={{ color: "var(--color-text-muted)" }}>Тип объявления:</span>
                   <span style={{ color: "var(--color-text)" }}>
-                    {AD_TYPE_LABELS[String(formData.adType)] || String(formData.adType)}
+                    {(AD_TYPE_LABELS[String(formData.adType) as AdType] as string | undefined) || String(formData.adType)}
                   </span>
                 </div>
               )}
@@ -313,7 +313,7 @@ export default function PublicationDetailPage() {
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                   <span style={{ color: "var(--color-text-muted)" }}>Способ оплаты:</span>
                   <span style={{ color: "var(--color-text)" }}>
-                    {PAYMENT_LABELS[String(formData.paymentMethod)] || String(formData.paymentMethod)}
+                    {(PAYMENT_LABELS[String(formData.paymentMethod) as PaymentMethod] as string | undefined) || String(formData.paymentMethod)}
                   </span>
                 </div>
               )}
