@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -14,7 +15,19 @@ import {
   type UserProfileResponse,
   type UserStatisticsResponse,
 } from "@/shared/api/users";
+import { fetchUserListingsPaginated, type UserListingItem } from "@/shared/api/user-listings";
 import { UserLabelBadge } from "@/app/components/UserLabelBadge";
+
+const SECTION_LABELS: Record<string, string> = {
+  "sell-ads": "Продажа рекламы",
+  "buy-ads": "Покупка рекламы",
+  jobs: "Вакансии",
+  designers: "Услуги",
+  currency: "Обмен валют",
+  "sell-channel": "Продажа канала",
+  "buy-channel": "Покупка канала",
+  other: "Другое",
+};
 
 type LoadedState = "idle" | "loading" | "success" | "error";
 
@@ -35,6 +48,8 @@ export default function PublicUserProfilePage() {
   const [status, setStatus] = useState<LoadedState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [showExternalWarning, setShowExternalWarning] = useState(false);
+  const [listings, setListings] = useState<UserListingItem[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,6 +138,41 @@ export default function PublicUserProfilePage() {
       cancelled = true;
     };
   }, [idFromUrl]);
+
+  const profileUsername = profile?.username ?? idFromUrl;
+  const cleanedUsername =
+    typeof profileUsername === "string"
+      ? profileUsername.trim().replace(/^@/, "")
+      : (idFromUrl ?? "").toString().trim().replace(/^@/, "");
+
+  useEffect(() => {
+    if (!cleanedUsername || status !== "success") {
+      const t = setTimeout(() => {
+        setListings([]);
+        setListingsLoading(false);
+      }, 0);
+      return () => clearTimeout(t);
+    }
+    let cancelled = false;
+    const t = setTimeout(() => {
+      setListingsLoading(true);
+      fetchUserListingsPaginated(cleanedUsername, { limit: 4 })
+        .then((res) => {
+          if (cancelled) return;
+          setListings(res.items ?? []);
+        })
+        .catch(() => {
+          if (!cancelled) setListings([]);
+        })
+        .finally(() => {
+          if (!cancelled) setListingsLoading(false);
+        });
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [cleanedUsername, status]);
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -379,6 +429,80 @@ export default function PublicUserProfilePage() {
                 </span>
               )}
             </div>
+          </section>
+
+          <section
+            className="rounded-xl p-4 mb-4"
+            style={{
+              backgroundColor: "var(--color-bg-elevated)",
+              border: "1px solid var(--color-border)",
+            }}
+          >
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h2 className="font-semibold" style={{ color: "var(--color-text)" }}>
+                Текущие активные объявления пользователя
+              </h2>
+              {!listingsLoading && listings.length > 3 && (
+                <Link
+                  href={`/profile/user/${encodeURIComponent(cleanedUsername || idFromUrl || "")}/listings`}
+                  className="text-xs font-medium shrink-0"
+                  style={{ color: "var(--color-accent)", textDecoration: "none" }}
+                >
+                  Показать все
+                </Link>
+              )}
+            </div>
+            {listingsLoading && (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="rounded-lg p-3 animate-pulse"
+                    style={{ backgroundColor: "var(--color-surface)" }}
+                  >
+                    <div className="h-3 rounded w-1/3 mb-2" style={{ backgroundColor: "var(--color-border)" }} />
+                    <div className="h-4 rounded w-full" style={{ backgroundColor: "var(--color-border)" }} />
+                  </div>
+                ))}
+              </div>
+            )}
+            {!listingsLoading && listings.length === 0 && (
+              <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                Нет активных объявлений.
+              </p>
+            )}
+            {!listingsLoading && listings.length > 0 && (
+              <div className="space-y-2">
+                {listings.slice(0, 3).map((listing) => (
+                  <Link
+                    key={`${listing.section}-${listing.id}`}
+                    href={`/exchange/view?section=${encodeURIComponent(listing.section)}&id=${encodeURIComponent(listing.id)}`}
+                    className="block rounded-lg p-3 no-underline"
+                    style={{
+                      backgroundColor: "var(--color-surface)",
+                      border: "1px solid var(--color-border)",
+                      color: "var(--color-text)",
+                    }}
+                  >
+                    <span className="text-xs font-medium" style={{ color: "var(--color-accent)" }}>
+                      {SECTION_LABELS[listing.section] ?? listing.section}
+                    </span>
+                    <p className="text-sm mt-1 mb-0 line-clamp-2" style={{ color: "var(--color-text)" }}>
+                      {listing.title || "Без названия"}
+                    </p>
+                  </Link>
+                ))}
+                {listings.length > 3 && (
+                  <Link
+                    href={`/profile/user/${encodeURIComponent(cleanedUsername || idFromUrl || "")}/listings`}
+                    className="block text-center text-xs font-medium py-2"
+                    style={{ color: "var(--color-accent)", textDecoration: "none" }}
+                  >
+                    Показать все
+                  </Link>
+                )}
+              </div>
+            )}
           </section>
 
           {externalUrl && (

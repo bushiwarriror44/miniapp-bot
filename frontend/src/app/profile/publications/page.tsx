@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronLeft, faClipboard, faChevronRight, faCheckCircle, faXmarkCircle } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faClipboard, faCheckCircle, faXmarkCircle } from "@fortawesome/free-solid-svg-icons";
 import { getTelegramWebApp } from "@/shared/api/client";
-import { fetchMyPublications, type MyPublicationItem } from "@/shared/api/users";
+import { fetchMyPublicationsPaginated, type MyPublicationItem } from "@/shared/api/users";
+import { useInfiniteScroll } from "@/app/hooks/useInfiniteScroll";
 
 function formatPublicationDate(iso: string): string {
   try {
@@ -105,12 +106,14 @@ function PublicationCard({ item }: { item: MyPublicationItem }) {
   );
 }
 
+const PAGE_SIZE = 20;
+
 export default function PublicationsPage() {
   const [publications, setPublications] = useState<MyPublicationItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
   const telegramId = useMemo(() => {
     const telegram = getTelegramWebApp();
@@ -118,46 +121,49 @@ export default function PublicationsPage() {
     return userId ? String(userId) : "";
   }, []);
 
-  useEffect(() => {
+  const loadMore = useCallback(async () => {
+    if (!telegramId) return;
+    setLoadMoreLoading(true);
+    try {
+      const res = await fetchMyPublicationsPaginated(telegramId, nextCursor ?? undefined, PAGE_SIZE);
+      setPublications((prev) => [...prev, ...res.publications]);
+      setNextCursor(res.nextCursor);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoadMoreLoading(false);
+    }
+  }, [telegramId, nextCursor]);
+
+  const initialLoad = useCallback(async () => {
     if (!telegramId) {
       setLoading(false);
       return;
     }
-
     setLoading(true);
-    fetchMyPublications(telegramId)
-      .then((list) => {
-        setPublications(list);
-        setLoadError(null);
-      })
-      .catch((err) => {
-        console.error("Failed to load publications:", err);
-        setPublications([]);
-        setLoadError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    setLoadError(null);
+    try {
+      const res = await fetchMyPublicationsPaginated(telegramId, undefined, PAGE_SIZE);
+      setPublications(res.publications);
+      setNextCursor(res.nextCursor);
+    } catch (err) {
+      setPublications([]);
+      setNextCursor(null);
+      setLoadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
   }, [telegramId]);
 
-  const totalPages = Math.ceil(publications.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const displayedPublications = publications.slice(startIndex, endIndex);
+  useEffect(() => {
+    initialLoad();
+  }, [initialLoad]);
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore: loadMore,
+    hasMore: nextCursor != null && nextCursor !== "",
+    loading: loadMoreLoading,
+  });
 
   return (
     <main className="px-4 py-6">
@@ -181,7 +187,7 @@ export default function PublicationsPage() {
 
         {loading ? (
           <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
+            {[...Array(5)].map((_, i) => (
               <PublicationSkeleton key={i} />
             ))}
           </div>
@@ -196,46 +202,20 @@ export default function PublicationsPage() {
         ) : (
           <>
             <ul className="space-y-3 list-none p-0 m-0 mb-4">
-              {displayedPublications.map((item) => (
+              {publications.map((item) => (
                 <li key={item.id}>
                   <PublicationCard item={item} />
                 </li>
               ))}
             </ul>
-
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between gap-4 pt-4 border-t" style={{ borderColor: "var(--color-border)" }}>
-                <button
-                  onClick={handlePrevPage}
-                  disabled={currentPage === 1}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{
-                    backgroundColor: currentPage === 1 ? "var(--color-surface)" : "var(--color-accent)",
-                    color: currentPage === 1 ? "var(--color-text-muted)" : "white",
-                  }}
-                >
-                  <FontAwesomeIcon icon={faChevronLeft} className="w-3 h-3" />
-                  Назад
-                </button>
-
-                <span className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-                  Страница {currentPage} из {totalPages}
-                </span>
-
-                <button
-                  onClick={handleNextPage}
-                  disabled={currentPage === totalPages}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{
-                    backgroundColor: currentPage === totalPages ? "var(--color-surface)" : "var(--color-accent)",
-                    color: currentPage === totalPages ? "var(--color-text-muted)" : "white",
-                  }}
-                >
-                  Вперед
-                  <FontAwesomeIcon icon={faChevronRight} className="w-3 h-3" />
-                </button>
+            {loadMoreLoading && (
+              <div className="space-y-3 mb-4">
+                {[1, 2, 3].map((i) => (
+                  <PublicationSkeleton key={`more-${i}`} />
+                ))}
               </div>
             )}
+            <div ref={sentinelRef} className="h-2" aria-hidden />
           </>
         )}
       </section>

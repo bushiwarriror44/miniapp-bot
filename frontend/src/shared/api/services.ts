@@ -1,4 +1,4 @@
-import { fetchDatasetFromApi } from "./dataSource";
+import { fetchDatasetFromApi, fetchDatasetPaginated, type FetchDatasetPaginatedParams } from "./dataSource";
 
 export type ServiceItem = {
   id: string;
@@ -21,6 +21,19 @@ export async function fetchServices(): Promise<ServicesResponse> {
     throw new Error('Failed to load "services" from content API');
   }
   return payload;
+}
+
+export type ServicesPaginatedParams = FetchDatasetPaginatedParams & { theme?: string };
+
+export async function fetchServicesPaginated(
+  params: ServicesPaginatedParams = {},
+): Promise<{ services: ServiceItem[]; nextCursor: string | null } | null> {
+  const res = await fetchDatasetPaginated<ServicesResponse>("services", {
+    ...params,
+    limit: params.limit ?? 20,
+  });
+  if (!res) return null;
+  return { services: res.payload.services ?? [], nextCursor: res.nextCursor };
 }
 
 export function formatServiceDate(isoDate: string | undefined | null): string {

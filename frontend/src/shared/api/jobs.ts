@@ -1,4 +1,4 @@
-import { fetchDatasetFromApi } from "./dataSource";
+import { fetchDatasetFromApi, fetchDatasetPaginated, type FetchDatasetPaginatedParams } from "./dataSource";
 
 export type WorkType =
   | "editor"
@@ -42,6 +42,27 @@ export async function fetchJobs(): Promise<JobsResponse> {
     throw new Error('Failed to load "jobs" from content API');
   }
   return payload;
+}
+
+export type JobsPaginatedParams = FetchDatasetPaginatedParams & {
+  offerType?: string;
+  work?: string;
+  employmentType?: string;
+  paymentCurrency?: string;
+  hasPortfolio?: string;
+  themeSearch?: string;
+  descriptionSearch?: string;
+};
+
+export async function fetchJobsPaginated(
+  params: JobsPaginatedParams = {},
+): Promise<{ jobs: JobItem[]; nextCursor: string | null } | null> {
+  const res = await fetchDatasetPaginated<JobsResponse>("jobs", {
+    ...params,
+    limit: params.limit ?? 20,
+  });
+  if (!res) return null;
+  return { jobs: res.payload.jobs ?? [], nextCursor: res.nextCursor };
 }
 
 export const WORK_LABELS: Record<WorkType, string> = {

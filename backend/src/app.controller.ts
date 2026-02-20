@@ -163,12 +163,21 @@ export class AppController {
   }
 
   @Get('users/me/publications')
-  async getMyPublications(@Query('telegramId') telegramId?: string) {
+  async getMyPublications(
+    @Query('telegramId') telegramId?: string,
+    @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
+  ) {
     if (!telegramId) {
       throw new HttpException('telegramId is required', HttpStatus.BAD_REQUEST);
     }
-    const publications = await this.appService.getMyModerationRequests(telegramId);
-    return { publications };
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    const result = await this.appService.getMyModerationRequests(
+      telegramId,
+      Number.isFinite(limitNum) && limitNum > 0 ? limitNum : 20,
+      cursor,
+    );
+    return result;
   }
 
   @Post('users/:telegramId/profile-view')
@@ -200,12 +209,13 @@ export class AppController {
   }
 
   @Get('users/top')
-  async getTopUsers(@Query('limit') limit?: string) {
+  async getTopUsers(@Query('limit') limit?: string, @Query('cursor') cursor?: string) {
     const limitNum = limit ? parseInt(limit, 10) : 10;
-    const topUsers = await this.appService.getTopUsers(
+    const result = await this.appService.getTopUsers(
       Number.isFinite(limitNum) && limitNum > 0 ? limitNum : 10,
+      cursor,
     );
-    return { users: topUsers };
+    return result;
   }
 
   @Get('users/:id')

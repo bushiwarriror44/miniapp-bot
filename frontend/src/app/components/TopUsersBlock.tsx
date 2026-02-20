@@ -110,10 +110,19 @@ export function TopUsersBlock() {
         border: "1px solid var(--color-border)",
       }}
     >
-      <h2 className="font-semibold text-sm mb-3 flex items-center gap-2" style={{ color: "var(--color-text)" }}>
-        <FontAwesomeIcon icon={faTrophy} className="w-4 h-4 shrink-0" />
-        Топ пользователей
-      </h2>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <h2 className="font-semibold text-sm flex items-center gap-2" style={{ color: "var(--color-text)" }}>
+          <FontAwesomeIcon icon={faTrophy} className="w-4 h-4 shrink-0" />
+          Топ пользователей
+        </h2>
+        <Link
+          href="/users/top"
+          className="text-xs font-medium shrink-0"
+          style={{ color: "var(--color-accent)", textDecoration: "none" }}
+        >
+          Показать все
+        </Link>
+      </div>
       {loadError && (
         <p className="text-xs mb-3" style={{ color: "#ef4444" }}>
           Ошибка загрузки: {loadError}

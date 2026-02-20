@@ -1,14 +1,14 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faExternalLink } from "@fortawesome/free-solid-svg-icons";
-import { fetchAds, AD_TYPE_LABELS, PAYMENT_LABELS, type AdItem } from "@/shared/api/ads";
-import { fetchBuyAds, type BuyAdItem } from "@/shared/api/buyAds";
+import { fetchAdsPaginated, AD_TYPE_LABELS, PAYMENT_LABELS, type AdItem } from "@/shared/api/ads";
+import { fetchBuyAdsPaginated, type BuyAdItem } from "@/shared/api/buyAds";
 import {
-  fetchJobs,
+  fetchJobsPaginated,
   WORK_LABELS,
   EMPLOYMENT_LABELS,
   PAYMENT_CURRENCY_LABELS,
@@ -20,26 +20,26 @@ import {
   type JobOfferType,
 } from "@/shared/api/jobs";
 import {
-  fetchServices,
+  fetchServicesPaginated,
   formatServiceDate,
   type ServiceItem,
 } from "@/shared/api/services";
-import { fetchSellChannels, type SellChannelItem } from "@/shared/api/sellChannels";
-import { fetchBuyChannels, type BuyChannelItem } from "@/shared/api/buyChannels";
-import { fetchOther, type OtherItem } from "@/shared/api/other";
-import { fetchCurrency, type CurrencyItem } from "@/shared/api/currency";
+import { fetchSellChannelsPaginated, type SellChannelItem } from "@/shared/api/sellChannels";
+import { fetchBuyChannelsPaginated, type BuyChannelItem } from "@/shared/api/buyChannels";
+import { fetchOtherPaginated, type OtherItem } from "@/shared/api/other";
+import { fetchCurrencyPaginated, type CurrencyItem } from "@/shared/api/currency";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { submitModerationRequest } from "@/shared/api/moderation";
 import { fetchExchangeOptions, getJobTypeLabel, getCurrencyLabel, type ExchangeOptionsPayload } from "@/shared/api/exchangeOptions";
 import { fetchHotOffers } from "@/shared/api/hot-offers";
 import { safeLocaleNumber } from "@/shared/format";
 import VerifiedBadge from "@/app/components/VerifiedBadge";
+import { useInfiniteScroll } from "@/app/hooks/useInfiniteScroll";
 import {
   faBullhorn,
   faBriefcase,
   faPalette,
   faCoins,
-  faArrowRightArrowLeft,
   faStore,
   faShoppingCart,
   faPenToSquare,
@@ -47,7 +47,6 @@ import {
   faFilterCircleXmark,
   faXmark,
   faBox,
-  faShieldHalved,
   faFire,
 } from "@fortawesome/free-solid-svg-icons";
 
@@ -128,6 +127,7 @@ function toErrorMessage(error: unknown): string {
 }
 
 function ExchangePageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [activeSection, setActiveSection] = useState<ExchangeSection>("buy-ads");
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -138,12 +138,29 @@ function ExchangePageContent() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const [exchangeOptions, setExchangeOptions] = useState<ExchangeOptionsPayload | null>(null);
-  const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [hotItemIdsBySection, setHotItemIdsBySection] = useState<Record<string, Set<string>>>({});
 
   useEffect(() => {
     fetchExchangeOptions().then(setExchangeOptions).catch(() => setExchangeOptions(null));
   }, []);
+
+  useEffect(() => {
+    const sectionParam = searchParams.get("section");
+    const openItemParam = searchParams.get("openItem");
+    if (openItemParam && sectionParam && EXCHANGE_SECTIONS_WITH_ITEMS.includes(sectionParam as ExchangeSection)) {
+      router.replace(`/exchange/view?section=${encodeURIComponent(sectionParam)}&id=${encodeURIComponent(openItemParam)}`);
+      return;
+    }
+    if (sectionParam && EXCHANGE_SECTIONS_WITH_ITEMS.includes(sectionParam as ExchangeSection)) {
+      setActiveSection(sectionParam as ExchangeSection);
+    }
+    if (searchParams.get("openSubmit") === "1") {
+      setShowSubmitModal(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("openSubmit");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    }
+  }, [searchParams, router]);
 
   useEffect(() => {
     fetchHotOffers()
@@ -163,24 +180,6 @@ function ExchangePageContent() {
       })
       .catch(() => setHotItemIdsBySection({}));
   }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const sectionParam = searchParams.get("section");
-    const openItemParam = searchParams.get("openItem");
-    if (sectionParam && EXCHANGE_SECTIONS_WITH_ITEMS.includes(sectionParam as ExchangeSection)) {
-      setActiveSection(sectionParam as ExchangeSection);
-    }
-    if (openItemParam) {
-      setOpenItemId(openItemParam);
-    }
-    if (searchParams.get("openSubmit") === "1") {
-      setShowSubmitModal(true);
-      const url = new URL(window.location.href);
-      url.searchParams.delete("openSubmit");
-      window.history.replaceState({}, "", url.pathname + url.search);
-    }
-  }, [searchParams]);
 
   const openSubmitModal = () => {
     setShowSubmitModal(true);
@@ -366,28 +365,28 @@ function ExchangePageContent() {
       </div>
 
       {activeSection === "buy-ads" && (
-        <BuyAdsSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["buy-ads"]} />
+        <BuyAdsSection hotItemIds={hotItemIdsBySection["buy-ads"]} />
       )}
       {activeSection === "sell-ads" && (
-        <SellAdsSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["sell-ads"]} />
+        <SellAdsSection hotItemIds={hotItemIdsBySection["sell-ads"]} />
       )}
       {activeSection === "jobs" && (
-        <JobsSection exchangeOptions={exchangeOptions} openItemId={openItemId} hotItemIds={hotItemIdsBySection["jobs"]} />
+        <JobsSection exchangeOptions={exchangeOptions} hotItemIds={hotItemIdsBySection["jobs"]} />
       )}
       {activeSection === "designers" && (
-        <DesignersSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["designers"]} />
+        <DesignersSection hotItemIds={hotItemIdsBySection["designers"]} />
       )}
       {activeSection === "currency" && (
-        <CurrencySection openItemId={openItemId} hotItemIds={hotItemIdsBySection["currency"]} />
+        <CurrencySection hotItemIds={hotItemIdsBySection["currency"]} />
       )}
       {activeSection === "sell-channel" && (
-        <SellChannelSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["sell-channel"]} />
+        <SellChannelSection hotItemIds={hotItemIdsBySection["sell-channel"]} />
       )}
       {activeSection === "buy-channel" && (
-        <BuyChannelSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["buy-channel"]} />
+        <BuyChannelSection hotItemIds={hotItemIdsBySection["buy-channel"]} />
       )}
       {activeSection === "other" && (
-        <OtherSection openItemId={openItemId} hotItemIds={hotItemIdsBySection["other"]} />
+        <OtherSection hotItemIds={hotItemIdsBySection["other"]} />
       )}
     </main>
   );
@@ -729,44 +728,7 @@ function SubmitFormBySection({
   return null;
 }
 
-function CardExpandedBlock({ authorLink }: { authorLink: string }) {
-  const rating: number | null = null;
-  return (
-    <div className="pt-3 mt-3 space-y-2" style={{ borderTop: "1px solid var(--color-border)" }}>
-      <div
-        className="flex items-center gap-3 rounded-xl px-3 py-2.5"
-        style={{
-          backgroundColor: "var(--color-accent)",
-          color: "white",
-        }}
-      >
-        <span className="flex shrink-0 w-8 h-8 items-center justify-center rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.25)" }}>
-          <FontAwesomeIcon icon={faShieldHalved} className="w-4 h-4" />
-        </span>
-        <p className="text-xs leading-snug m-0" style={{ color: "white" }}>
-          Проводите сделку через гаранта, чтобы обезопасить свои средства.
-        </p>
-      </div>
-      <p className="text-xs" style={{ color: "var(--color-text)" }}>
-        Рейтинг: {rating != null ? rating : "—"}
-      </p>
-      <a
-        href={authorLink}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center justify-center rounded-xl py-2.5 px-4 text-sm font-medium w-full"
-        style={{ backgroundColor: "var(--color-accent)", color: "white" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        Написать
-      </a>
-    </div>
-  );
-}
-
-function AdCard({ ad, isHot, defaultOpen }: { ad: AdItem; isHot?: boolean; defaultOpen?: boolean }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
-  const authorLink = `https://t.me/${(ad.username || "").replace(/^@/, "")}`;
+function AdCard({ ad, isHot, onOpenView }: { ad: AdItem; isHot?: boolean; onOpenView?: (id: string) => void }) {
   return (
     <article
       role="button"
@@ -776,8 +738,8 @@ function AdCard({ ad, isHot, defaultOpen }: { ad: AdItem; isHot?: boolean; defau
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
-      onClick={() => setIsOpen((v) => !v)}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
+      onClick={() => onOpenView?.(ad.id)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpenView?.(ad.id))}
     >
       {isHot && (
         <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
@@ -843,7 +805,6 @@ function AdCard({ ad, isHot, defaultOpen }: { ad: AdItem; isHot?: boolean; defau
           {ad.description}
         </p>
       )}
-      {isOpen && <CardExpandedBlock authorLink={authorLink} />}
     </article>
   );
 }
@@ -881,62 +842,78 @@ function CurrencyCardSkeleton() {
   );
 }
 
-function SellAdsSection({
-  openItemId,
-  hotItemIds,
-}: {
-  openItemId?: string | null;
-  hotItemIds?: Set<string>;
-}) {
-  const openItemRef = useRef<HTMLDivElement>(null);
+const EXCHANGE_PAGE_SIZE = 20;
+
+function SellAdsSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
+  const router = useRouter();
   const [priceFrom, setPriceFrom] = useState("");
   const [priceTo, setPriceTo] = useState("");
   const [reachFrom, setReachFrom] = useState("");
   const [theme, setTheme] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [ads, setAds] = useState<AdItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchAds()
+  const loadFirstPage = useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
+    setAds([]);
+    setNextCursor(null);
+    fetchAdsPaginated({ priceFrom: priceFrom.trim() || undefined, priceTo: priceTo.trim() || undefined, theme: theme.trim() || undefined, limit: EXCHANGE_PAGE_SIZE })
       .then((res) => {
-        if (!cancelled) {
+        if (res) {
           setAds(res.ads ?? []);
-          setLoadError(null);
-          setLoading(false);
+          setNextCursor(res.nextCursor);
+        } else {
+          setAds([]);
+          setNextCursor(null);
         }
       })
       .catch((error) => {
-        console.error("[ui] Failed to load ads", error);
-        if (!cancelled) {
-          setAds([]);
-          setLoadError(toErrorMessage(error));
-          setLoading(false);
-        }
-      });
-    return () => { cancelled = true; };
-  }, []);
+        setAds([]);
+        setNextCursor(null);
+        setLoadError(toErrorMessage(error));
+      })
+      .finally(() => setLoading(false));
+  }, [priceFrom, priceTo, theme]);
 
   useEffect(() => {
-    if (openItemId && openItemRef.current) {
-      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [openItemId]);
+    const t = setTimeout(() => loadFirstPage(), 0);
+    return () => clearTimeout(t);
+  }, [loadFirstPage]);
 
-  const filteredAds = ads.filter((ad) => {
-    const pFrom = priceFrom.trim() ? Number(priceFrom) : null;
-    const pTo = priceTo.trim() ? Number(priceTo) : null;
-    if (pFrom != null && !Number.isNaN(pFrom) && ad.price < pFrom) return false;
-    if (pTo != null && !Number.isNaN(pTo) && ad.price > pTo) return false;
-    const rFrom = reachFrom.trim() ? Number(reachFrom) : null;
-    if (rFrom != null && !Number.isNaN(rFrom)) {
-    }
-    const themeMatch = !theme.trim() || ad.theme.toLowerCase().includes(theme.trim().toLowerCase());
-    if (!themeMatch) return false;
-    return true;
+  const loadMore = useCallback(() => {
+    if (loadMoreLoading || nextCursor == null) return;
+    setLoadMoreLoading(true);
+    fetchAdsPaginated({
+      priceFrom: priceFrom.trim() || undefined,
+      priceTo: priceTo.trim() || undefined,
+      theme: theme.trim() || undefined,
+      cursor: nextCursor,
+      limit: EXCHANGE_PAGE_SIZE,
+    })
+      .then((res) => {
+        if (res) {
+          setAds((prev) => [...prev, ...(res.ads ?? [])]);
+          setNextCursor(res.nextCursor);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadMoreLoading(false));
+  }, [nextCursor, loadMoreLoading, priceFrom, priceTo, theme]);
+
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore: loadMore,
+    hasMore: nextCursor != null && nextCursor !== "",
+    loading: loadMoreLoading,
   });
+
+  const handleOpenView = useCallback((id: string) => {
+    router.push(`/exchange/view?section=sell-ads&id=${encodeURIComponent(id)}`);
+  }, [router]);
 
   return (
     <section className="space-y-4">
@@ -1050,21 +1027,27 @@ function SellAdsSection({
             Объявлений пока нет.
           </p>
         )}
-        {!loading && ads.length > 0 && filteredAds.length === 0 && (
-          <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-muted)" }}>
-            По фильтрам ничего не найдено.
-          </p>
+        {!loading && ads.length > 0 && (
+          <>
+            {ads.map((ad) => (
+              <div key={ad.id}>
+                <AdCard
+                  ad={ad}
+                  isHot={hotItemIds?.has(String(ad.id))}
+                  onOpenView={handleOpenView}
+                />
+              </div>
+            ))}
+            {loadMoreLoading && (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <ExchangeCardSkeleton key={`more-${i}`} />
+                ))}
+              </div>
+            )}
+            <div ref={sentinelRef} className="h-2" aria-hidden />
+          </>
         )}
-        {!loading && filteredAds.length > 0 &&
-          filteredAds.map((ad) => (
-            <div key={ad.id} ref={ad.id === openItemId ? openItemRef : undefined}>
-              <AdCard
-                ad={ad}
-                isHot={hotItemIds?.has(String(ad.id))}
-                defaultOpen={ad.id === openItemId}
-              />
-            </div>
-          ))}
       </div>
     </section>
   );
@@ -1073,9 +1056,8 @@ function SellAdsSection({
 function BuyAdCard({
   item,
   isHot,
-  defaultOpen,
-}: { item: BuyAdItem; isHot?: boolean; defaultOpen?: boolean }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
+  onOpenView,
+}: { item: BuyAdItem; isHot?: boolean; onOpenView?: (id: string) => void }) {
   const formatPriceRange = (min: number | undefined | null, max: number | undefined | null): string => {
     const m = min != null && typeof min === "number" && !Number.isNaN(min) ? min : null;
     const n = max != null && typeof max === "number" && !Number.isNaN(max) ? max : null;
@@ -1103,8 +1085,8 @@ function BuyAdCard({
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
-      onClick={() => setIsOpen((v) => !v)}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
+      onClick={() => onOpenView?.(item.id)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpenView?.(item.id))}
     >
       {isHot && (
         <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
@@ -1145,19 +1127,12 @@ function BuyAdCard({
           {item.description}
         </p>
       )}
-      {isOpen && <CardExpandedBlock authorLink={item.usernameLink} />}
     </article>
   );
 }
 
-function BuyAdsSection({
-  openItemId,
-  hotItemIds,
-}: {
-  openItemId?: string | null;
-  hotItemIds?: Set<string>;
-}) {
-  const openItemRef = useRef<HTMLDivElement>(null);
+function BuyAdsSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
+  const router = useRouter();
   const [usernameSearch, setUsernameSearch] = useState("");
   const [priceFrom, setPriceFrom] = useState("");
   const [priceTo, setPriceTo] = useState("");
@@ -1167,45 +1142,79 @@ function BuyAdsSection({
   const [descriptionSearch, setDescriptionSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [items, setItems] = useState<BuyAdItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchBuyAds()
+  const loadFirstPage = useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
+    setItems([]);
+    setNextCursor(null);
+    fetchBuyAdsPaginated({
+      priceFrom: priceFrom.trim() || undefined,
+      priceTo: priceTo.trim() || undefined,
+      theme: themeSearch.trim() || undefined,
+      limit: EXCHANGE_PAGE_SIZE,
+    })
       .then((res) => {
-        if (!cancelled) {
+        if (res) {
           setItems(res.buyAds ?? []);
-          setLoadError(null);
-          setLoading(false);
+          setNextCursor(res.nextCursor);
+        } else {
+          setItems([]);
+          setNextCursor(null);
         }
       })
       .catch((error) => {
-        console.error("[ui] Failed to load buyAds", error);
-        if (!cancelled) {
-          setItems([]);
-          setLoadError(toErrorMessage(error));
-          setLoading(false);
+        setItems([]);
+        setNextCursor(null);
+        setLoadError(toErrorMessage(error));
+      })
+      .finally(() => setLoading(false));
+  }, [priceFrom, priceTo, themeSearch]);
+
+  useEffect(() => {
+    const t = setTimeout(() => loadFirstPage(), 0);
+    return () => clearTimeout(t);
+  }, [loadFirstPage]);
+
+  const loadMore = useCallback(() => {
+    if (loadMoreLoading || nextCursor == null) return;
+    setLoadMoreLoading(true);
+    fetchBuyAdsPaginated({
+      priceFrom: priceFrom.trim() || undefined,
+      priceTo: priceTo.trim() || undefined,
+      theme: themeSearch.trim() || undefined,
+      cursor: nextCursor,
+      limit: EXCHANGE_PAGE_SIZE,
+    })
+      .then((res) => {
+        if (res) {
+          setItems((prev) => [...prev, ...(res.buyAds ?? [])]);
+          setNextCursor(res.nextCursor);
         }
-      });
-    return () => { cancelled = true; };
-  }, []);
+      })
+      .catch(() => {})
+      .finally(() => setLoadMoreLoading(false));
+  }, [nextCursor, loadMoreLoading, priceFrom, priceTo, themeSearch]);
+
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore: loadMore,
+    hasMore: nextCursor != null && nextCursor !== "",
+    loading: loadMoreLoading,
+  });
 
   const filteredItems = items.filter((item) => {
     const usernameMatch = !usernameSearch.trim() || item.username.toLowerCase().includes(usernameSearch.trim().toLowerCase());
     if (!usernameMatch) return false;
-    const pFrom = priceFrom.trim() ? Number(priceFrom) : null;
-    const pTo = priceTo.trim() ? Number(priceTo) : null;
-    if (pFrom != null && !Number.isNaN(pFrom) && item.priceMax < pFrom) return false;
-    if (pTo != null && !Number.isNaN(pTo) && item.priceMin > pTo) return false;
     const vFrom = viewsFrom.trim() ? Number(viewsFrom) : null;
     const vTo = viewsTo.trim() ? Number(viewsTo) : null;
     if (vFrom != null && !Number.isNaN(vFrom) && item.viewsMax < vFrom) return false;
     if (vTo != null && !Number.isNaN(vTo) && item.viewsMin > vTo) return false;
-    const themeMatch = !themeSearch.trim() || item.theme.toLowerCase().includes(themeSearch.trim().toLowerCase());
-    if (!themeMatch) return false;
     const descMatch = !descriptionSearch.trim() || item.description.toLowerCase().includes(descriptionSearch.trim().toLowerCase());
     if (!descMatch) return false;
     if (dateFrom.trim() && item.publishedAt < dateFrom) return false;
@@ -1213,11 +1222,9 @@ function BuyAdsSection({
     return true;
   });
 
-  useEffect(() => {
-    if (openItemId && openItemRef.current) {
-      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [openItemId]);
+  const handleOpenView = useCallback((id: string) => {
+    router.push(`/exchange/view?section=buy-ads&id=${encodeURIComponent(id)}`);
+  }, [router]);
 
   return (
     <section className="space-y-4">
@@ -1381,17 +1388,27 @@ function BuyAdsSection({
           </p>
         )}
         {!loading && filteredItems.length > 0 && (
-          <div className="space-y-3">
-            {filteredItems.map((item) => (
-              <div key={item.id} ref={item.id === openItemId ? openItemRef : undefined}>
-                <BuyAdCard
-                  item={item}
-                  isHot={hotItemIds?.has(String(item.id))}
-                  defaultOpen={item.id === openItemId}
-                />
+          <>
+            <div className="space-y-3">
+              {filteredItems.map((item) => (
+                <div key={item.id}>
+                  <BuyAdCard
+                    item={item}
+                    isHot={hotItemIds?.has(String(item.id))}
+                    onOpenView={handleOpenView}
+                  />
+                </div>
+              ))}
+            </div>
+            {loadMoreLoading && (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <ExchangeCardSkeleton key={`more-${i}`} />
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+            <div ref={sentinelRef} className="h-2" aria-hidden />
+          </>
         )}
       </div>
     </section>
@@ -1402,14 +1419,13 @@ function JobCard({
   job,
   exchangeOptions,
   isHot,
-  defaultOpen,
+  onOpenView,
 }: {
   job: JobItem;
   exchangeOptions: ExchangeOptionsPayload | null;
   isHot?: boolean;
-  defaultOpen?: boolean;
+  onOpenView?: (id: string) => void;
 }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
   return (
     <article
       role="button"
@@ -1419,8 +1435,8 @@ function JobCard({
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
-      onClick={() => setIsOpen((v) => !v)}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
+      onClick={() => onOpenView?.(job.id)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpenView?.(job.id))}
     >
       {isHot && (
         <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
@@ -1484,7 +1500,6 @@ function JobCard({
           {job.description}
         </p>
       )}
-      {isOpen && <CardExpandedBlock authorLink={job.usernameLink} />}
     </article>
   );
 }
@@ -1497,14 +1512,12 @@ const inputStyle = {
 
 function JobsSection({
   exchangeOptions,
-  openItemId,
   hotItemIds,
 }: {
   exchangeOptions: ExchangeOptionsPayload | null;
-  openItemId?: string | null;
   hotItemIds?: Set<string>;
 }) {
-  const openItemRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const [offerType, setOfferType] = useState<JobOfferType | "">("");
   const [work, setWork] = useState<WorkType | "">("");
   const [employmentType, setEmploymentType] = useState<EmploymentType | "">("");
@@ -1512,50 +1525,83 @@ function JobsSection({
   const [hasPortfolio, setHasPortfolio] = useState<"" | "yes" | "no">("");
   const [descriptionSearch, setDescriptionSearch] = useState("");
   const [themeSearch, setThemeSearch] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [jobs, setJobs] = useState<JobItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchJobs()
+  const loadFirstPage = useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
+    setJobs([]);
+    setNextCursor(null);
+    fetchJobsPaginated({
+      offerType: offerType || undefined,
+      work: work || undefined,
+      employmentType: employmentType || undefined,
+      paymentCurrency: paymentCurrency || undefined,
+      hasPortfolio: hasPortfolio || undefined,
+      themeSearch: themeSearch.trim() || undefined,
+      descriptionSearch: descriptionSearch.trim() || undefined,
+      limit: EXCHANGE_PAGE_SIZE,
+    })
       .then((res) => {
-        if (!cancelled) {
+        if (res) {
           setJobs(res.jobs ?? []);
-          setLoadError(null);
-          setLoading(false);
+          setNextCursor(res.nextCursor);
+        } else {
+          setJobs([]);
+          setNextCursor(null);
         }
       })
       .catch((error) => {
-        console.error("[ui] Failed to load jobs", error);
-        if (!cancelled) {
-          setJobs([]);
-          setLoadError(toErrorMessage(error));
-          setLoading(false);
-        }
-      });
-    return () => { cancelled = true; };
-  }, []);
-
-  const filteredJobs = jobs.filter((job) => {
-    if (offerType && job.offerType !== offerType) return false;
-    if (work && job.work !== work) return false;
-    if (employmentType && job.employmentType !== employmentType) return false;
-    if (paymentCurrency && job.paymentCurrency !== paymentCurrency) return false;
-    if (hasPortfolio === "yes" && !job.portfolioUrl) return false;
-    if (hasPortfolio === "no" && job.portfolioUrl) return false;
-    if (descriptionSearch.trim() && !job.description.toLowerCase().includes(descriptionSearch.trim().toLowerCase())) return false;
-    const themeMatch = !themeSearch.trim() || job.theme.toLowerCase().includes(themeSearch.trim().toLowerCase());
-    if (!themeMatch) return false;
-    return true;
-  });
+        setJobs([]);
+        setNextCursor(null);
+        setLoadError(toErrorMessage(error));
+      })
+      .finally(() => setLoading(false));
+  }, [offerType, work, employmentType, paymentCurrency, hasPortfolio, themeSearch, descriptionSearch]);
 
   useEffect(() => {
-    if (openItemId && openItemRef.current) {
-      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [openItemId]);
+    const t = setTimeout(() => loadFirstPage(), 0);
+    return () => clearTimeout(t);
+  }, [loadFirstPage]);
+
+  const loadMore = useCallback(() => {
+    if (loadMoreLoading || nextCursor == null) return;
+    setLoadMoreLoading(true);
+    fetchJobsPaginated({
+      offerType: offerType || undefined,
+      work: work || undefined,
+      employmentType: employmentType || undefined,
+      paymentCurrency: paymentCurrency || undefined,
+      hasPortfolio: hasPortfolio || undefined,
+      themeSearch: themeSearch.trim() || undefined,
+      descriptionSearch: descriptionSearch.trim() || undefined,
+      cursor: nextCursor,
+      limit: EXCHANGE_PAGE_SIZE,
+    })
+      .then((res) => {
+        if (res) {
+          setJobs((prev) => [...prev, ...(res.jobs ?? [])]);
+          setNextCursor(res.nextCursor);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadMoreLoading(false));
+  }, [nextCursor, loadMoreLoading, offerType, work, employmentType, paymentCurrency, hasPortfolio, themeSearch, descriptionSearch]);
+
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore: loadMore,
+    hasMore: nextCursor != null && nextCursor !== "",
+    loading: loadMoreLoading,
+  });
+
+  const handleOpenView = useCallback((id: string) => {
+    router.push(`/exchange/view?section=jobs&id=${encodeURIComponent(id)}`);
+  }, [router]);
 
   return (
     <section className="space-y-4">
@@ -1706,24 +1752,29 @@ function JobsSection({
           Вакансий пока нет.
         </p>
       )}
-      {!loading && jobs.length > 0 && filteredJobs.length === 0 && (
-        <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-muted)" }}>
-          По фильтрам ничего не найдено.
-        </p>
-      )}
-      {!loading && filteredJobs.length > 0 && (
-        <div className="space-y-3">
-          {filteredJobs.map((job) => (
-            <div key={job.id} ref={job.id === openItemId ? openItemRef : undefined}>
-              <JobCard
-                job={job}
-                exchangeOptions={exchangeOptions}
-                isHot={hotItemIds?.has(String(job.id))}
-                defaultOpen={job.id === openItemId}
-              />
+      {!loading && jobs.length > 0 && (
+        <>
+          <div className="space-y-3">
+            {jobs.map((job) => (
+              <div key={job.id}>
+                <JobCard
+                  job={job}
+                  exchangeOptions={exchangeOptions}
+                  isHot={hotItemIds?.has(String(job.id))}
+                  onOpenView={handleOpenView}
+                />
+              </div>
+            ))}
+          </div>
+          {loadMoreLoading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <ExchangeCardSkeleton key={`more-${i}`} />
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+          <div ref={sentinelRef} className="h-2" aria-hidden />
+        </>
       )}
     </section>
   );
@@ -1732,10 +1783,8 @@ function JobsSection({
 function ServiceCard({
   service,
   isHot,
-  defaultOpen,
-}: { service: ServiceItem; isHot?: boolean; defaultOpen?: boolean }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
-  const authorLink = `https://t.me/${(service.username || "").replace(/^@/, "")}`;
+  onOpenView,
+}: { service: ServiceItem; isHot?: boolean; onOpenView?: (id: string) => void }) {
   return (
     <article
       role="button"
@@ -1745,8 +1794,8 @@ function ServiceCard({
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
-      onClick={() => setIsOpen((v) => !v)}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
+      onClick={() => onOpenView?.(service.id)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpenView?.(service.id))}
     >
       {isHot && (
         <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
@@ -1779,19 +1828,12 @@ function ServiceCard({
       <p className="text-xs pt-1 border-t" style={{ color: "var(--color-text-muted)", borderColor: "var(--color-border)" }}>
         Опубликовано: {formatServiceDate(service.publishedAt)}
       </p>
-      {isOpen && <CardExpandedBlock authorLink={authorLink} />}
     </article>
   );
 }
 
-function DesignersSection({
-  openItemId,
-  hotItemIds,
-}: {
-  openItemId?: string | null;
-  hotItemIds?: Set<string>;
-}) {
-  const openItemRef = useRef<HTMLDivElement>(null);
+function DesignersSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
+  const router = useRouter();
   const [titleSearch, setTitleSearch] = useState("");
   const [priceFrom, setPriceFrom] = useState("");
   const [priceTo, setPriceTo] = useState("");
@@ -1801,31 +1843,60 @@ function DesignersSection({
   const [themeSearch, setThemeSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [services, setServices] = useState<ServiceItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchServices()
+  const loadFirstPage = useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
+    setServices([]);
+    setNextCursor(null);
+    fetchServicesPaginated({ theme: themeSearch.trim() || undefined, limit: EXCHANGE_PAGE_SIZE })
       .then((res) => {
-        if (!cancelled) {
+        if (res) {
           setServices(res.services ?? []);
-          setLoadError(null);
-          setLoading(false);
+          setNextCursor(res.nextCursor);
+        } else {
+          setServices([]);
+          setNextCursor(null);
         }
       })
       .catch((error) => {
-        console.error("[ui] Failed to load services", error);
-        if (!cancelled) {
-          setServices([]);
-          setLoadError(toErrorMessage(error));
-          setLoading(false);
+        setServices([]);
+        setNextCursor(null);
+        setLoadError(toErrorMessage(error));
+      })
+      .finally(() => setLoading(false));
+  }, [themeSearch]);
+
+  useEffect(() => {
+    const t = setTimeout(() => loadFirstPage(), 0);
+    return () => clearTimeout(t);
+  }, [loadFirstPage]);
+
+  const loadMore = useCallback(() => {
+    if (loadMoreLoading || nextCursor == null) return;
+    setLoadMoreLoading(true);
+    fetchServicesPaginated({ theme: themeSearch.trim() || undefined, cursor: nextCursor, limit: EXCHANGE_PAGE_SIZE })
+      .then((res) => {
+        if (res) {
+          setServices((prev) => [...prev, ...(res.services ?? [])]);
+          setNextCursor(res.nextCursor);
         }
-      });
-    return () => { cancelled = true; };
-  }, []);
+      })
+      .catch(() => {})
+      .finally(() => setLoadMoreLoading(false));
+  }, [nextCursor, loadMoreLoading, themeSearch]);
+
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore: loadMore,
+    hasMore: nextCursor != null && nextCursor !== "",
+    loading: loadMoreLoading,
+  });
 
   const filteredServices = services.filter((s) => {
     if (titleSearch.trim() && !s.title.toLowerCase().includes(titleSearch.trim().toLowerCase())) return false;
@@ -1837,18 +1908,14 @@ function DesignersSection({
     if (verified === "no" && s.verified) return false;
     if (usernameSearch.trim() && !s.username.toLowerCase().includes(usernameSearch.trim().toLowerCase())) return false;
     if (descriptionSearch.trim() && !s.description.toLowerCase().includes(descriptionSearch.trim().toLowerCase())) return false;
-    const themeMatch = !themeSearch.trim() || s.theme.toLowerCase().includes(themeSearch.trim().toLowerCase());
-    if (!themeMatch) return false;
     if (dateFrom.trim() && s.publishedAt < dateFrom) return false;
     if (dateTo.trim() && s.publishedAt > dateTo) return false;
     return true;
   });
 
-  useEffect(() => {
-    if (openItemId && openItemRef.current) {
-      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [openItemId]);
+  const handleOpenView = useCallback((id: string) => {
+    router.push(`/exchange/view?section=designers&id=${encodeURIComponent(id)}`);
+  }, [router]);
 
   const serviceInputStyle = {
     backgroundColor: "var(--input-bg)",
@@ -2020,17 +2087,27 @@ function DesignersSection({
         </p>
       )}
       {!loading && filteredServices.length > 0 && (
-        <div className="space-y-3">
-          {filteredServices.map((s) => (
-            <div key={s.id} ref={s.id === openItemId ? openItemRef : undefined}>
-              <ServiceCard
-                service={s}
-                isHot={hotItemIds?.has(String(s.id))}
-                defaultOpen={s.id === openItemId}
-              />
+        <>
+          <div className="space-y-3">
+            {filteredServices.map((s) => (
+              <div key={s.id}>
+                <ServiceCard
+                  service={s}
+                  isHot={hotItemIds?.has(String(s.id))}
+                  onOpenView={handleOpenView}
+                />
+              </div>
+            ))}
+          </div>
+          {loadMoreLoading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <ExchangeCardSkeleton key={`more-${i}`} />
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+          <div ref={sentinelRef} className="h-2" aria-hidden />
+        </>
       )}
     </section>
   );
@@ -2039,14 +2116,12 @@ function DesignersSection({
 function CurrencyCard({
   item,
   isHot,
-  defaultOpen,
+  onOpenView,
 }: {
   item: CurrencyItem;
   isHot?: boolean;
-  defaultOpen?: boolean;
+  onOpenView?: (id: string) => void;
 }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
-
   const rawLinks = Array.isArray(item.additionalLinks) ? item.additionalLinks : [];
   const links = rawLinks
     .map((l, idx) => {
@@ -2083,8 +2158,8 @@ function CurrencyCard({
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
-      onClick={() => setIsOpen((v) => !v)}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
+      onClick={() => onOpenView?.(String(item.id))}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpenView?.(String(item.id)))}
     >
       {isHot && (
         <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
@@ -2182,51 +2257,69 @@ function CurrencyCard({
         </div>
       )}
 
-      {isOpen && <CardExpandedBlock authorLink={item.usernameLink || ""} />}
     </article>
   );
 }
 
-function CurrencySection({
-  openItemId,
-  hotItemIds,
-}: {
-  openItemId?: string | null;
-  hotItemIds?: Set<string>;
-}) {
-  const openItemRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+function CurrencySection({ hotItemIds }: { hotItemIds?: Set<string> }) {
+  const router = useRouter();
   const [items, setItems] = useState<CurrencyItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchCurrency()
+  const loadFirstPage = useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
+    setItems([]);
+    setNextCursor(null);
+    fetchCurrencyPaginated({ limit: EXCHANGE_PAGE_SIZE })
       .then((res) => {
-        if (!cancelled) {
+        if (res) {
           setItems(res.currency ?? []);
-          setLoadError(null);
-          setLoading(false);
+          setNextCursor(res.nextCursor);
+        } else {
+          setItems([]);
+          setNextCursor(null);
         }
       })
       .catch((error) => {
-        console.error("[ui] Failed to load currency", error);
-        if (!cancelled) {
-          setItems([]);
-          setLoadError(toErrorMessage(error));
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
+        setItems([]);
+        setNextCursor(null);
+        setLoadError(toErrorMessage(error));
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    if (openItemId && openItemRef.current) {
-      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [openItemId]);
+    const t = setTimeout(() => loadFirstPage(), 0);
+    return () => clearTimeout(t);
+  }, [loadFirstPage]);
+
+  const loadMore = useCallback(() => {
+    if (loadMoreLoading || nextCursor == null) return;
+    setLoadMoreLoading(true);
+    fetchCurrencyPaginated({ cursor: nextCursor, limit: EXCHANGE_PAGE_SIZE })
+      .then((res) => {
+        if (res) {
+          setItems((prev) => [...prev, ...(res.currency ?? [])]);
+          setNextCursor(res.nextCursor);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadMoreLoading(false));
+  }, [nextCursor, loadMoreLoading]);
+
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore: loadMore,
+    hasMore: nextCursor != null && nextCursor !== "",
+    loading: loadMoreLoading,
+  });
+
+  const handleOpenView = useCallback((id: string) => {
+    router.push(`/exchange/view?section=currency&id=${encodeURIComponent(id)}`);
+  }, [router]);
 
   return (
     <section className="space-y-4">
@@ -2260,17 +2353,27 @@ function CurrencySection({
       )}
 
       {!loading && !loadError && items.length > 0 && (
-        <div className="space-y-3">
-          {items.map((it) => (
-            <div key={it.id} ref={String(it.id) === String(openItemId) ? openItemRef : undefined}>
-              <CurrencyCard
-                item={it}
-                isHot={hotItemIds?.has(String(it.id))}
-                defaultOpen={String(it.id) === String(openItemId)}
-              />
+        <>
+          <div className="space-y-3">
+            {items.map((it) => (
+              <div key={it.id}>
+                <CurrencyCard
+                  item={it}
+                  isHot={hotItemIds?.has(String(it.id))}
+                  onOpenView={handleOpenView}
+                />
+              </div>
+            ))}
+          </div>
+          {loadMoreLoading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <ExchangeCardSkeleton key={`more-${i}`} />
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+          <div ref={sentinelRef} className="h-2" aria-hidden />
+        </>
       )}
     </section>
   );
@@ -2279,9 +2382,8 @@ function CurrencySection({
 function SellChannelCard({
   channel,
   isHot,
-  defaultOpen,
-}: { channel: SellChannelItem; isHot?: boolean; defaultOpen?: boolean }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
+  onOpenView,
+}: { channel: SellChannelItem; isHot?: boolean; onOpenView?: (id: string) => void }) {
   return (
     <article
       role="button"
@@ -2291,8 +2393,8 @@ function SellChannelCard({
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
-      onClick={() => setIsOpen((v) => !v)}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
+      onClick={() => onOpenView?.(channel.id)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpenView?.(channel.id))}
     >
       {isHot && (
         <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
@@ -2353,19 +2455,12 @@ function SellChannelCard({
           {channel.description}
         </p>
       )}
-      {isOpen && <CardExpandedBlock authorLink={channel.usernameLink} />}
     </article>
   );
 }
 
-function SellChannelSection({
-  openItemId,
-  hotItemIds,
-}: {
-  openItemId?: string | null;
-  hotItemIds?: Set<string>;
-}) {
-  const openItemRef = useRef<HTMLDivElement>(null);
+function SellChannelSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
+  const router = useRouter();
   const [nameSearch, setNameSearch] = useState("");
   const [subscribersFrom, setSubscribersFrom] = useState("");
   const [subscribersTo, setSubscribersTo] = useState("");
@@ -2384,28 +2479,57 @@ function SellChannelSection({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [channels, setChannels] = useState<SellChannelItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchSellChannels()
+  const loadFirstPage = useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
+    setChannels([]);
+    setNextCursor(null);
+    fetchSellChannelsPaginated({ theme: themeSearch.trim() || undefined, limit: EXCHANGE_PAGE_SIZE })
       .then((res) => {
-        if (!cancelled) {
+        if (res) {
           setChannels(res.sellChannels ?? []);
-          setLoadError(null);
-          setLoading(false);
+          setNextCursor(res.nextCursor);
+        } else {
+          setChannels([]);
+          setNextCursor(null);
         }
       })
       .catch((error) => {
-        console.error("[ui] Failed to load sellChannels", error);
-        if (!cancelled) {
-          setChannels([]);
-          setLoadError(toErrorMessage(error));
-          setLoading(false);
+        setChannels([]);
+        setNextCursor(null);
+        setLoadError(toErrorMessage(error));
+      })
+      .finally(() => setLoading(false));
+  }, [themeSearch]);
+
+  useEffect(() => {
+    const t = setTimeout(() => loadFirstPage(), 0);
+    return () => clearTimeout(t);
+  }, [loadFirstPage]);
+
+  const loadMore = useCallback(() => {
+    if (loadMoreLoading || nextCursor == null) return;
+    setLoadMoreLoading(true);
+    fetchSellChannelsPaginated({ theme: themeSearch.trim() || undefined, cursor: nextCursor, limit: EXCHANGE_PAGE_SIZE })
+      .then((res) => {
+        if (res) {
+          setChannels((prev) => [...prev, ...(res.sellChannels ?? [])]);
+          setNextCursor(res.nextCursor);
         }
-      });
-    return () => { cancelled = true; };
-  }, []);
+      })
+      .catch(() => {})
+      .finally(() => setLoadMoreLoading(false));
+  }, [nextCursor, loadMoreLoading, themeSearch]);
+
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore: loadMore,
+    hasMore: nextCursor != null && nextCursor !== "",
+    loading: loadMoreLoading,
+  });
 
   const filteredChannels = channels.filter((ch) => {
     const nameMatch = !nameSearch.trim() || ch.name.toLowerCase().includes(nameSearch.trim().toLowerCase());
@@ -2438,11 +2562,9 @@ function SellChannelSection({
     return nameMatch;
   });
 
-  useEffect(() => {
-    if (openItemId && openItemRef.current) {
-      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [openItemId]);
+  const handleOpenView = useCallback((id: string) => {
+    router.push(`/exchange/view?section=sell-channel&id=${encodeURIComponent(id)}`);
+  }, [router]);
 
   return (
     <section className="space-y-4">
@@ -2686,17 +2808,27 @@ function SellChannelSection({
         </p>
       )}
       {!loading && filteredChannels.length > 0 && (
-        <div className="space-y-3">
-          {filteredChannels.map((ch) => (
-            <div key={ch.id} ref={ch.id === openItemId ? openItemRef : undefined}>
-              <SellChannelCard
-                channel={ch}
-                isHot={hotItemIds?.has(String(ch.id))}
-                defaultOpen={ch.id === openItemId}
-              />
+        <>
+          <div className="space-y-3">
+            {filteredChannels.map((ch) => (
+              <div key={ch.id}>
+                <SellChannelCard
+                  channel={ch}
+                  isHot={hotItemIds?.has(String(ch.id))}
+                  onOpenView={handleOpenView}
+                />
+              </div>
+            ))}
+          </div>
+          {loadMoreLoading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <ExchangeCardSkeleton key={`more-${i}`} />
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+          <div ref={sentinelRef} className="h-2" aria-hidden />
+        </>
       )}
     </section>
   );
@@ -2714,9 +2846,8 @@ function formatRange(min: number | undefined | null, max: number | undefined | n
 function BuyChannelCard({
   item,
   isHot,
-  defaultOpen,
-}: { item: BuyChannelItem; isHot?: boolean; defaultOpen?: boolean }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
+  onOpenView,
+}: { item: BuyChannelItem; isHot?: boolean; onOpenView?: (id: string) => void }) {
   return (
     <article
       role="button"
@@ -2726,8 +2857,8 @@ function BuyChannelCard({
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
-      onClick={() => setIsOpen((v) => !v)}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
+      onClick={() => onOpenView?.(item.id)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpenView?.(item.id))}
     >
       {isHot && (
         <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
@@ -2774,19 +2905,12 @@ function BuyChannelCard({
           {item.description}
         </p>
       )}
-      {isOpen && <CardExpandedBlock authorLink={item.usernameLink} />}
     </article>
   );
 }
 
-function BuyChannelSection({
-  openItemId,
-  hotItemIds,
-}: {
-  openItemId?: string | null;
-  hotItemIds?: Set<string>;
-}) {
-  const openItemRef = useRef<HTMLDivElement>(null);
+function BuyChannelSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
+  const router = useRouter();
   const [usernameSearch, setUsernameSearch] = useState("");
   const [verified, setVerified] = useState<"" | "yes" | "no">("");
   const [priceFrom, setPriceFrom] = useState("");
@@ -2800,31 +2924,60 @@ function BuyChannelSection({
   const [themeSearch, setThemeSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [items, setItems] = useState<BuyChannelItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchBuyChannels()
+  const loadFirstPage = useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
+    setItems([]);
+    setNextCursor(null);
+    fetchBuyChannelsPaginated({ theme: themeSearch.trim() || undefined, limit: EXCHANGE_PAGE_SIZE })
       .then((res) => {
-        if (!cancelled) {
+        if (res) {
           setItems(res.buyChannels ?? []);
-          setLoadError(null);
-          setLoading(false);
+          setNextCursor(res.nextCursor);
+        } else {
+          setItems([]);
+          setNextCursor(null);
         }
       })
       .catch((error) => {
-        console.error("[ui] Failed to load buyChannels", error);
-        if (!cancelled) {
-          setItems([]);
-          setLoadError(toErrorMessage(error));
-          setLoading(false);
+        setItems([]);
+        setNextCursor(null);
+        setLoadError(toErrorMessage(error));
+      })
+      .finally(() => setLoading(false));
+  }, [themeSearch]);
+
+  useEffect(() => {
+    const t = setTimeout(() => loadFirstPage(), 0);
+    return () => clearTimeout(t);
+  }, [loadFirstPage]);
+
+  const loadMore = useCallback(() => {
+    if (loadMoreLoading || nextCursor == null) return;
+    setLoadMoreLoading(true);
+    fetchBuyChannelsPaginated({ theme: themeSearch.trim() || undefined, cursor: nextCursor, limit: EXCHANGE_PAGE_SIZE })
+      .then((res) => {
+        if (res) {
+          setItems((prev) => [...prev, ...(res.buyChannels ?? [])]);
+          setNextCursor(res.nextCursor);
         }
-      });
-    return () => { cancelled = true; };
-  }, []);
+      })
+      .catch(() => {})
+      .finally(() => setLoadMoreLoading(false));
+  }, [nextCursor, loadMoreLoading, themeSearch]);
+
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore: loadMore,
+    hasMore: nextCursor != null && nextCursor !== "",
+    loading: loadMoreLoading,
+  });
 
   const filteredItems = items.filter((item) => {
     const usernameMatch = !usernameSearch.trim() || item.username.toLowerCase().includes(usernameSearch.trim().toLowerCase());
@@ -2854,11 +3007,9 @@ function BuyChannelSection({
     return true;
   });
 
-  useEffect(() => {
-    if (openItemId && openItemRef.current) {
-      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [openItemId]);
+  const handleOpenView = useCallback((id: string) => {
+    router.push(`/exchange/view?section=buy-channel&id=${encodeURIComponent(id)}`);
+  }, [router]);
 
   return (
     <section className="space-y-4">
@@ -3074,17 +3225,27 @@ function BuyChannelSection({
         </p>
       )}
       {!loading && filteredItems.length > 0 && (
-        <div className="space-y-3">
-          {filteredItems.map((item) => (
-            <div key={item.id} ref={item.id === openItemId ? openItemRef : undefined}>
-              <BuyChannelCard
-                item={item}
-                isHot={hotItemIds?.has(String(item.id))}
-                defaultOpen={item.id === openItemId}
-              />
+        <>
+          <div className="space-y-3">
+            {filteredItems.map((item) => (
+              <div key={item.id}>
+                <BuyChannelCard
+                  item={item}
+                  isHot={hotItemIds?.has(String(item.id))}
+                  onOpenView={handleOpenView}
+                />
+              </div>
+            ))}
+          </div>
+          {loadMoreLoading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <ExchangeCardSkeleton key={`more-${i}`} />
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+          <div ref={sentinelRef} className="h-2" aria-hidden />
+        </>
       )}
     </section>
   );
@@ -3093,9 +3254,8 @@ function BuyChannelSection({
 function OtherCard({
   item,
   isHot,
-  defaultOpen,
-}: { item: OtherItem; isHot?: boolean; defaultOpen?: boolean }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
+  onOpenView,
+}: { item: OtherItem; isHot?: boolean; onOpenView?: (id: string) => void }) {
   return (
     <article
       role="button"
@@ -3105,8 +3265,8 @@ function OtherCard({
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
       }}
-      onClick={() => setIsOpen((v) => !v)}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setIsOpen((v) => !v))}
+      onClick={() => onOpenView?.(item.id)}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpenView?.(item.id))}
     >
       {isHot && (
         <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
@@ -3141,19 +3301,12 @@ function OtherCard({
           {item.description}
         </p>
       )}
-      {isOpen && <CardExpandedBlock authorLink={item.usernameLink} />}
     </article>
   );
 }
 
-function OtherSection({
-  openItemId,
-  hotItemIds,
-}: {
-  openItemId?: string | null;
-  hotItemIds?: Set<string>;
-}) {
-  const openItemRef = useRef<HTMLDivElement>(null);
+function OtherSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
+  const router = useRouter();
   const [usernameSearch, setUsernameSearch] = useState("");
   const [verified, setVerified] = useState<"" | "yes" | "no">("");
   const [priceFrom, setPriceFrom] = useState("");
@@ -3161,31 +3314,69 @@ function OtherSection({
   const [descriptionSearch, setDescriptionSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [items, setItems] = useState<OtherItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchOther()
+  const loadFirstPage = useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
+    setItems([]);
+    setNextCursor(null);
+    fetchOtherPaginated({
+      dateFrom: dateFrom.trim() || undefined,
+      dateTo: dateTo.trim() || undefined,
+      limit: EXCHANGE_PAGE_SIZE,
+    })
       .then((res) => {
-        if (!cancelled) {
+        if (res) {
           setItems(res.other ?? []);
-          setLoadError(null);
-          setLoading(false);
+          setNextCursor(res.nextCursor);
+        } else {
+          setItems([]);
+          setNextCursor(null);
         }
       })
       .catch((error) => {
-        console.error("[ui] Failed to load other", error);
-        if (!cancelled) {
-          setItems([]);
-          setLoadError(toErrorMessage(error));
-          setLoading(false);
+        setItems([]);
+        setNextCursor(null);
+        setLoadError(toErrorMessage(error));
+      })
+      .finally(() => setLoading(false));
+  }, [dateFrom, dateTo]);
+
+  useEffect(() => {
+    const t = setTimeout(() => loadFirstPage(), 0);
+    return () => clearTimeout(t);
+  }, [loadFirstPage]);
+
+  const loadMore = useCallback(() => {
+    if (loadMoreLoading || nextCursor == null) return;
+    setLoadMoreLoading(true);
+    fetchOtherPaginated({
+      dateFrom: dateFrom.trim() || undefined,
+      dateTo: dateTo.trim() || undefined,
+      cursor: nextCursor,
+      limit: EXCHANGE_PAGE_SIZE,
+    })
+      .then((res) => {
+        if (res) {
+          setItems((prev) => [...prev, ...(res.other ?? [])]);
+          setNextCursor(res.nextCursor);
         }
-      });
-    return () => { cancelled = true; };
-  }, []);
+      })
+      .catch(() => {})
+      .finally(() => setLoadMoreLoading(false));
+  }, [nextCursor, loadMoreLoading, dateFrom, dateTo]);
+
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore: loadMore,
+    hasMore: nextCursor != null && nextCursor !== "",
+    loading: loadMoreLoading,
+  });
 
   const filteredItems = items.filter((item) => {
     const usernameMatch = !usernameSearch.trim() || item.username.toLowerCase().includes(usernameSearch.trim().toLowerCase());
@@ -3198,16 +3389,12 @@ function OtherSection({
     if (pTo != null && !Number.isNaN(pTo) && item.price > pTo) return false;
     const descMatch = !descriptionSearch.trim() || item.description.toLowerCase().includes(descriptionSearch.trim().toLowerCase());
     if (!descMatch) return false;
-    if (dateFrom.trim() && item.publishedAt < dateFrom) return false;
-    if (dateTo.trim() && item.publishedAt > dateTo) return false;
     return true;
   });
 
-  useEffect(() => {
-    if (openItemId && openItemRef.current) {
-      openItemRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [openItemId]);
+  const handleOpenView = useCallback((id: string) => {
+    router.push(`/exchange/view?section=other&id=${encodeURIComponent(id)}`);
+  }, [router]);
 
   return (
     <section className="space-y-4">
@@ -3349,18 +3536,31 @@ function OtherSection({
         </p>
       )}
       {!loading && filteredItems.length > 0 && (
-        <div className="space-y-3">
-          {filteredItems.map((item) => (
-            <div key={item.id} ref={item.id === openItemId ? openItemRef : undefined}>
-              <OtherCard
-                item={item}
-                isHot={hotItemIds?.has(String(item.id))}
-                defaultOpen={item.id === openItemId}
-              />
+        <>
+          <div className="space-y-3">
+            {filteredItems.map((item) => (
+              <div key={item.id}>
+                <OtherCard
+                  item={item}
+                  isHot={hotItemIds?.has(String(item.id))}
+                  onOpenView={handleOpenView}
+                />
+              </div>
+            ))}
+          </div>
+          {loadMoreLoading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <ExchangeCardSkeleton key={`more-${i}`} />
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+          <div ref={sentinelRef} className="h-2" aria-hidden />
+        </>
       )}
     </section>
   );
 }
+
+export { AdCard, BuyAdCard, JobCard, ServiceCard, CurrencyCard, SellChannelCard, BuyChannelCard, OtherCard };
+export type { ExchangeSection };

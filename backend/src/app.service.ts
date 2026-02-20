@@ -368,15 +368,21 @@ export class AppService {
     return this.buildUserProfile(user);
   }
 
-  async getTopUsers(limit: number = 10) {
+  async getTopUsers(limit: number = 10, cursor?: string) {
     const users = await this.usersRepository.find({
       order: { createdAt: 'DESC' },
     });
     const profiles = await Promise.all(
       users.map((user) => this.buildUserProfile(user)),
     );
-    profiles.sort((a, b) => b.rating.total - a.rating.total);
-    const topUsers = profiles.slice(0, limit).map((profile, index) => {
+    profiles.sort((a, b) => {
+      const byRating = b.rating.total - a.rating.total;
+      if (byRating !== 0) return byRating;
+      return (a.id || '').localeCompare(b.id || '');
+    });
+    const offset = cursor != null && cursor !== '' ? Math.max(0, parseInt(cursor, 10) || 0) : 0;
+    const slice = profiles.slice(offset, offset + limit);
+    const topUsers = slice.map((profile, index) => {
       const name =
         profile.username ||
         profile.firstName ||
@@ -384,14 +390,16 @@ export class AppService {
         'Пользователь';
       return {
         id: profile.id,
-        rank: index + 1,
+        rank: offset + index + 1,
         name,
         username: profile.username || null,
         rating: profile.rating.total,
         dealsCount: profile.statistics?.deals?.total || 0,
       };
     });
-    return topUsers;
+    const nextOffset = offset + topUsers.length;
+    const nextCursor = nextOffset < profiles.length ? String(nextOffset) : null;
+    return { users: topUsers, nextCursor };
   }
 
   async setUserRatingManualDelta(userId: string, ratingManualDelta: number) {
@@ -542,21 +550,28 @@ export class AppService {
     });
   }
 
-  async getMyModerationRequests(telegramId: string | number) {
+  async getMyModerationRequests(telegramId: string | number, limit?: number, cursor?: string) {
     const normalized = String(telegramId ?? '').trim();
-    if (!normalized) return [];
+    if (!normalized) return { publications: [], nextCursor: null };
+    const limitNum = Number.isFinite(limit) && limit! > 0 ? Math.min(limit!, 100) : 20;
+    const offset = cursor != null && cursor !== '' ? Math.max(0, parseInt(cursor, 10) || 0) : 0;
     const rows = await this.moderationRequestsRepository.find({
       where: { telegramId: normalized },
       order: { createdAt: 'DESC' },
-      take: 100,
+      skip: offset,
+      take: limitNum + 1,
     });
-    return rows.map((r) => ({
+    const hasMore = rows.length > limitNum;
+    const slice = hasMore ? rows.slice(0, limitNum) : rows;
+    const publications = slice.map((r) => ({
       id: r.id,
       status: r.status,
       section: r.section,
       formData: r.formData ?? {},
       createdAt: r.createdAt?.toISOString?.() ?? new Date().toISOString(),
     }));
+    const nextCursor = hasMore ? String(offset + limitNum) : null;
+    return { publications, nextCursor };
   }
 
   async getModerationRequestById(id: string) {

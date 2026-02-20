@@ -1,4 +1,4 @@
-import { fetchDatasetFromApi } from "./dataSource";
+import { fetchDatasetFromApi, fetchDatasetPaginated, type FetchDatasetPaginatedParams } from "./dataSource";
 
 export type CurrencyAdditionalLink =
   | string
@@ -32,5 +32,18 @@ export async function fetchCurrency(): Promise<CurrencyResponse> {
     throw new Error('Failed to load "currency" from content API');
   }
   return payload;
+}
+
+export type CurrencyPaginatedParams = FetchDatasetPaginatedParams & { theme?: string };
+
+export async function fetchCurrencyPaginated(
+  params: CurrencyPaginatedParams = {},
+): Promise<{ currency: CurrencyItem[]; nextCursor: string | null } | null> {
+  const res = await fetchDatasetPaginated<CurrencyResponse>("currency", {
+    ...params,
+    limit: params.limit ?? 20,
+  });
+  if (!res) return null;
+  return { currency: res.payload.currency ?? [], nextCursor: res.nextCursor };
 }
 

@@ -107,6 +107,11 @@ export async function fetchUserFavorites(
   return Array.isArray(data.favorites) ? data.favorites : [];
 }
 
+export type MyPublicationsPaginatedResponse = {
+  publications: MyPublicationItem[];
+  nextCursor: string | null;
+};
+
 export async function fetchMyPublications(
   telegramId: string | number,
 ): Promise<MyPublicationItem[]> {
@@ -116,6 +121,26 @@ export async function fetchMyPublications(
   }
   const data = await res.json();
   return Array.isArray(data.publications) ? data.publications : [];
+}
+
+export async function fetchMyPublicationsPaginated(
+  telegramId: string | number,
+  cursor?: string | null,
+  limit: number = 20,
+): Promise<MyPublicationsPaginatedResponse> {
+  const params = new URLSearchParams();
+  params.set("telegramId", String(telegramId));
+  params.set("limit", String(limit));
+  if (cursor != null && cursor !== "") params.set("cursor", cursor);
+  const res = await fetch(`${API_BASE}/users/me/publications?${params.toString()}`);
+  if (!res.ok) {
+    throw new Error(`Failed to load publications: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  return {
+    publications: Array.isArray(data.publications) ? data.publications : [],
+    nextCursor: data.nextCursor ?? null,
+  };
 }
 
 export type ListUserItem = {

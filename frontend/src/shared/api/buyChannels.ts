@@ -1,4 +1,4 @@
-import { fetchDatasetFromApi } from "./dataSource";
+import { fetchDatasetFromApi, fetchDatasetPaginated, type FetchDatasetPaginatedParams } from "./dataSource";
 
 export type BuyChannelItem = {
   id: string;
@@ -27,4 +27,17 @@ export async function fetchBuyChannels(): Promise<BuyChannelsResponse> {
     throw new Error('Failed to load "buyChannels" from content API');
   }
   return payload;
+}
+
+export type BuyChannelsPaginatedParams = FetchDatasetPaginatedParams & { theme?: string };
+
+export async function fetchBuyChannelsPaginated(
+  params: BuyChannelsPaginatedParams = {},
+): Promise<{ buyChannels: BuyChannelItem[]; nextCursor: string | null } | null> {
+  const res = await fetchDatasetPaginated<BuyChannelsResponse>("buyChannels", {
+    ...params,
+    limit: params.limit ?? 20,
+  });
+  if (!res) return null;
+  return { buyChannels: res.payload.buyChannels ?? [], nextCursor: res.nextCursor };
 }

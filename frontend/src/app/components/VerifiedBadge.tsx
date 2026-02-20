@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck } from "@fortawesome/free-solid-svg-icons";
+
+import verifiedIcon from "@/app/assets/verified.svg";
+
+function svgSrc(value: string | { default?: string; src?: string }): string {
+  if (typeof value === "string") return value;
+  return value.default ?? value.src ?? "";
+}
 
 const TOOLTIP_TEXT = "Этот \nпользователь \nверифицирован";
 const TOOLTIP_HIDE_MS = 2500;
@@ -44,16 +49,17 @@ export default function VerifiedBadge() {
     <span
       role="img"
       aria-label="Верифицирован"
-      className="relative inline-flex shrink-0 w-7 h-7 items-center justify-center rounded-full border"
-      style={{
-        borderColor: "var(--color-accent)",
-        color: "var(--color-accent)",
-      }}
+      className="relative inline-flex shrink-0 w-7 h-7 items-center justify-center"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
     >
-      <FontAwesomeIcon icon={faCheck} className="w-3.5 h-3.5" />
+      <img
+        src={svgSrc(verifiedIcon)}
+        alt=""
+        className="w-5 h-5 shrink-0"
+        aria-hidden
+      />
       {showTooltip && (
         <span
           className="absolute left-1/2 top-full z-50 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs"

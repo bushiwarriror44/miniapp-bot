@@ -13,6 +13,11 @@ export type TopUsersResponse = {
   users: TopUser[];
 };
 
+export type TopUsersPaginatedResponse = {
+  users: TopUser[];
+  nextCursor: string | null;
+};
+
 export async function fetchTopUsers(): Promise<TopUsersResponse> {
   try {
     const res = await fetch(`${API_BASE}/users/top?limit=10`, {
@@ -28,4 +33,25 @@ export async function fetchTopUsers(): Promise<TopUsersResponse> {
     console.error("[api] Failed to fetch top users from backend", error);
     return { users: [] };
   }
+}
+
+export async function fetchTopUsersPaginated(
+  cursor?: string | null,
+  limit: number = 20,
+): Promise<TopUsersPaginatedResponse> {
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  if (cursor != null && cursor !== "") params.set("cursor", cursor);
+  const res = await fetch(`${API_BASE}/users/top?${params.toString()}`, {
+    method: "GET",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to load top users: ${res.status} ${res.statusText}`);
+  }
+  const data = await res.json();
+  return {
+    users: Array.isArray(data.users) ? data.users : [],
+    nextCursor: data.nextCursor ?? null,
+  };
 }
