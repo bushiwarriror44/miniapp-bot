@@ -520,8 +520,9 @@ function renderBannersList() {
     .map(
       (b, index) => {
         const isRelative = (b.imageUrl || "").startsWith("/") && !(b.imageUrl || "").startsWith("//");
-        const base = typeof window.MINIAPP_BASE_URL === "string" ? window.MINIAPP_BASE_URL.replace(/\/$/, "") : "";
-        const imgSrc = isRelative ? base + (b.imageUrl || "") : (b.imageUrl || "");
+        const imgSrc = isRelative
+          ? "/admin/api/banner-preview?url=" + encodeURIComponent(b.imageUrl || "")
+          : (b.imageUrl || "");
         const previewHtml = imgSrc
           ? `<img src="${escapeHtml(imgSrc)}" alt="" style="width:80px;height:50px;object-fit:cover;border-radius:6px;display:block;" onerror="this.style.display='none';this.nextElementSibling.style.display='block';" /><span style="display:none;font-size:12px;color:var(--color-text-muted);">Превью</span>`
           : `<span class="muted" style="font-size:12px;">${escapeHtml(b.imageUrl || "Баннер")}</span>`;

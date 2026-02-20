@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 
 from flask import (
     Blueprint,
+    Response,
     jsonify,
     current_app,
     redirect,
@@ -615,6 +616,28 @@ def put_banners_config():
         return jsonify({"error": "payload.banners must be an array"}), 400
     row = _upsert_dataset("banners", payload)
     return jsonify({"ok": True, "updatedAt": row.updated_at.isoformat() if row.updated_at else None})
+
+
+@admin_bp.route("/admin/api/banner-preview")
+@require_login
+@require_admin
+def banner_preview():
+    """Прокси превью баннера с мини-апа (для относительных URL вроде /1.png)."""
+    path = (request.args.get("url") or "").strip()
+    if not path.startswith("/") or path.startswith("//"):
+        return "", 404
+    base = os.environ.get("MINIAPP_BASE_URL", "").strip().rstrip("/")
+    if not base:
+        return "", 404
+    try:
+        full_url = base + path
+        req = Request(full_url, headers={"User-Agent": "TeleDoska-Admin/1.0"})
+        with urlopen(req, timeout=10) as resp:
+            data = resp.read()
+            content_type = resp.headers.get("Content-Type", "image/png")
+            return Response(data, mimetype=content_type)
+    except (HTTPError, URLError, OSError):
+        return "", 404
 
 
 @admin_bp.route("/admin/api/banners/upload", methods=["POST"])
