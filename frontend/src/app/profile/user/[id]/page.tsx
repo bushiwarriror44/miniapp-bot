@@ -76,6 +76,27 @@ export default function PublicUserProfilePage() {
         setProfile(loadedProfile);
         setStatistics(loadedProfile.statistics ?? null);
 
+        // Детальное логирование для диагностики
+        console.log("[ProfilePage] Loaded profile:", {
+          id: loadedProfile.id,
+          telegramId: loadedProfile.telegramId,
+          username: loadedProfile.username,
+          statistics: loadedProfile.statistics,
+        });
+        console.log("[ProfilePage] Statistics breakdown:", {
+          ads: {
+            active: loadedProfile.statistics?.ads?.active ?? 0,
+            completed: loadedProfile.statistics?.ads?.completed ?? 0,
+            hidden: loadedProfile.statistics?.ads?.hidden ?? 0,
+            onModeration: loadedProfile.statistics?.ads?.onModeration ?? 0,
+          },
+          deals: {
+            total: loadedProfile.statistics?.deals?.total ?? 0,
+            successful: loadedProfile.statistics?.deals?.successful ?? 0,
+            disputed: loadedProfile.statistics?.deals?.disputed ?? 0,
+          },
+        });
+
         const username = loadedProfile.username?.trim();
         setExternalUrl(username ? `https://t.me/${username.replace(/^@/, "")}` : null);
 
@@ -137,6 +158,23 @@ export default function PublicUserProfilePage() {
 
   const adsStats = statistics?.ads;
   const dealsStats = statistics?.deals;
+
+  // Логирование перед рендерингом статистики
+  if (status === "success" && profile) {
+    console.log("[ProfilePage] Rendering statistics:", {
+      adsStats: {
+        active: adsStats?.active ?? 0,
+        completed: adsStats?.completed ?? 0,
+        hidden: adsStats?.hidden ?? 0,
+        onModeration: adsStats?.onModeration ?? 0,
+      },
+      dealsStats: {
+        total: dealsStats?.total ?? 0,
+        successful: dealsStats?.successful ?? 0,
+        disputed: dealsStats?.disputed ?? 0,
+      },
+    });
+  }
 
   return (
     <main className="px-4 py-6 relative">

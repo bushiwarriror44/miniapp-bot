@@ -22,13 +22,37 @@ export default function ProfileStatisticsPage() {
       setLoadError("Telegram user id is missing.");
       return;
     }
+    
+    // Логирование telegramId перед загрузкой
+    console.log("[StatisticsPage] Loading statistics for telegramId:", telegramId);
+    
     fetchUserStatistics(telegramId)
       .then((response) => {
         setStatistics(response);
         setLoadError(null);
+        
+        // Детальное логирование загруженной статистики
+        console.log("[StatisticsPage] Loaded statistics:", response);
+        console.log("[StatisticsPage] Statistics breakdown:", {
+          ads: {
+            active: response?.ads?.active ?? 0,
+            completed: response?.ads?.completed ?? 0,
+            hidden: response?.ads?.hidden ?? 0,
+            onModeration: response?.ads?.onModeration ?? 0,
+          },
+          deals: {
+            total: response?.deals?.total ?? 0,
+            successful: response?.deals?.successful ?? 0,
+            disputed: response?.deals?.disputed ?? 0,
+          },
+          profileViews: {
+            week: response?.profileViews?.week ?? 0,
+            month: response?.profileViews?.month ?? 0,
+          },
+        });
       })
       .catch((error) => {
-        console.error("Failed to load statistics:", error);
+        console.error("[StatisticsPage] Failed to load statistics:", error);
         setLoadError(error instanceof Error ? error.message : String(error));
       });
   }, [telegramId]);

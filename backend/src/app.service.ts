@@ -212,14 +212,30 @@ export class AppService {
     const dealStats = await this.getDealStatsForUser(user.id);
     const viewStats = await this.getProfileViewsStats(user.id);
 
-    const adsOnModeration = await this.moderationRequestsRepository
+    // Подсчет статистики объявлений из ModerationRequestEntity по статусам
+    const baseQuery = this.moderationRequestsRepository
       .createQueryBuilder('m')
-      .where('m.status = :status', { status: 'pending' })
-      .andWhere('(m.userId = :userId OR m.telegramId = :telegramId)', {
+      .where('(m.userId = :userId OR m.telegramId = :telegramId)', {
         userId: user.id,
         telegramId: user.telegramId,
-      })
-      .getCount();
+      });
+
+    const [adsActive, adsHidden, adsOnModeration] = await Promise.all([
+      baseQuery.clone().andWhere('m.status = :status', { status: 'approved' }).getCount(),
+      baseQuery.clone().andWhere('m.status = :status', { status: 'rejected' }).getCount(),
+      baseQuery.clone().andWhere('m.status = :status', { status: 'pending' }).getCount(),
+    ]);
+
+    // Детальное логирование для диагностики
+    console.log('[buildUserStatistics]', {
+      userId: user.id,
+      telegramId: user.telegramId,
+      username: user.username,
+      adsActive,
+      adsHidden,
+      adsOnModeration,
+      adsCompleted: 0, // Пока оставляем 0
+    });
 
     const dealsTotal = dealStats.total || activity.dealsTotal;
     const dealsSuccessful = dealStats.successful || activity.dealsSuccessful;
@@ -227,9 +243,9 @@ export class AppService {
 
     return {
       ads: {
-        active: activity.adsActive,
-        completed: activity.adsCompleted,
-        hidden: activity.adsHidden,
+        active: adsActive,
+        completed: 0, // Можно расширить логику позже
+        hidden: adsHidden,
         onModeration: adsOnModeration,
       },
       deals: {
