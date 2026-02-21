@@ -15,7 +15,7 @@ import type { CurrencyItem } from "@/shared/api/currency";
 import type { SellChannelItem } from "@/shared/api/sellChannels";
 import type { BuyChannelItem } from "@/shared/api/buyChannels";
 import type { OtherItem } from "@/shared/api/other";
-import type { ExchangeSection } from "../page";
+import type { ExchangeSection } from "../constants";
 import {
   AdCard,
   BuyAdCard,
@@ -25,7 +25,7 @@ import {
   SellChannelCard,
   BuyChannelCard,
   OtherCard,
-} from "../page";
+} from "../cards";
 
 const SECTION_TO_DATASET: Record<ExchangeSection, string> = {
   "sell-ads": "ads",

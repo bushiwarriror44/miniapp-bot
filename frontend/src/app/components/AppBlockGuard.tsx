@@ -13,7 +13,7 @@ function isValidUrl(url: string | null | undefined): url is string {
 }
 
 export function AppBlockGuard({ children }: { children: React.ReactNode }) {
-  const [isMounted, setIsMounted] = useState(false);
+  const [isMounted] = useState(() => typeof window !== "undefined");
   const telegramId = useMemo(() => {
     if (typeof window === 'undefined') return "";
     const tg = getTelegramWebApp();
@@ -26,13 +26,9 @@ export function AppBlockGuard({ children }: { children: React.ReactNode }) {
   const [supportLink, setSupportLink] = useState<string>(DEFAULT_SUPPORT_LINK);
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!telegramId) {
-      setIsReady(true);
+      queueMicrotask(() => setIsReady(true));
       return;
     }
 

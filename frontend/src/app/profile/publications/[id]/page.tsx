@@ -1,105 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faClipboard, faCheckCircle, faXmarkCircle } from "@fortawesome/free-solid-svg-icons";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { fetchMyPublications, type MyPublicationItem } from "@/shared/api/users";
-import { formatServiceDate } from "@/shared/api/services";
 import { AD_TYPE_LABELS, PAYMENT_LABELS, type AdType, type PaymentMethod } from "@/shared/api/ads";
 import { safeLocaleNumber } from "@/shared/format";
-
-function formatPublicationDate(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleDateString("ru-RU", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
-
-function formatRange(value: string | number | null | undefined): string {
-  if (value == null || value === "") return "—";
-  const str = String(value).trim();
-  if (!str) return "—";
-  
-  const rangeMatch = str.match(/^(\d+)\s*[-–—]\s*(\d+)$/);
-  if (rangeMatch) {
-    const min = parseInt(rangeMatch[1], 10);
-    const max = parseInt(rangeMatch[2], 10);
-    if (!isNaN(min) && !isNaN(max)) {
-      if (min === max) {
-        return `${min.toLocaleString("ru-RU")}`;
-      }
-      return `${min.toLocaleString("ru-RU")} — ${max.toLocaleString("ru-RU")}`;
-    }
-  }
-  
-  const num = parseFloat(str);
-  if (!isNaN(num)) {
-    return num.toLocaleString("ru-RU");
-  }
-  
-  return str;
-}
-
-function formatPriceRange(value: string | number | null | undefined): string {
-  const formatted = formatRange(value);
-  return formatted === "—" ? formatted : `${formatted} ₽`;
-}
-
-function formatViewsRange(value: string | number | null | undefined): string {
-  return formatRange(value);
-}
-
-function getStatusLabel(status: string): string {
-  switch (status) {
-    case "pending":
-      return "на модерации";
-    case "approved":
-      return "Опубликовано";
-    case "rejected":
-      return "Отклонено";
-    default:
-      return status;
-  }
-}
-
-function getStatusColor(status: string): string {
-  switch (status) {
-    case "pending":
-      return "var(--color-accent)";
-    case "approved":
-      return "#16a34a";
-    case "rejected":
-      return "#dc2626";
-    default:
-      return "var(--color-text-muted)";
-  }
-}
-
-function getSectionLabel(section: string): string {
-  const labels: Record<string, string> = {
-    "buy-ads": "Покупка рекламы",
-    "sell-ads": "Продажа рекламы",
-    "jobs": "Вакансии",
-    "services": "Услуги",
-    "sell-channels": "Продажа каналов",
-    "buy-channels": "Покупка каналов",
-    "other": "Прочее",
-  };
-  return labels[section] || section;
-}
+import {
+  formatPublicationDate,
+  formatPriceRange,
+  formatViewsRange,
+  getStatusLabel,
+  getStatusColor,
+  getSectionLabel,
+} from "../publicationDetailUtils";
 
 export default function PublicationDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const publicationId = params?.id as string | undefined;
 
   const [publication, setPublication] = useState<MyPublicationItem | null>(null);
@@ -114,7 +34,7 @@ export default function PublicationDetailPage() {
 
   useEffect(() => {
     if (!telegramId || !publicationId) {
-      setLoading(false);
+      queueMicrotask(() => setLoading(false));
       return;
     }
 

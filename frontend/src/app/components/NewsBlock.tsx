@@ -44,7 +44,7 @@ export function NewsBlock() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [logger]);
 
   return (
     <section

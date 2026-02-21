@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { In, MoreThanOrEqual, Repository } from 'typeorm';
 import { DealEntity } from './entities/deal.entity';
 import {
   ModerationRequestEntity,
@@ -188,6 +188,177 @@ export class AppService {
     return { week, month };
   }
 
+  private async ensureUserActivitiesBatch(userIds: string[]): Promise<Map<string, UserActivityEntity>> {
+    if (userIds.length === 0) return new Map();
+    const existing = await this.userActivityRepository.find({
+      where: userIds.map((userId) => ({ userId })),
+    });
+    const map = new Map<string, UserActivityEntity>();
+    existing.forEach((a) => map.set(a.userId, a));
+    const missing = userIds.filter((id) => !map.has(id));
+    for (const userId of missing) {
+      const activity = this.userActivityRepository.create({ userId });
+      const saved = await this.userActivityRepository.save(activity);
+      map.set(userId, saved);
+    }
+    return map;
+  }
+
+  private async getDealStatsForUserIds(userIds: string[]): Promise<
+    Map<string, { total: number; successful: number; disputed: number }>
+  > {
+    if (userIds.length === 0) return new Map();
+    const deals = await this.dealsRepository
+      .createQueryBuilder('d')
+      .where('d.buyerUserId IN (:...ids)', { ids: userIds })
+      .orWhere('d.sellerUserId IN (:...ids)', { ids: userIds })
+      .getMany();
+    const map = new Map<string, { total: number; successful: number; disputed: number }>();
+    for (const userId of userIds) {
+      const userDeals = deals.filter(
+        (d) => d.buyerUserId === userId || d.sellerUserId === userId,
+      );
+      map.set(userId, {
+        total: userDeals.length,
+        successful: userDeals.filter((d) => d.status === 'successful').length,
+        disputed: userDeals.filter((d) => d.status === 'disputed').length,
+      });
+    }
+    return map;
+  }
+
+  private async getProfileViewsStatsBatch(userIds: string[]): Promise<
+    Map<string, { week: number; month: number }>
+  > {
+    if (userIds.length === 0) return new Map();
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const [weekRows, monthRows] = await Promise.all([
+      this.profileViewsRepository
+        .createQueryBuilder('pv')
+        .select('pv.profileUserId', 'profileUserId')
+        .addSelect('COUNT(*)', 'cnt')
+        .where('pv.profileUserId IN (:...ids)', { ids: userIds })
+        .andWhere('pv.viewedAt >= :weekAgo', { weekAgo })
+        .groupBy('pv.profileUserId')
+        .getRawMany(),
+      this.profileViewsRepository
+        .createQueryBuilder('pv')
+        .select('pv.profileUserId', 'profileUserId')
+        .addSelect('COUNT(*)', 'cnt')
+        .where('pv.profileUserId IN (:...ids)', { ids: userIds })
+        .andWhere('pv.viewedAt >= :monthAgo', { monthAgo })
+        .groupBy('pv.profileUserId')
+        .getRawMany(),
+    ]);
+    const map = new Map<string, { week: number; month: number }>();
+    for (const userId of userIds) {
+      const week = Number(weekRows.find((r: { profileUserId: string }) => r.profileUserId === userId)?.cnt ?? 0);
+      const month = Number(monthRows.find((r: { profileUserId: string }) => r.profileUserId === userId)?.cnt ?? 0);
+      map.set(userId, { week, month });
+    }
+    return map;
+  }
+
+  private async getModerationCountsBatch(users: UserEntity[]): Promise<
+    Map<string, { adsActive: number; adsHidden: number; adsOnModeration: number }>
+  > {
+    if (users.length === 0) return new Map();
+    const ids = users.map((u) => u.id);
+    const telegramIds = users.map((u) => u.telegramId);
+    const rows = await this.moderationRequestsRepository.find({
+      where: [
+        { userId: In(ids) },
+        { telegramId: In(telegramIds) },
+      ],
+      select: ['userId', 'telegramId', 'status'],
+    });
+    const idToUser = new Map(users.map((u) => [u.id, u]));
+    const telegramToUser = new Map(users.map((u) => [u.telegramId, u]));
+    const map = new Map<string, { adsActive: number; adsHidden: number; adsOnModeration: number }>();
+    for (const u of users) {
+      map.set(u.id, { adsActive: 0, adsHidden: 0, adsOnModeration: 0 });
+    }
+    for (const row of rows) {
+      const user = row.userId ? idToUser.get(row.userId) : telegramToUser.get(row.telegramId);
+      if (!user) continue;
+      const cur = map.get(user.id)!;
+      if (row.status === 'approved') cur.adsActive += 1;
+      else if (row.status === 'rejected') cur.adsHidden += 1;
+      else if (row.status === 'pending') cur.adsOnModeration += 1;
+    }
+    return map;
+  }
+
+  private async getUserLabelsBatch(userIds: string[]): Promise<
+    Map<string, Array<{ labelId: string; labelName: string; color: string }>>
+  > {
+    if (userIds.length === 0) return new Map();
+    const rows = await this.userUserLabelsRepository.find({
+      where: userIds.map((id) => ({ userId: id })),
+      relations: ['label'],
+    });
+    const map = new Map<string, Array<{ labelId: string; labelName: string; color: string }>>();
+    for (const userId of userIds) map.set(userId, []);
+    for (const ul of rows) {
+      const list = map.get(ul.userId)!;
+      list.push({
+        labelId: ul.labelId,
+        labelName: ul.label.name,
+        color: ul.customColor || ul.label.defaultColor,
+      });
+    }
+    return map;
+  }
+
+  private buildUserStatisticsFromBatch(
+    user: UserEntity,
+    activityMap: Map<string, UserActivityEntity>,
+    dealStatsMap: Map<string, { total: number; successful: number; disputed: number }>,
+    viewStatsMap: Map<string, { week: number; month: number }>,
+    moderationMap: Map<string, { adsActive: number; adsHidden: number; adsOnModeration: number }>,
+  ): UserStatistics {
+    const activity = activityMap.get(user.id);
+    const dealStats = dealStatsMap.get(user.id) ?? { total: 0, successful: 0, disputed: 0 };
+    const viewStats = viewStatsMap.get(user.id) ?? { week: 0, month: 0 };
+    const mod = moderationMap.get(user.id) ?? { adsActive: 0, adsHidden: 0, adsOnModeration: 0 };
+    const dealsTotal = dealStats.total || (activity?.dealsTotal ?? 0);
+    const dealsSuccessful = dealStats.successful || (activity?.dealsSuccessful ?? 0);
+    const dealsDisputed = dealStats.disputed || (activity?.dealsDisputed ?? 0);
+    return {
+      ads: { active: mod.adsActive, completed: 0, hidden: mod.adsHidden, onModeration: mod.adsOnModeration },
+      deals: { total: dealsTotal, successful: dealsSuccessful, disputed: dealsDisputed },
+      profileViews: viewStats,
+    };
+  }
+
+  private buildUserProfileFromBatch(
+    user: UserEntity,
+    stats: UserStatistics,
+    labels: Array<{ labelId: string; labelName: string; color: string }>,
+  ) {
+    const daysInProject = this.calculateDaysInProject(user);
+    const ratingAuto = this.calculateAutoRating(user, stats, daysInProject);
+    const ratingTotal = Math.round((ratingAuto + (user.ratingManualDelta || 0)) * 10) / 10;
+    return {
+      id: user.id,
+      telegramId: user.telegramId,
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      verified: user.verified,
+      isScam: user.isScam,
+      isBlocked: user.isBlocked,
+      rating: { auto: ratingAuto, manualDelta: user.ratingManualDelta || 0, total: ratingTotal },
+      statistics: stats,
+      daysInProject,
+      labels: labels.map((l) => ({ id: l.labelId, name: l.labelName, color: l.color })),
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+
   private calculateAutoRating(
     user: UserEntity,
     stats: UserStatistics,
@@ -230,16 +401,6 @@ export class AppService {
       baseQuery.clone().andWhere('m.status = :status', { status: 'rejected' }).getCount(),
       baseQuery.clone().andWhere('m.status = :status', { status: 'pending' }).getCount(),
     ]);
-
-    console.log('[buildUserStatistics]', {
-      userId: user.id,
-      telegramId: user.telegramId,
-      username: user.username,
-      adsActive,
-      adsHidden,
-      adsOnModeration,
-      adsCompleted: 0,
-    });
 
     const dealsTotal = dealStats.total || activity.dealsTotal;
     const dealsSuccessful = dealStats.successful || activity.dealsSuccessful;
@@ -341,23 +502,40 @@ export class AppService {
       });
     }
     const users = await qb.orderBy('user.createdAt', 'DESC').limit(200).getMany();
-    return Promise.all(
-      users.map(async (user) => {
-        const profile = await this.buildUserProfile(user);
-        return {
-          id: user.id,
-          telegramId: user.telegramId,
-          username: user.username,
-          verified: user.verified,
-          isScam: user.isScam,
-          isBlocked: user.isBlocked,
-          ratingTotal: profile.rating.total,
-          ratingAuto: profile.rating.auto,
-          ratingManualDelta: profile.rating.manualDelta,
-          createdAt: user.createdAt,
-        };
-      }),
-    );
+    if (users.length === 0) return [];
+
+    const userIds = users.map((u) => u.id);
+    const [activityMap, dealStatsMap, viewStatsMap, moderationMap] = await Promise.all([
+      this.ensureUserActivitiesBatch(userIds),
+      this.getDealStatsForUserIds(userIds),
+      this.getProfileViewsStatsBatch(userIds),
+      this.getModerationCountsBatch(users),
+    ]);
+
+    return users.map((user) => {
+      const stats = this.buildUserStatisticsFromBatch(
+        user,
+        activityMap,
+        dealStatsMap,
+        viewStatsMap,
+        moderationMap,
+      );
+      const daysInProject = this.calculateDaysInProject(user);
+      const ratingAuto = this.calculateAutoRating(user, stats, daysInProject);
+      const ratingTotal = Math.round((ratingAuto + (user.ratingManualDelta || 0)) * 10) / 10;
+      return {
+        id: user.id,
+        telegramId: user.telegramId,
+        username: user.username,
+        verified: user.verified,
+        isScam: user.isScam,
+        isBlocked: user.isBlocked,
+        ratingTotal,
+        ratingAuto,
+        ratingManualDelta: user.ratingManualDelta || 0,
+        createdAt: user.createdAt,
+      };
+    });
   }
 
   async getUserById(userId: string) {
@@ -369,17 +547,48 @@ export class AppService {
   }
 
   async getTopUsers(limit: number = 10, cursor?: string) {
+    const cap = Math.min(500, Math.max(limit * 3, 100));
     const users = await this.usersRepository.find({
       order: { createdAt: 'DESC' },
+      take: cap,
     });
-    const profiles = await Promise.all(
-      users.map((user) => this.buildUserProfile(user)),
-    );
+    if (users.length === 0) return { users: [], nextCursor: null };
+
+    const userIds = users.map((u) => u.id);
+    const [activityMap, dealStatsMap, viewStatsMap, moderationMap] = await Promise.all([
+      this.ensureUserActivitiesBatch(userIds),
+      this.getDealStatsForUserIds(userIds),
+      this.getProfileViewsStatsBatch(userIds),
+      this.getModerationCountsBatch(users),
+    ]);
+
+    const profiles = users.map((user) => {
+      const stats = this.buildUserStatisticsFromBatch(
+        user,
+        activityMap,
+        dealStatsMap,
+        viewStatsMap,
+        moderationMap,
+      );
+      const daysInProject = this.calculateDaysInProject(user);
+      const ratingAuto = this.calculateAutoRating(user, stats, daysInProject);
+      const ratingTotal = Math.round((ratingAuto + (user.ratingManualDelta || 0)) * 10) / 10;
+      return {
+        id: user.id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        ratingTotal,
+        dealsTotal: stats.deals.total,
+      };
+    });
+
     profiles.sort((a, b) => {
-      const byRating = b.rating.total - a.rating.total;
+      const byRating = b.ratingTotal - a.ratingTotal;
       if (byRating !== 0) return byRating;
       return (a.id || '').localeCompare(b.id || '');
     });
+
     const offset = cursor != null && cursor !== '' ? Math.max(0, parseInt(cursor, 10) || 0) : 0;
     const slice = profiles.slice(offset, offset + limit);
     const topUsers = slice.map((profile, index) => {
@@ -393,8 +602,8 @@ export class AppService {
         rank: offset + index + 1,
         name,
         username: profile.username || null,
-        rating: profile.rating.total,
-        dealsCount: profile.statistics?.deals?.total || 0,
+        rating: profile.ratingTotal,
+        dealsCount: profile.dealsTotal || 0,
       };
     });
     const nextOffset = offset + topUsers.length;

@@ -1,9 +1,13 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { Client } from 'pg';
+import helmet from 'helmet';
 import { config } from 'dotenv';
 import { AppModule } from './app.module';
 
 config();
+
+const logger = new Logger('Bootstrap');
 
 async function ensureDatabase(): Promise<void> {
   const dbName = process.env.DB_NAME || 'miniapp_bot';
@@ -23,7 +27,7 @@ async function ensureDatabase(): Promise<void> {
     );
     if (rows.length === 0) {
       await client.query(`CREATE DATABASE "${dbName}"`);
-      console.log(`Database "${dbName}" created.`);
+      logger.log(`Database "${dbName}" created.`);
     }
   } finally {
     await client.end();
@@ -34,10 +38,21 @@ async function bootstrap() {
   await ensureDatabase();
 
   const app = await NestFactory.create(AppModule);
+  app.use(helmet());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: false,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
   app.enableCors({
     origin: process.env.CORS_ORIGIN?.split(',').map((v) => v.trim()) || true,
     credentials: true,
   });
-  await app.listen(process.env.PORT ?? 3000);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  logger.log(`Application listening on port ${port}`);
 }
 bootstrap();

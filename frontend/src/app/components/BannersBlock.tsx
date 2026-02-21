@@ -37,7 +37,7 @@ export function BannersBlock() {
   });
 
   useEffect(() => {
-    if (banners.length && activeIndex >= banners.length) setActiveIndex(Math.max(0, banners.length - 1));
+    if (banners.length && activeIndex >= banners.length) queueMicrotask(() => setActiveIndex(Math.max(0, banners.length - 1)));
   }, [banners.length, activeIndex]);
 
   const [touchStartX, setTouchStartX] = useState<number | null>(null);

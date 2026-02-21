@@ -116,7 +116,7 @@ export function CryptoPrices() {
   });
 
   useEffect(() => {
-    if (data?.length && activeIndex >= data.length) setActiveIndex(Math.max(0, data.length - 1));
+    if (data?.length && activeIndex >= data.length) queueMicrotask(() => setActiveIndex(Math.max(0, data.length - 1)));
   }, [data?.length, activeIndex]);
 
   useEffect(() => {
@@ -129,7 +129,7 @@ export function CryptoPrices() {
     if (isError) {
       logger?.logEvent("CryptoPrices", "error loading");
     }
-  }, [data, isLoading, isError]);
+  }, [data, isLoading, isError, logger]);
 
   useEffect(() => {
     if (!data?.length) return;

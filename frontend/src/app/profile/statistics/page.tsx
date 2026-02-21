@@ -19,7 +19,7 @@ export default function ProfileStatisticsPage() {
 
   useEffect(() => {
     if (!telegramId) {
-      setLoadError("Telegram user id is missing.");
+      queueMicrotask(() => setLoadError("Telegram user id is missing."));
       return;
     }
     

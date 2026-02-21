@@ -37,6 +37,8 @@ admin_bp = Blueprint("admin", __name__)
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://127.0.0.1:3001")
+# Ключ для доступа к админским эндпоинтам бэкенда (то же значение, что ADMIN_API_KEY в backend/.env).
+BACKEND_ADMIN_API_KEY = os.getenv("BACKEND_ADMIN_API_KEY", os.getenv("ADMIN_API_KEY", ""))
 EXCHANGE_CATEGORIES = [
     "ads",
     "buyAds",
@@ -132,9 +134,18 @@ def _extract_items_safe(payload):
         return None, []
 
 
+def _backend_headers():
+    h = {"User-Agent": "TeleDoska-Admin/1.0"}
+    if BACKEND_ADMIN_API_KEY:
+        h["X-Admin-Key"] = BACKEND_ADMIN_API_KEY
+    return h
+
+
 def _get_users_count():
     try:
-        with urlopen(f"{BACKEND_API_URL.rstrip('/')}/stats/users-count", timeout=3) as response:
+        url = f"{BACKEND_API_URL.rstrip('/')}/stats/users-count"
+        req = Request(url, headers=_backend_headers())
+        with urlopen(req, timeout=3) as response:
             data = json.loads(response.read().decode("utf-8"))
             return int(data.get("usersCount", 0))
     except (URLError, ValueError, TimeoutError):
@@ -145,19 +156,16 @@ def _backend_get_json(path, query_params=None):
     url = f"{BACKEND_API_URL.rstrip('/')}/{path.lstrip('/')}"
     if query_params:
         url = f"{url}?{urlencode(query_params)}"
-    with urlopen(url, timeout=5) as response:
+    req = Request(url, headers=_backend_headers())
+    with urlopen(req, timeout=5) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
 def _backend_json(path, method, payload):
     url = f"{BACKEND_API_URL.rstrip('/')}/{path.lstrip('/')}"
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    req = Request(
-        url,
-        data=data,
-        method=method,
-        headers={"Content-Type": "application/json"},
-    )
+    headers = {"Content-Type": "application/json", **_backend_headers()}
+    req = Request(url, data=data, method=method, headers=headers)
     with urlopen(req, timeout=5) as response:
         return json.loads(response.read().decode("utf-8"))
 

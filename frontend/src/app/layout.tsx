@@ -7,6 +7,7 @@ import { BottomNav } from "./components/BottomNav";
 import { AppLoader } from "./components/AppLoader";
 import { AppBlockGuard } from "./components/AppBlockGuard";
 import { LayoutLogger } from "./components/LayoutLogger";
+import { GlobalErrorBoundary } from "./components/GlobalErrorBoundary";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -30,13 +31,15 @@ export default function RootLayout({
     <html lang="ru" suppressHydrationWarning data-theme="dark" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className="min-h-screen antialiased font-sans" style={{ backgroundColor: "var(--color-bg)", color: "var(--color-text)" }} suppressHydrationWarning>
         <LayoutLogger>
-          <Providers>
-            <AppLoader />
-            <AppBlockGuard>
-              <div className="main-content">{children}</div>
-              <BottomNav />
-            </AppBlockGuard>
-          </Providers>
+          <GlobalErrorBoundary>
+            <Providers>
+              <AppLoader />
+              <AppBlockGuard>
+                <div className="main-content">{children}</div>
+                <BottomNav />
+              </AppBlockGuard>
+            </Providers>
+          </GlobalErrorBoundary>
         </LayoutLogger>
       </body>
     </html>

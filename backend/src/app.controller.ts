@@ -10,83 +10,33 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { AppService } from './app.service';
-import type { ModerationSection, ModerationStatus } from './entities/moderation-request.entity';
-
-type TrackUserRequest = {
-  telegramId?: string | number;
-  username?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  languageCode?: string | null;
-  isPremium?: boolean;
-};
-
-type UpdateRatingRequest = {
-  ratingManualDelta?: number;
-};
-
-type UpdateVerifiedRequest = {
-  verified?: boolean;
-};
-
-type UpdateScamRequest = {
-  isScam?: boolean;
-};
-
-type UpdateBlockedRequest = {
-  isBlocked?: boolean;
-};
-
-type ProfileViewRequest = {
-  viewerTelegramId?: string | number;
-};
-
-type CreateModerationRequest = {
-  telegramId?: string | number;
-  section?: ModerationSection;
-  formData?: Record<string, unknown>;
-};
-
-type UpdateModerationRequest = {
-  formData?: Record<string, unknown>;
-  adminNote?: string | null;
-};
-
-type ApproveModerationRequest = {
-  publishedItemId?: string;
-  adminNote?: string | null;
-};
-
-type RejectModerationRequest = {
-  adminNote?: string | null;
-};
-
-type CreateSupportRequest = {
-  telegramId?: string | number;
-  username?: string | null;
-  message?: string;
-};
-
-type CreateLabelRequest = {
-  name?: string;
-  defaultColor?: string;
-};
-
-type UpdateLabelRequest = {
-  name?: string;
-  defaultColor?: string;
-};
-
-type AddLabelToUserRequest = {
-  labelId?: string;
-  customColor?: string;
-};
-
-type UpdateUserLabelColorRequest = {
-  customColor?: string;
-};
+import { AdminApiKeyGuard } from './guards/admin-api-key.guard';
+import type { ModerationStatus } from './entities/moderation-request.entity';
+import {
+  TrackUserDto,
+  UpdateRatingDto,
+  UpdateVerifiedDto,
+  UpdateScamDto,
+  UpdateBlockedDto,
+  ProfileViewDto,
+  CreateModerationDto,
+  UpdateModerationDto,
+  ApproveModerationDto,
+  RejectModerationDto,
+  CreateSupportDto,
+  CreateLabelDto,
+  UpdateLabelDto,
+  AddLabelToUserDto,
+  UpdateUserLabelColorDto,
+  TelegramIdQueryDto,
+  UsernameQueryDto,
+  LimitCursorQueryDto,
+  ModerationStatusQueryDto,
+  PublicationsQueryDto,
+} from './dto';
 
 @Controller()
 export class AppController {
@@ -98,6 +48,7 @@ export class AppController {
   }
 
   @Get('stats/users-count')
+  @UseGuards(AdminApiKeyGuard)
   async getUsersCount() {
     const usersCount = await this.appService.getUsersCount();
     return { usersCount };
@@ -105,11 +56,7 @@ export class AppController {
 
   @Post('users/track')
   @HttpCode(200)
-  async trackUser(@Body() body: TrackUserRequest) {
-    if (!body?.telegramId) {
-      throw new HttpException('telegramId is required', HttpStatus.BAD_REQUEST);
-    }
-
+  async trackUser(@Body() body: TrackUserDto) {
     const user = await this.appService.upsertTelegramUser({
       telegramId: body.telegramId,
       username: body.username,
@@ -127,11 +74,8 @@ export class AppController {
   }
 
   @Get('users/me/profile')
-  async getMyProfile(@Query('telegramId') telegramId?: string) {
-    if (!telegramId) {
-      throw new HttpException('telegramId is required', HttpStatus.BAD_REQUEST);
-    }
-    const profile = await this.appService.getUserProfileByTelegramId(telegramId);
+  async getMyProfile(@Query() query: TelegramIdQueryDto) {
+    const profile = await this.appService.getUserProfileByTelegramId(query.telegramId);
     if (!profile) {
       return { profile: null };
     }
@@ -139,11 +83,8 @@ export class AppController {
   }
 
   @Get('users/me/statistics')
-  async getMyStatistics(@Query('telegramId') telegramId?: string) {
-    if (!telegramId) {
-      throw new HttpException('telegramId is required', HttpStatus.BAD_REQUEST);
-    }
-    const statistics = await this.appService.getUserStatisticsByTelegramId(telegramId);
+  async getMyStatistics(@Query() query: TelegramIdQueryDto) {
+    const statistics = await this.appService.getUserStatisticsByTelegramId(query.telegramId);
     if (!statistics) {
       return { statistics: null };
     }
@@ -151,11 +92,8 @@ export class AppController {
   }
 
   @Get('users/me/favorites')
-  async getMyFavorites(@Query('telegramId') telegramId?: string) {
-    if (!telegramId) {
-      throw new HttpException('telegramId is required', HttpStatus.BAD_REQUEST);
-    }
-    const favorites = await this.appService.getUserFavoritesByTelegramId(telegramId);
+  async getMyFavorites(@Query() query: TelegramIdQueryDto) {
+    const favorites = await this.appService.getUserFavoritesByTelegramId(query.telegramId);
     if (!favorites) {
       return { favorites: [] };
     }
@@ -163,19 +101,12 @@ export class AppController {
   }
 
   @Get('users/me/publications')
-  async getMyPublications(
-    @Query('telegramId') telegramId?: string,
-    @Query('limit') limit?: string,
-    @Query('cursor') cursor?: string,
-  ) {
-    if (!telegramId) {
-      throw new HttpException('telegramId is required', HttpStatus.BAD_REQUEST);
-    }
-    const limitNum = limit ? parseInt(limit, 10) : 20;
+  async getMyPublications(@Query() query: PublicationsQueryDto) {
+    const limit = query.limit ?? 20;
     const result = await this.appService.getMyModerationRequests(
-      telegramId,
-      Number.isFinite(limitNum) && limitNum > 0 ? limitNum : 20,
-      cursor,
+      query.telegramId,
+      limit,
+      query.cursor,
     );
     return result;
   }
@@ -184,7 +115,7 @@ export class AppController {
   @HttpCode(200)
   async createProfileView(
     @Param('telegramId') telegramId: string,
-    @Body() body: ProfileViewRequest,
+    @Body() body: ProfileViewDto,
   ) {
     await this.appService.addProfileView(telegramId, body?.viewerTelegramId);
     return { ok: true };
@@ -197,11 +128,8 @@ export class AppController {
   }
 
   @Get('users/by-username')
-  async getUserByUsername(@Query('username') username?: string) {
-    if (!username) {
-      throw new HttpException('username is required', HttpStatus.BAD_REQUEST);
-    }
-    const profile = await this.appService.getUserProfileByUsername(username);
+  async getUserByUsername(@Query() query: UsernameQueryDto) {
+    const profile = await this.appService.getUserProfileByUsername(query.username);
     if (!profile) {
       return { profile: null };
     }
@@ -209,12 +137,9 @@ export class AppController {
   }
 
   @Get('users/top')
-  async getTopUsers(@Query('limit') limit?: string, @Query('cursor') cursor?: string) {
-    const limitNum = limit ? parseInt(limit, 10) : 10;
-    const result = await this.appService.getTopUsers(
-      Number.isFinite(limitNum) && limitNum > 0 ? limitNum : 10,
-      cursor,
-    );
+  async getTopUsers(@Query() query: LimitCursorQueryDto) {
+    const limit = query.limit ?? 10;
+    const result = await this.appService.getTopUsers(limit, query.cursor);
     return result;
   }
 
@@ -237,16 +162,11 @@ export class AppController {
   }
 
   @Patch('users/:id/rating-manual')
+  @UseGuards(AdminApiKeyGuard)
   async updateUserRatingManual(
     @Param('id') id: string,
-    @Body() body: UpdateRatingRequest,
+    @Body() body: UpdateRatingDto,
   ) {
-    if (typeof body?.ratingManualDelta !== 'number' || Number.isNaN(body.ratingManualDelta)) {
-      throw new HttpException(
-        'ratingManualDelta must be a number',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
     const user = await this.appService.setUserRatingManualDelta(id, body.ratingManualDelta);
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
@@ -255,13 +175,11 @@ export class AppController {
   }
 
   @Patch('users/:id/verified')
+  @UseGuards(AdminApiKeyGuard)
   async updateUserVerified(
     @Param('id') id: string,
-    @Body() body: UpdateVerifiedRequest,
+    @Body() body: UpdateVerifiedDto,
   ) {
-    if (typeof body?.verified !== 'boolean') {
-      throw new HttpException('verified must be boolean', HttpStatus.BAD_REQUEST);
-    }
     const user = await this.appService.setUserVerified(id, body.verified);
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
@@ -270,13 +188,11 @@ export class AppController {
   }
 
   @Patch('users/:id/scam')
+  @UseGuards(AdminApiKeyGuard)
   async updateUserScam(
     @Param('id') id: string,
-    @Body() body: UpdateScamRequest,
+    @Body() body: UpdateScamDto,
   ) {
-    if (typeof body?.isScam !== 'boolean') {
-      throw new HttpException('isScam must be boolean', HttpStatus.BAD_REQUEST);
-    }
     const user = await this.appService.setUserScam(id, body.isScam);
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
@@ -285,13 +201,11 @@ export class AppController {
   }
 
   @Patch('users/:id/blocked')
+  @UseGuards(AdminApiKeyGuard)
   async updateUserBlocked(
     @Param('id') id: string,
-    @Body() body: UpdateBlockedRequest,
+    @Body() body: UpdateBlockedDto,
   ) {
-    if (typeof body?.isBlocked !== 'boolean') {
-      throw new HttpException('isBlocked must be boolean', HttpStatus.BAD_REQUEST);
-    }
     const user = await this.appService.setUserBlocked(id, body.isBlocked);
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
@@ -301,16 +215,7 @@ export class AppController {
 
   @Post('moderation/requests')
   @HttpCode(201)
-  async createModeration(@Body() body: CreateModerationRequest) {
-    if (!body?.telegramId) {
-      throw new HttpException('telegramId is required', HttpStatus.BAD_REQUEST);
-    }
-    if (!body?.section) {
-      throw new HttpException('section is required', HttpStatus.BAD_REQUEST);
-    }
-    if (!body?.formData || typeof body.formData !== 'object') {
-      throw new HttpException('formData must be object', HttpStatus.BAD_REQUEST);
-    }
+  async createModeration(@Body() body: CreateModerationDto) {
     try {
       const requestEntity = await this.appService.createModerationRequest({
         telegramId: body.telegramId,
@@ -327,12 +232,16 @@ export class AppController {
   }
 
   @Get('moderation/requests')
-  async listModeration(@Query('status') status?: ModerationStatus) {
-    const requests = await this.appService.listModerationRequests(status);
+  @UseGuards(AdminApiKeyGuard)
+  async listModeration(@Query() query: ModerationStatusQueryDto) {
+    const requests = await this.appService.listModerationRequests(
+      query.status as ModerationStatus | undefined,
+    );
     return { requests };
   }
 
   @Get('moderation/requests/:id')
+  @UseGuards(AdminApiKeyGuard)
   async getModerationById(@Param('id') id: string) {
     const requestEntity = await this.appService.getModerationRequestById(id);
     if (!requestEntity) {
@@ -342,9 +251,10 @@ export class AppController {
   }
 
   @Patch('moderation/requests/:id')
+  @UseGuards(AdminApiKeyGuard)
   async updateModerationById(
     @Param('id') id: string,
-    @Body() body: UpdateModerationRequest,
+    @Body() body: UpdateModerationDto,
   ) {
     try {
       const requestEntity = await this.appService.updateModerationRequest(id, body);
@@ -364,14 +274,15 @@ export class AppController {
   }
 
   @Patch('moderation/requests/:id/approve')
+  @UseGuards(AdminApiKeyGuard)
   async approveModerationById(
     @Param('id') id: string,
-    @Body() body: ApproveModerationRequest,
+    @Body() body: ApproveModerationDto,
   ) {
     const requestEntity = await this.appService.approveModerationRequest(
       id,
-      body?.publishedItemId,
-      body?.adminNote,
+      body.publishedItemId,
+      body.adminNote,
     );
     if (!requestEntity) {
       throw new HttpException('Moderation request not found', HttpStatus.NOT_FOUND);
@@ -380,11 +291,12 @@ export class AppController {
   }
 
   @Patch('moderation/requests/:id/reject')
+  @UseGuards(AdminApiKeyGuard)
   async rejectModerationById(
     @Param('id') id: string,
-    @Body() body: RejectModerationRequest,
+    @Body() body: RejectModerationDto,
   ) {
-    const requestEntity = await this.appService.rejectModerationRequest(id, body?.adminNote);
+    const requestEntity = await this.appService.rejectModerationRequest(id, body.adminNote);
     if (!requestEntity) {
       throw new HttpException('Moderation request not found', HttpStatus.NOT_FOUND);
     }
@@ -393,18 +305,12 @@ export class AppController {
 
   @Post('support/requests')
   @HttpCode(201)
-  async createSupportRequest(@Body() body: CreateSupportRequest) {
-    if (body?.telegramId === undefined || body?.telegramId === null) {
-      throw new HttpException('telegramId is required', HttpStatus.BAD_REQUEST);
-    }
-    if (body?.message === undefined || body?.message === null) {
-      throw new HttpException('message is required', HttpStatus.BAD_REQUEST);
-    }
+  async createSupportRequest(@Body() body: CreateSupportDto) {
     try {
       const entity = await this.appService.createSupportRequest({
-        telegramId: body.telegramId!,
+        telegramId: body.telegramId,
         username: body.username ?? null,
-        message: String(body.message),
+        message: body.message,
       });
       return { id: entity.id, createdAt: entity.createdAt };
     } catch (error) {
@@ -416,12 +322,14 @@ export class AppController {
   }
 
   @Get('support/requests')
+  @UseGuards(AdminApiKeyGuard)
   async listSupportRequests() {
     const requests = await this.appService.listSupportRequests();
     return { requests };
   }
 
   @Get('labels')
+  @UseGuards(AdminApiKeyGuard)
   async getAllLabels() {
     const labels = await this.appService.getAllLabels();
     return { labels };
@@ -429,16 +337,15 @@ export class AppController {
 
   @Post('labels')
   @HttpCode(201)
-  async createLabel(@Body() body: CreateLabelRequest) {
-    if (!body?.name || typeof body.name !== 'string') {
-      throw new HttpException('name is required', HttpStatus.BAD_REQUEST);
-    }
+  @UseGuards(AdminApiKeyGuard)
+  async createLabel(@Body() body: CreateLabelDto) {
     const label = await this.appService.createLabel(body.name, body.defaultColor);
     return { ok: true, label };
   }
 
   @Patch('labels/:id')
-  async updateLabel(@Param('id') id: string, @Body() body: UpdateLabelRequest) {
+  @UseGuards(AdminApiKeyGuard)
+  async updateLabel(@Param('id') id: string, @Body() body: UpdateLabelDto) {
     const label = await this.appService.updateLabel(id, body.name, body.defaultColor);
     if (!label) {
       throw new HttpException('Label not found', HttpStatus.NOT_FOUND);
@@ -447,6 +354,7 @@ export class AppController {
   }
 
   @Delete('labels/:id')
+  @UseGuards(AdminApiKeyGuard)
   async deleteLabel(@Param('id') id: string) {
     const deleted = await this.appService.deleteLabel(id);
     if (!deleted) {
@@ -456,6 +364,7 @@ export class AppController {
   }
 
   @Get('users/:id/labels')
+  @UseGuards(AdminApiKeyGuard)
   async getUserLabels(@Param('id') id: string) {
     const labels = await this.appService.getUserLabels(id);
     return { labels };
@@ -463,13 +372,11 @@ export class AppController {
 
   @Post('users/:id/labels')
   @HttpCode(201)
+  @UseGuards(AdminApiKeyGuard)
   async addLabelToUser(
     @Param('id') id: string,
-    @Body() body: AddLabelToUserRequest,
+    @Body() body: AddLabelToUserDto,
   ) {
-    if (!body?.labelId || typeof body.labelId !== 'string') {
-      throw new HttpException('labelId is required', HttpStatus.BAD_REQUEST);
-    }
     const userLabel = await this.appService.addLabelToUser(
       id,
       body.labelId,
@@ -479,6 +386,7 @@ export class AppController {
   }
 
   @Delete('users/:id/labels/:labelId')
+  @UseGuards(AdminApiKeyGuard)
   async removeLabelFromUser(@Param('id') id: string, @Param('labelId') labelId: string) {
     const deleted = await this.appService.removeLabelFromUser(id, labelId);
     if (!deleted) {
@@ -488,10 +396,11 @@ export class AppController {
   }
 
   @Patch('users/:id/labels/:labelId')
+  @UseGuards(AdminApiKeyGuard)
   async updateUserLabelColor(
     @Param('id') id: string,
     @Param('labelId') labelId: string,
-    @Body() body: UpdateUserLabelColorRequest,
+    @Body() body: UpdateUserLabelColorDto,
   ) {
     const userLabel = await this.appService.updateUserLabelColor(
       id,

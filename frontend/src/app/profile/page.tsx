@@ -1,53 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSun, faMoon, faCheck, faStar, faCircleExclamation, faChartLine, faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
+import { faSun, faMoon, faCircleExclamation, faChartLine, faStar, faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
 import { useTheme } from "@/shared/theme/ThemeContext";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { submitSupportRequest } from "@/shared/api/support";
 import { fetchUserProfile, type UserProfileResponse } from "@/shared/api/users";
-import { UserLabelBadge } from "@/app/components/UserLabelBadge";
+import { getInitialTelegramProfile } from "./utils";
+import {
+  ProfileHeader,
+  ProfileVerifiedBlock,
+  ProfileRatingBlock,
+  ProfileMenuRow,
+  SupportModal,
+  VerifyModal,
+  ProfileNotice,
+} from "./components";
 
 const ADMIN_TG_LINK = "https://t.me/miniapp_admin_example";
-
-
-type TelegramProfile = {
-  username: string;
-  userId: string;
-  avatarUrl: string;
-};
-
-function getInitialTelegramProfile(): TelegramProfile {
-  const fallback: TelegramProfile = {
-    username: "user",
-    userId: "-",
-    avatarUrl: "/assets/telegram-ico.svg",
-  };
-
-  const telegram = getTelegramWebApp();
-  const user = telegram?.initDataUnsafe?.user;
-  if (!user) return fallback;
-
-  const username = user.username || "";
-  const firstName = user.first_name || "";
-  const displayName = username || firstName || "user";
-  const avatarByUsername = username
-    ? `https://t.me/i/userpic/320/${username}.jpg`
-    : "/assets/telegram-ico.svg";
-
-  return {
-    username: displayName,
-    userId: String(user.id ?? "-"),
-    avatarUrl: user.photo_url || avatarByUsername,
-  };
-}
 
 export default function ProfilePage() {
   const { theme, setTheme } = useTheme();
   const [{ username: tgUsername, userId: tgUserId, avatarUrl: tgAvatarUrl }] =
-    useState<TelegramProfile>(getInitialTelegramProfile);
+    useState(getInitialTelegramProfile);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyPhone, setVerifyPhone] = useState("");
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -57,9 +33,7 @@ export default function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
 
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
+  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
   const showNotice = (text: string) => {
     setNotice(text);
@@ -113,7 +87,6 @@ export default function ProfilePage() {
         setProfileLoading(false);
       })
       .catch((error) => {
-        console.error("Failed to load profile data:", error);
         setProfileLoadError(error instanceof Error ? error.message : String(error));
         setProfileLoading(false);
       });
@@ -139,138 +112,27 @@ export default function ProfilePage() {
         Профиль
       </h1>
 
-      <section className="flex flex-col items-center mb-6">
-        <div className="w-20 h-20 rounded-full overflow-hidden mb-3">
-          {profileLoading ? (
-            <div
-              className="w-full h-full rounded-full animate-pulse"
-              style={{ backgroundColor: "var(--color-surface)" }}
-            />
-          ) : (
-            <img
-              src={tgAvatarUrl}
-              alt={tgUsername || "user"}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                const target = e.currentTarget;
-                target.onerror = null;
-                target.src = "/assets/telegram-ico.svg";
-              }}
-            />
-          )}
-        </div>
-        <div className="flex items-center gap-2 flex-wrap justify-center">
-          <p className="font-semibold text-sm" style={{ color: "var(--color-text)" }}>
-            @{tgUsername || "user"}
-          </p>
-          {profile?.isScam && (
-            <UserLabelBadge name="SCAM!" color="#dc2626" />
-          )}
-          {profile?.isBlocked && (
-            <UserLabelBadge name="Заблокирован" color="#dc2626" />
-          )}
-          {profile?.labels?.map((label) => (
-            <UserLabelBadge key={label.id} name={label.name} color={label.color} />
-          ))}
-        </div>
-        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-          ID: {tgUserId}
-        </p>
-      </section>
+      <ProfileHeader
+        username={tgUsername}
+        userId={tgUserId}
+        avatarUrl={tgAvatarUrl}
+        profile={profile}
+        loading={profileLoading}
+      />
 
       <section className="mb-4">
-        {profile?.verified ? (
-          <div
-            className="rounded-xl px-4 py-3 flex items-center gap-2"
-            style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-          >
-            <FontAwesomeIcon
-              icon={faCheck}
-              className="w-4 h-4 shrink-0"
-              style={{ color: "var(--color-accent)" }}
-            />
-            <p className="text-sm" style={{ color: "var(--color-text)" }}>
-              Аккаунт верифицирован. Ваши объявления отображаются приоритетно.
-            </p>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowVerifyModal(true)}
-            className="w-full text-left rounded-xl px-4 py-3 flex items-center gap-2"
-            style={{ backgroundColor: "var(--color-accent)", border: "1px solid var(--color-accent)" }}
-          >
-            <span
-              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-              style={{ backgroundColor: "rgba(255,255,255,0.25)", color: "white" }}
-            >
-              !
-            </span>
-            <p className="text-sm text-white">
-              Пройдите верификацию для приоритетного размещения объявлений
-            </p>
-          </button>
-        )}
+        <ProfileVerifiedBlock
+          verified={!!profile?.verified}
+          onVerifyClick={() => setShowVerifyModal(true)}
+        />
       </section>
 
-      <section
-        className="rounded-xl p-4 mb-4"
-        style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-      >
-        <h2 className="font-semibold mb-2 flex items-center gap-2" style={{ color: "var(--color-text)" }}>
-          <FontAwesomeIcon icon={faStar} className="w-4 h-4 shrink-0" style={{ color: "var(--color-text)" }} />
-          Рейтинг
-        </h2>
-        <p className="text-sm mb-1" style={{ color: "var(--color-text)" }}>
-          Текущий рейтинг:{" "}
-          <span className="font-semibold">
-            {typeof profile?.rating?.total === "number" ? profile.rating.total.toFixed(1) : "-"}
-          </span>
-        </p>
-        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-          Авто-рейтинг:{" "}
-          {typeof profile?.rating?.auto === "number" ? profile.rating.auto.toFixed(1) : "-"}, ручная
-          корректировка:{" "}
-          {typeof profile?.rating?.manualDelta === "number" ? profile.rating.manualDelta.toFixed(1) : "-"}
-        </p>
-        {profileLoadError && (
-          <p className="text-xs mt-2" style={{ color: "var(--color-accent)" }}>
-            Ошибка загрузки профиля: {profileLoadError}
-          </p>
-        )}
-      </section>
+      <ProfileRatingBlock profile={profile} loadError={profileLoadError} />
 
       <div className="space-y-2 mb-4">
-        <Link
-          href="/profile/statistics"
-          className="flex items-center gap-3 rounded-xl px-4 py-3 w-full text-left transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-        >
-          <FontAwesomeIcon icon={faChartLine} className="w-5 h-5 shrink-0" style={{ color: "var(--color-accent)" }} />
-          <span className="font-semibold" style={{ color: "var(--color-text)" }}>
-            Статистика
-          </span>
-        </Link>
-        <Link
-          href="/profile/favorites"
-          className="flex items-center gap-3 rounded-xl px-4 py-3 w-full text-left transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-        >
-          <FontAwesomeIcon icon={faStar} className="w-5 h-5 shrink-0" style={{ color: "var(--color-accent)" }} />
-          <span className="font-semibold" style={{ color: "var(--color-text)" }}>
-            Избранное
-          </span>
-        </Link>
-        <Link
-          href="/profile/faq"
-          className="flex items-center gap-3 rounded-xl px-4 py-3 w-full text-left transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-        >
-          <FontAwesomeIcon icon={faCircleQuestion} className="w-5 h-5 shrink-0" style={{ color: "var(--color-accent)" }} />
-          <span className="font-semibold" style={{ color: "var(--color-text)" }}>
-            Частые вопросы
-          </span>
-        </Link>
+        <ProfileMenuRow href="/profile/statistics" icon={faChartLine} label="Статистика" />
+        <ProfileMenuRow href="/profile/favorites" icon={faStar} label="Избранное" />
+        <ProfileMenuRow href="/profile/faq" icon={faCircleQuestion} label="Частые вопросы" />
       </div>
 
       <section
@@ -306,118 +168,21 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {showVerifyModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-          onClick={(e) => e.target === e.currentTarget && setShowVerifyModal(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-xl p-4 mb-8"
-            style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <h2 className="font-semibold text-base" style={{ color: "var(--color-text)" }}>
-                Заявка на верификацию
-              </h2>
-              <button
-                type="button"
-                onClick={() => setShowVerifyModal(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
-                aria-label="Закрыть"
-              >
-                ×
-              </button>
-            </div>
-            <p className="text-xs mb-3" style={{ color: "var(--color-text-muted)" }}>
-              Укажите номер телефона, привязанный к вашему Telegram‑аккаунту. Мы используем его только
-              для проверки и связи по вопросам верификации.
-            </p>
-            <label className="block text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
-              Номер телефона Telegram
-            </label>
-            <input
-              type="tel"
-              placeholder="+7 900 000-00-00"
-              value={verifyPhone}
-              onChange={(e) => setVerifyPhone(e.target.value)}
-              className="w-full rounded-lg px-3 py-2 text-sm outline-none mb-4"
-              style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}
-            />
-            <button
-              type="button"
-              onClick={handleVerifySubmit}
-              className="w-full rounded-xl py-2.5 text-sm font-medium"
-              style={{ backgroundColor: "var(--color-accent)", color: "white" }}
-            >
-              Отправить
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showSupportModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-          onClick={(e) => e.target === e.currentTarget && setShowSupportModal(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-xl p-4 mb-8"
-            style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <h2 className="font-semibold text-base" style={{ color: "var(--color-text)" }}>
-                Сообщить о проблеме
-              </h2>
-              <button
-                type="button"
-                onClick={() => setShowSupportModal(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
-                aria-label="Закрыть"
-              >
-                ×
-              </button>
-            </div>
-            <p className="text-xs mb-3" style={{ color: "var(--color-text-muted)" }}>
-              Опишите, что пошло не так: на каком экране вы находитесь, что хотели сделать и что в итоге
-              произошло.
-            </p>
-            <textarea
-              placeholder="Опишите проблему..."
-              value={supportText}
-              onChange={(e) => setSupportText(e.target.value)}
-              rows={4}
-              className="w-full rounded-lg px-3 py-2 text-sm outline-none mb-4 resize-none"
-              style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}
-            />
-            <button
-              type="button"
-              onClick={handleSupportSubmit}
-              className="w-full rounded-xl py-2.5 text-sm font-medium"
-              style={{ backgroundColor: "var(--color-accent)", color: "white" }}
-            >
-              Отправить
-            </button>
-          </div>
-        </div>
-      )}
-
-      {notice && (
-        <div
-          className="fixed left-4 right-4 bottom-6 z-[100] rounded-xl p-4 shadow-lg animate-fade-in"
-          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-          role="alert"
-        >
-          <p className="text-sm" style={{ color: "var(--color-text)" }}>
-            {notice}
-          </p>
-        </div>
-      )}
+      <VerifyModal
+        open={showVerifyModal}
+        phone={verifyPhone}
+        onPhoneChange={setVerifyPhone}
+        onClose={() => setShowVerifyModal(false)}
+        onSubmit={handleVerifySubmit}
+      />
+      <SupportModal
+        open={showSupportModal}
+        supportText={supportText}
+        onSupportTextChange={setSupportText}
+        onClose={() => setShowSupportModal(false)}
+        onSubmit={handleSupportSubmit}
+      />
+      <ProfileNotice text={notice} />
     </main>
   );
 }

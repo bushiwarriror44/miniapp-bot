@@ -83,7 +83,7 @@ export function HotOffersBlock() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [logger]);
 
   if (!loading && offers.length === 0 && !loadError) return null;
 
