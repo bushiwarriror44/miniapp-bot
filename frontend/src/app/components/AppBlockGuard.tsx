@@ -17,8 +17,9 @@ export function AppBlockGuard({ children }: { children: React.ReactNode }) {
   const telegramId = useMemo(() => {
     if (typeof window === 'undefined') return "";
     const tg = getTelegramWebApp();
-    const id = tg?.initDataUnsafe?.user?.id;
-    return id ? String(id) : "";
+    const user = tg?.initDataUnsafe?.user;
+    const id = user != null && "id" in user ? (user as { id: number }).id : undefined;
+    return id != null ? String(id) : "";
   }, []);
 
   const [isReady, setIsReady] = useState(() => !telegramId);
