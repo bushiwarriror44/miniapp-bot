@@ -5,6 +5,7 @@ import { GeistMono } from 'geist/font/mono';
 import { Providers } from './providers';
 import { BottomNav } from './components/BottomNav';
 import { AppLoader } from './components/AppLoader';
+import { TelegramWebAppSetup } from './components/TelegramWebAppSetup';
 import { AppBlockGuard } from './components/AppBlockGuard';
 import { LayoutLogger } from './components/LayoutLogger';
 import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
@@ -40,6 +41,7 @@ export default function RootLayout({
 				<LayoutLogger>
 					<GlobalErrorBoundary>
 						<Providers>
+							<TelegramWebAppSetup />
 							<AppLoader />
 							<AppBlockGuard>
 								<div className="main-content">{children}</div>
