@@ -83,7 +83,8 @@ export function HotOffersBlock() {
     return () => {
       cancelled = true;
     };
-  }, [logger]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount; logger ref would retrigger loop on error
+  }, []);
 
   if (!loading && offers.length === 0 && !loadError) return null;
 
