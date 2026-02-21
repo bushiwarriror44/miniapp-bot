@@ -103,45 +103,45 @@ export default function Home() {
 			});
 	}, []);
 
-	if (!isMounted) {
-		return null;
-	}
-
+	// Render same shell on server and client to avoid hydration mismatch (React #418).
+	// Only inner content is gated by isMounted so the initial DOM tree matches.
 	return (
-		<RenderLoggerProvider onLog={appendLog}>
-			<main className="px-4 py-6">
-				<RenderLogger logs={logs} onClear={clearLogs} title="Home render log" />
+		<main className="px-4 py-6">
+			{isMounted ? (
+				<RenderLoggerProvider onLog={appendLog}>
+					<RenderLogger logs={logs} onClear={clearLogs} title="Home render log" />
 
-				<SearchField />
-				<PromoBlock />
+					<SearchField />
+					<PromoBlock />
 
-				<BannersBlock />
-				<CryptoPrices />
-				<HotOffersBlock />
-				<TopUsersBlock />
-				<section
-					className="mb-6 rounded-xl p-4"
-					style={{
-						backgroundColor: 'var(--color-bg-elevated)',
-						border: '1px solid var(--color-border)',
-					}}
-				>
-					<h2 className="font-semibold text-sm flex items-center gap-2 mb-2" style={{ color: 'var(--color-text)' }}>
-						<FontAwesomeIcon icon={faStar} className="w-4 h-4 shrink-0" />
-						Ваш рейтинг
-					</h2>
-					<Link
-						href="/profile/rating-rules"
-						className="text-xs font-medium"
-						style={{ color: 'var(--color-accent)', textDecoration: 'none' }}
+					<BannersBlock />
+					<CryptoPrices />
+					<HotOffersBlock />
+					<TopUsersBlock />
+					<section
+						className="mb-6 rounded-xl p-4"
+						style={{
+							backgroundColor: 'var(--color-bg-elevated)',
+							border: '1px solid var(--color-border)',
+						}}
 					>
-						Правила рассчета рейтинга
-					</Link>
-				</section>
-				<PublicationsBlock />
-				<NewsBlock />
-			</main>
-		</RenderLoggerProvider>
+						<h2 className="font-semibold text-sm flex items-center gap-2 mb-2" style={{ color: 'var(--color-text)' }}>
+							<FontAwesomeIcon icon={faStar} className="w-4 h-4 shrink-0" />
+							Ваш рейтинг
+						</h2>
+						<Link
+							href="/profile/rating-rules"
+							className="text-xs font-medium"
+							style={{ color: 'var(--color-accent)', textDecoration: 'none' }}
+						>
+							Правила рассчета рейтинга
+						</Link>
+					</section>
+					<PublicationsBlock />
+					<NewsBlock />
+				</RenderLoggerProvider>
+			) : null}
+		</main>
 	);
 }
 
