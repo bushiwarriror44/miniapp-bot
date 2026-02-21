@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { fetchUserProfile } from "@/shared/api/users";
 import { fetchBotConfig } from "@/shared/api/bot-config";
@@ -13,7 +13,11 @@ function isValidUrl(url: string | null | undefined): url is string {
 }
 
 export function AppBlockGuard({ children }: { children: React.ReactNode }) {
-  const [isMounted] = useState(() => typeof window !== "undefined");
+  const [isMounted, setIsMounted] = useState(false);
+  useLayoutEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const telegramId = useMemo(() => {
     if (typeof window === 'undefined') return "";
     const tg = getTelegramWebApp();
