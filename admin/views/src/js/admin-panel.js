@@ -1200,7 +1200,7 @@ function renderAdminUserDetails(user, statistics) {
         <p style="margin:0 0 6px 0;"><strong>Рейтинг total:</strong> ${escapeHtml(formatMaybeRating(rating.total))}</p>
       </div>
       <div>
-        <label class="muted" style="display:block;margin-bottom:4px;">Ручная корректировка рейтинга</label>
+        <label class="muted" style="display:block;margin-bottom:4px;">Бонус рейтинга</label>
         <input id="adminUserRatingDeltaInput" class="input" type="number" step="0.1" value="${escapeHtml(String(rating.manualDelta ?? 0))}" />
         <button id="adminUserSaveRatingBtn" class="btn btn-primary" style="margin-top:8px;">Сохранить рейтинг</button>
         <label style="display:flex;gap:8px;align-items:center;margin-top:12px;">
@@ -1548,7 +1548,7 @@ function renderRatingUsersTable() {
           <th>Telegram ID</th>
           <th>Рейтинг (total)</th>
           <th>Авто-рейтинг</th>
-          <th>Ручная корректировка</th>
+          <th>Бонус рейтинга</th>
           <th>Действия</th>
         </tr>
       </thead>

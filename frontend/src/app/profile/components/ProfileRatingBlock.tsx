@@ -26,8 +26,7 @@ export function ProfileRatingBlock({
       </p>
       <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
         Авто-рейтинг:{" "}
-        {typeof profile?.rating?.auto === "number" ? profile.rating.auto.toFixed(1) : "-"}, ручная
-        корректировка:{" "}
+        {typeof profile?.rating?.auto === "number" ? profile.rating.auto.toFixed(1) : "-"}, бонус рейтинга:{" "}
         {typeof profile?.rating?.manualDelta === "number" ? profile.rating.manualDelta.toFixed(1) : "-"}
       </p>
       <Link

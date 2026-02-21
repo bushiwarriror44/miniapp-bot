@@ -74,7 +74,7 @@ const RULES: { icon: typeof faStar; action: string; description: string; points:
   },
   {
     icon: faPenToSquare,
-    action: "Ручная корректировка",
+    action: "Бонус рейтинга",
     description: "Изменение администратором",
     points: "по решению администрации",
   },
@@ -165,8 +165,7 @@ export default function ProfileRatingRulesPage() {
           </table>
         </div>
         <p className="mt-3 text-xs" style={{ color: "var(--color-text-muted)" }}>
-          Итоговый рейтинг = авто-рейтинг (сумма баллов по правилам выше, округление до 1 знака) + ручная
-          корректировка.
+          Итоговый рейтинг = авто-рейтинг (сумма баллов по правилам выше, округление до 1 знака) + бонус рейтинга
         </p>
       </section>
     </main>

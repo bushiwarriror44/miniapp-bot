@@ -942,10 +942,13 @@ export class AppService {
     });
     const hasMore = rows.length > limitNum;
     const slice = hasMore ? rows.slice(0, limitNum) : rows;
+    const toIso = (d: Date | string | null | undefined): string =>
+      d == null ? '' : (d instanceof Date ? d : new Date(d)).toISOString();
     const now = new Date();
     const publications = slice.map((r) => {
       let status = r.status;
-      if (r.status === 'approved' && r.expiresAt != null && now > r.expiresAt) {
+      const expiresAt = r.expiresAt == null ? null : (r.expiresAt instanceof Date ? r.expiresAt : new Date(r.expiresAt));
+      if (r.status === 'approved' && expiresAt != null && now > expiresAt) {
         status = 'completed';
       }
       return {
@@ -953,8 +956,8 @@ export class AppService {
         status,
         section: r.section,
         formData: r.formData ?? {},
-        createdAt: r.createdAt?.toISOString?.() ?? new Date().toISOString(),
-        ...(r.expiresAt != null && { expiresAt: r.expiresAt.toISOString() }),
+        createdAt: toIso(r.createdAt) || new Date().toISOString(),
+        ...(r.expiresAt != null && { expiresAt: toIso(r.expiresAt) }),
       };
     });
     const nextCursor = hasMore ? String(offset + limitNum) : null;
