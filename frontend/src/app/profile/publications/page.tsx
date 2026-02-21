@@ -156,8 +156,9 @@ export default function PublicationsPage() {
 
   const telegramId = useMemo(() => {
     const telegram = getTelegramWebApp();
-    const userId = telegram?.initDataUnsafe?.user?.id;
-    return userId ? String(userId) : "";
+    const user = telegram?.initDataUnsafe?.user;
+    const userId = user != null && "id" in user ? (user as { id: number }).id : undefined;
+    return userId != null ? String(userId) : "";
   }, []);
 
   const loadMore = useCallback(async () => {

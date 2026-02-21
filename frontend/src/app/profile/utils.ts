@@ -17,16 +17,18 @@ export function getInitialTelegramProfile(): TelegramProfile {
   const user = telegram?.initDataUnsafe?.user;
   if (!user) return fallback;
 
-  const username = user.username || "";
-  const firstName = user.first_name || "";
+  const userId = "id" in user ? (user as { id: number }).id : undefined;
+  const username = "username" in user ? user.username || "" : "";
+  const firstName = "first_name" in user ? user.first_name || "" : "";
   const displayName = username || firstName || "user";
   const avatarByUsername = username
     ? `https://t.me/i/userpic/320/${username}.jpg`
     : "/assets/telegram-ico.svg";
+  const photoUrl = "photo_url" in user ? user.photo_url : undefined;
 
   return {
     username: displayName,
-    userId: String(user.id ?? "-"),
-    avatarUrl: user.photo_url || avatarByUsername,
+    userId: userId != null ? String(userId) : "-",
+    avatarUrl: photoUrl || avatarByUsername,
   };
 }

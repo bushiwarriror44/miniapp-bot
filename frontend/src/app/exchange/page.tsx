@@ -99,7 +99,8 @@ function ExchangePageContent() {
 
   const handleSubmitRequest = async () => {
     const tg = getTelegramWebApp();
-    const telegramId = tg?.initDataUnsafe?.user?.id;
+    const user = tg?.initDataUnsafe?.user;
+    const telegramId = user != null && "id" in user ? (user as { id: number }).id : undefined;
     if (!telegramId) {
       setSubmitError("Не удалось определить Telegram ID пользователя.");
       return;

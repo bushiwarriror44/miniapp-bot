@@ -64,24 +64,29 @@ export default function Home() {
 			logEvent('telegram user', 'initDataUnsafe.user is missing');
 			return;
 		}
+		const userId = "id" in user ? (user as { id: number }).id : undefined;
+		if (userId == null) {
+			logEvent('telegram user', 'user id is missing');
+			return;
+		}
 
 		logEvent(
 			'telegram user',
 			JSON.stringify({
-				id: user.id,
-				username: user.username ?? null,
-				first_name: user.first_name ?? null,
-				last_name: user.last_name ?? null,
+				id: userId,
+				username: "username" in user ? user.username ?? null : null,
+				first_name: "first_name" in user ? user.first_name ?? null : null,
+				last_name: "last_name" in user ? user.last_name ?? null : null,
 			}),
 		);
 
 		const payload = {
-			telegramId: user.id,
-			username: user.username || null,
-			firstName: user.first_name || null,
-			lastName: user.last_name || null,
-			languageCode: user.language_code || null,
-			isPremium: Boolean(user.is_premium),
+			telegramId: userId,
+			username: "username" in user ? user.username || null : null,
+			firstName: "first_name" in user ? user.first_name || null : null,
+			lastName: "last_name" in user ? user.last_name || null : null,
+			languageCode: "language_code" in user ? user.language_code || null : null,
+			isPremium: "is_premium" in user ? Boolean(user.is_premium) : false,
 		};
 
 		logEvent('trackTelegramUser start', JSON.stringify(payload));
