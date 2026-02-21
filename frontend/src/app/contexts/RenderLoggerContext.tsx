@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode, useCallback, useMemo } from "react";
 import type { RenderLog } from "../components/RenderLogger";
 
 type RenderLoggerContextType = {
@@ -21,30 +21,38 @@ type Props = {
 };
 
 export function RenderLoggerProvider({ children, onLog }: Props) {
-  const logRender = (label: string, reason: "MOUNT" | "UPDATE" | "EVENT", details?: string) => {
-    const now = Date.now();
-    onLog({
-      timestamp: now,
-      type: "RENDER",
-      label,
-      reason,
-      details,
-    });
-  };
+  const logRender = useCallback(
+    (label: string, reason: "MOUNT" | "UPDATE" | "EVENT", details?: string) => {
+      const now = Date.now();
+      onLog({
+        timestamp: now,
+        type: "RENDER",
+        label,
+        reason,
+        details,
+      });
+    },
+    [onLog],
+  );
 
-  const logEvent = (label: string, reason: string, details?: string) => {
-    const now = Date.now();
-    onLog({
-      timestamp: now,
-      type: "EVENT",
-      label,
-      reason,
-      details,
-    });
-  };
+  const logEvent = useCallback(
+    (label: string, reason: string, details?: string) => {
+      const now = Date.now();
+      onLog({
+        timestamp: now,
+        type: "EVENT",
+        label,
+        reason,
+        details,
+      });
+    },
+    [onLog],
+  );
+
+  const value = useMemo(() => ({ logRender, logEvent }), [logRender, logEvent]);
 
   return (
-    <RenderLoggerContext.Provider value={{ logRender, logEvent }}>
+    <RenderLoggerContext.Provider value={value}>
       {children}
     </RenderLoggerContext.Provider>
   );
