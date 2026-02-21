@@ -1,8 +1,16 @@
-import { IsOptional, IsBoolean, IsString, MaxLength, IsNotEmpty } from 'class-validator';
+import {
+  IsOptional,
+  IsBoolean,
+  IsString,
+  MaxLength,
+  IsNotEmpty,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class TrackUserDto {
-  @Transform(({ value }) => (value !== undefined && value !== null ? String(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null ? String(value) : undefined,
+  )
   @IsNotEmpty({ message: 'telegramId is required' })
   telegramId: string;
 

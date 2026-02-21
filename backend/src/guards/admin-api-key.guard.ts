@@ -25,7 +25,8 @@ export class AdminApiKeyGuard implements CanActivate {
       typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
         ? authHeader.slice(7).trim()
         : undefined;
-    const key = (typeof headerKey === 'string' ? headerKey : undefined) ?? bearerKey;
+    const key =
+      (typeof headerKey === 'string' ? headerKey : undefined) ?? bearerKey;
     if (!key || key.trim() === '') {
       throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
     }

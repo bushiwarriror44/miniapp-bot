@@ -2,7 +2,9 @@ import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CreateSupportDto {
-  @Transform(({ value }) => (value !== undefined && value !== null ? String(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null ? String(value) : undefined,
+  )
   @IsNotEmpty({ message: 'telegramId is required' })
   telegramId: string;
 

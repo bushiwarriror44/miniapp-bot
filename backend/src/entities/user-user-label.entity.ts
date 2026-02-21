@@ -19,14 +19,18 @@ export class UserUserLabelEntity {
   @Column({ type: 'uuid' })
   userId: string;
 
-  @ManyToOne(() => UserEntity, (user) => user.userLabels, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, (user) => user.userLabels, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'userId' })
   user: UserEntity;
 
   @Column({ type: 'uuid' })
   labelId: string;
 
-  @ManyToOne(() => UserLabelEntity, (label) => label.userLabels, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserLabelEntity, (label) => label.userLabels, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'labelId' })
   label: UserLabelEntity;
 

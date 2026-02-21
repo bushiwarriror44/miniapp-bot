@@ -19,7 +19,11 @@ export type ModerationSection =
   | 'buy-channel'
   | 'other';
 
-export type ModerationStatus = 'pending' | 'approved' | 'rejected';
+export type ModerationStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'completed';
 
 @Entity({ name: 'moderation_requests' })
 @Index(['status', 'createdAt'])
@@ -54,6 +58,9 @@ export class ModerationRequestEntity {
 
   @Column({ type: 'timestamp', nullable: true })
   processedAt: Date | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  expiresAt: Date | null;
 
   @CreateDateColumn()
   createdAt: Date;

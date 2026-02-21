@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faClipboard, faCheckCircle, faXmarkCircle } from "@fortawesome/free-solid-svg-icons";
+import { faClipboard, faCheckCircle, faXmarkCircle, faFlagCheckered } from "@fortawesome/free-solid-svg-icons";
 import { getTelegramWebApp } from "@/shared/api/client";
-import { fetchMyPublications, type MyPublicationItem } from "@/shared/api/users";
+import { fetchMyPublications, completePublication, type MyPublicationItem } from "@/shared/api/users";
 import { useRenderLoggerContext } from "../contexts/RenderLoggerContext";
+import { CompletePublicationModal } from "../profile/publications/CompletePublicationModal";
 
 function formatPublicationDate(iso: string): string {
   try {
@@ -60,13 +61,16 @@ export function PublicationsBlock() {
   const hasLoggedMount = useRef(false);
   const telegramId = useMemo(() => {
     const telegram = getTelegramWebApp();
-    const userId = telegram?.initDataUnsafe?.user?.id;
-    return userId ? String(userId) : "";
+    const user = telegram?.initDataUnsafe?.user as { id?: number } | undefined;
+    const userId = user?.id;
+    return userId != null ? String(userId) : "";
   }, []);
 
   const [publications, setPublications] = useState<MyPublicationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [completeModalPublicationId, setCompleteModalPublicationId] = useState<string | null>(null);
+  const [completeLoading, setCompleteLoading] = useState(false);
 
   useLayoutEffect(() => {
     if (!hasLoggedMount.current && logger) {
@@ -196,55 +200,105 @@ export function PublicationsBlock() {
       <ul className="space-y-3 list-none p-0 m-0">
         {displayedPublications.map((item) => (
           <li key={item.id}>
-            <Link
-              href={`/profile/publications/${item.id}`}
-              className="block rounded-xl p-3 border transition-opacity hover:opacity-80"
+            <div
+              className="rounded-xl p-3 border"
               style={{
                 backgroundColor: "var(--color-bg-elevated)",
                 borderColor: "var(--color-border)",
-                textDecoration: "none",
-                color: "inherit",
               }}
             >
-              <p className="text-sm font-medium mb-1" style={{ color: "var(--color-text)" }}>
-                {publicationTitle(item)}
-              </p>
-              <p className="text-xs mb-2" style={{ color: "var(--color-text-muted)" }}>
-                {formatPublicationDate(item.createdAt)}
-              </p>
-              {item.status === "pending" && (
-                <span
-                  className="inline-block rounded-lg px-2 py-0.5 text-xs font-medium"
+              <Link
+                href={`/profile/publications/${item.id}`}
+                className="block transition-opacity hover:opacity-80"
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                <p className="text-sm font-medium mb-1" style={{ color: "var(--color-text)" }}>
+                  {publicationTitle(item)}
+                </p>
+                <p className="text-xs mb-2" style={{ color: "var(--color-text-muted)" }}>
+                  {formatPublicationDate(item.createdAt)}
+                </p>
+                {item.status === "pending" && (
+                  <span
+                    className="inline-block rounded-lg px-2 py-0.5 text-xs font-medium"
+                    style={{
+                      backgroundColor: "var(--color-surface)",
+                      color: "var(--color-accent)",
+                    }}
+                  >
+                    на модерации
+                  </span>
+                )}
+                {item.status === "approved" && (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
+                    style={{ color: "#16a34a" }}
+                  >
+                    <FontAwesomeIcon icon={faCheckCircle} className="w-3 h-3" style={{ color: "#16a34a" }} />
+                    Опубликовано
+                  </span>
+                )}
+                {item.status === "rejected" && (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
+                    style={{ color: "#dc2626" }}
+                  >
+                    <FontAwesomeIcon icon={faXmarkCircle} className="w-3 h-3" style={{ color: "#dc2626" }} />
+                    Отклонено
+                  </span>
+                )}
+                {item.status === "completed" && (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
+                    style={{ color: "var(--color-text-muted)" }}
+                  >
+                    <FontAwesomeIcon icon={faFlagCheckered} className="w-3 h-3" style={{ color: "var(--color-text-muted)" }} />
+                    Завершено
+                  </span>
+                )}
+              </Link>
+              {item.status === "approved" && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setCompleteModalPublicationId(item.id);
+                  }}
+                  className="w-full mt-2 rounded-lg py-1.5 text-xs font-medium"
                   style={{
                     backgroundColor: "var(--color-surface)",
-                    color: "var(--color-accent)",
+                    border: "1px solid var(--color-border)",
+                    color: "var(--color-text)",
                   }}
                 >
-                  на модерации
-                </span>
+                  Завершить объявление
+                </button>
               )}
-              {item.status === "approved" && (
-                <span
-                  className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
-                  style={{ color: "#16a34a" }}
-                >
-                  <FontAwesomeIcon icon={faCheckCircle} className="w-3 h-3" style={{ color: "#16a34a" }} />
-                  Опубликовано
-                </span>
-              )}
-              {item.status === "rejected" && (
-                <span
-                  className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
-                  style={{ color: "#dc2626" }}
-                >
-                  <FontAwesomeIcon icon={faXmarkCircle} className="w-3 h-3" style={{ color: "#dc2626" }} />
-                  Отклонено
-                </span>
-              )}
-            </Link>
+            </div>
           </li>
         ))}
       </ul>
+      <CompletePublicationModal
+        open={completeModalPublicationId != null}
+        loading={completeLoading}
+        onConfirm={async () => {
+          if (!telegramId || !completeModalPublicationId) return;
+          setCompleteLoading(true);
+          try {
+            await completePublication(telegramId, completeModalPublicationId);
+            setPublications((prev) =>
+              prev.map((p) =>
+                p.id === completeModalPublicationId ? { ...p, status: "completed" as const } : p
+              )
+            );
+            setCompleteModalPublicationId(null);
+          } finally {
+            setCompleteLoading(false);
+          }
+        }}
+        onCancel={() => setCompleteModalPublicationId(null)}
+      />
       <Link
         href="/exchange"
         className="inline-block mt-3 text-sm font-medium"

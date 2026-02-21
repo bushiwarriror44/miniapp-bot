@@ -19,7 +19,9 @@ const SECTIONS = [
 ] as const;
 
 export class CreateModerationDto {
-  @Transform(({ value }) => (value !== undefined && value !== null ? String(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null ? String(value) : undefined,
+  )
   @IsNotEmpty({ message: 'telegramId is required' })
   telegramId: string;
 

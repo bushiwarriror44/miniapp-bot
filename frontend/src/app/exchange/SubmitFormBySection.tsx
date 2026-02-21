@@ -72,6 +72,19 @@ export function SubmitFormBySection({
     </select>
   );
 
+  const LISTING_DURATION_OPTIONS: { value: string; label: string }[] = [
+    { value: "24", label: "1 день (24 часа)" },
+    { value: "48", label: "2 дня (48 часов)" },
+    { value: "72", label: "3 дня (72 часа)" },
+    { value: "168", label: "7 дней (168 часов)" },
+  ];
+  const listingDurationField = (
+    <div>
+      {label("Срок размещения")}
+      {select("listingDuration", LISTING_DURATION_OPTIONS)}
+    </div>
+  );
+
   if (section === "buy-ads") {
     return (
       <div className="space-y-3">
@@ -95,6 +108,7 @@ export function SubmitFormBySection({
           {label("Дополнительное описание", true)}
           {textarea("description", "Опишите, какую рекламу вы хотите разместить...")}
         </div>
+        {listingDurationField}
       </div>
     );
   }
@@ -146,6 +160,7 @@ export function SubmitFormBySection({
           {label("Дополнительное описание", true)}
           {textarea("description", "Текст объявления...")}
         </div>
+        {listingDurationField}
       </div>
     );
   }
@@ -202,6 +217,7 @@ export function SubmitFormBySection({
           {label("Дополнительное описание", true)}
           {textarea("description", "Опишите вакансию...")}
         </div>
+        {listingDurationField}
       </div>
     );
   }
@@ -229,6 +245,7 @@ export function SubmitFormBySection({
           {label("Дополнительное описание", true)}
           {textarea("description", "Описание услуги...")}
         </div>
+        {listingDurationField}
       </div>
     );
   }
@@ -268,6 +285,7 @@ export function SubmitFormBySection({
           {label("Дополнительное описание", true)}
           {textarea("description", "Описание канала...")}
         </div>
+        {listingDurationField}
       </div>
     );
   }
@@ -315,6 +333,7 @@ export function SubmitFormBySection({
           {label("Дополнительное описание", true)}
           {textarea("description", "Что ищете...")}
         </div>
+        {listingDurationField}
       </div>
     );
   }
@@ -334,6 +353,7 @@ export function SubmitFormBySection({
           {label("Дополнительное описание", true)}
           {textarea("description", "Опишите товар или услугу...")}
         </div>
+        {listingDurationField}
       </div>
     );
   }

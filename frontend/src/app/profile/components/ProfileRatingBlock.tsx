@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar } from "@fortawesome/free-solid-svg-icons";
 import type { UserProfileResponse } from "@/shared/api/users";
@@ -29,6 +30,13 @@ export function ProfileRatingBlock({
         корректировка:{" "}
         {typeof profile?.rating?.manualDelta === "number" ? profile.rating.manualDelta.toFixed(1) : "-"}
       </p>
+      <Link
+        href="/profile/rating-rules"
+        className="text-xs font-medium mt-2 inline-block"
+        style={{ color: "var(--color-accent)", textDecoration: "none" }}
+      >
+        Правила рассчета рейтинга
+      </Link>
       {loadError && (
         <p className="text-xs mt-2" style={{ color: "var(--color-accent)" }}>
           Ошибка загрузки профиля: {loadError}

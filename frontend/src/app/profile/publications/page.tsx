@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronLeft, faClipboard, faCheckCircle, faXmarkCircle } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faClipboard, faCheckCircle, faXmarkCircle, faFlagCheckered } from "@fortawesome/free-solid-svg-icons";
 import { getTelegramWebApp } from "@/shared/api/client";
-import { fetchMyPublicationsPaginated, type MyPublicationItem } from "@/shared/api/users";
+import { fetchMyPublicationsPaginated, completePublication, type MyPublicationItem } from "@/shared/api/users";
 import { useInfiniteScroll } from "@/app/hooks/useInfiniteScroll";
+import { CompletePublicationModal } from "./CompletePublicationModal";
 
 function formatPublicationDate(iso: string): string {
   try {
@@ -55,54 +56,90 @@ function PublicationSkeleton() {
   );
 }
 
-function PublicationCard({ item }: { item: MyPublicationItem }) {
+function PublicationCard({
+  item,
+  onCompleteClick,
+}: {
+  item: MyPublicationItem;
+  onCompleteClick?: (id: string) => void;
+}) {
   return (
-    <Link
-      href={`/profile/publications/${item.id}`}
-      className="block rounded-xl p-3 border transition-opacity hover:opacity-80"
+    <div
+      className="rounded-xl p-3 border"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         borderColor: "var(--color-border)",
-        textDecoration: "none",
-        color: "inherit",
       }}
     >
-      <p className="text-sm font-medium mb-1" style={{ color: "var(--color-text)" }}>
-        {publicationTitle(item)}
-      </p>
-      <p className="text-xs mb-2" style={{ color: "var(--color-text-muted)" }}>
-        {formatPublicationDate(item.createdAt)}
-      </p>
-      {item.status === "pending" && (
-        <span
-          className="inline-block rounded-lg px-2 py-0.5 text-xs font-medium"
+      <Link
+        href={`/profile/publications/${item.id}`}
+        className="block transition-opacity hover:opacity-80"
+        style={{ textDecoration: "none", color: "inherit" }}
+      >
+        <p className="text-sm font-medium mb-1" style={{ color: "var(--color-text)" }}>
+          {publicationTitle(item)}
+        </p>
+        <p className="text-xs mb-2" style={{ color: "var(--color-text-muted)" }}>
+          {formatPublicationDate(item.createdAt)}
+        </p>
+        {item.status === "pending" && (
+          <span
+            className="inline-block rounded-lg px-2 py-0.5 text-xs font-medium"
+            style={{
+              backgroundColor: "var(--color-surface)",
+              color: "var(--color-accent)",
+            }}
+          >
+            на модерации
+          </span>
+        )}
+        {item.status === "approved" && (
+          <span
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
+            style={{ color: "#16a34a" }}
+          >
+            <FontAwesomeIcon icon={faCheckCircle} className="w-3 h-3" style={{ color: "#16a34a" }} />
+            Опубликовано
+          </span>
+        )}
+        {item.status === "rejected" && (
+          <span
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
+            style={{ color: "#dc2626" }}
+          >
+            <FontAwesomeIcon icon={faXmarkCircle} className="w-3 h-3" style={{ color: "#dc2626" }} />
+            Отклонено
+          </span>
+        )}
+        {item.status === "completed" && (
+          <span
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            <FontAwesomeIcon icon={faFlagCheckered} className="w-3 h-3" style={{ color: "var(--color-text-muted)" }} />
+            Завершено
+          </span>
+        )}
+      </Link>
+      {item.status === "approved" && onCompleteClick && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onCompleteClick(item.id);
+          }}
+          className="w-full mt-2 rounded-lg py-1.5 text-xs font-medium"
           style={{
             backgroundColor: "var(--color-surface)",
-            color: "var(--color-accent)",
+            border: "1px solid var(--color-border)",
+            color: "var(--color-text)",
           }}
         >
-          на модерации
-        </span>
+          Завершить объявление
+        </button>
       )}
-      {item.status === "approved" && (
-        <span
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
-          style={{ color: "#16a34a" }}
-        >
-          <FontAwesomeIcon icon={faCheckCircle} className="w-3 h-3" style={{ color: "#16a34a" }} />
-          Опубликовано
-        </span>
-      )}
-      {item.status === "rejected" && (
-        <span
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
-          style={{ color: "#dc2626" }}
-        >
-          <FontAwesomeIcon icon={faXmarkCircle} className="w-3 h-3" style={{ color: "#dc2626" }} />
-          Отклонено
-        </span>
-      )}
-    </Link>
+    </div>
   );
 }
 
@@ -114,6 +151,8 @@ export default function PublicationsPage() {
   const [loading, setLoading] = useState(true);
   const [loadMoreLoading, setLoadMoreLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [completeModalPublicationId, setCompleteModalPublicationId] = useState<string | null>(null);
+  const [completeLoading, setCompleteLoading] = useState(false);
 
   const telegramId = useMemo(() => {
     const telegram = getTelegramWebApp();
@@ -204,10 +243,33 @@ export default function PublicationsPage() {
             <ul className="space-y-3 list-none p-0 m-0 mb-4">
               {publications.map((item) => (
                 <li key={item.id}>
-                  <PublicationCard item={item} />
+                  <PublicationCard
+                    item={item}
+                    onCompleteClick={(id) => setCompleteModalPublicationId(id)}
+                  />
                 </li>
               ))}
             </ul>
+            <CompletePublicationModal
+              open={completeModalPublicationId != null}
+              loading={completeLoading}
+              onConfirm={async () => {
+                if (!telegramId || !completeModalPublicationId) return;
+                setCompleteLoading(true);
+                try {
+                  await completePublication(telegramId, completeModalPublicationId);
+                  setPublications((prev) =>
+                    prev.map((p) =>
+                      p.id === completeModalPublicationId ? { ...p, status: "completed" as const } : p
+                    )
+                  );
+                  setCompleteModalPublicationId(null);
+                } finally {
+                  setCompleteLoading(false);
+                }
+              }}
+              onCancel={() => setCompleteModalPublicationId(null)}
+            />
             {loadMoreLoading && (
               <div className="space-y-3 mb-4">
                 {[1, 2, 3].map((i) => (

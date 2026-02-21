@@ -49,6 +49,7 @@ export const STATUS_LABELS: Record<string, string> = {
   pending: "на модерации",
   approved: "Опубликовано",
   rejected: "Отклонено",
+  completed: "Завершено",
 };
 
 export function getStatusLabel(status: string): string {
@@ -63,6 +64,8 @@ export function getStatusColor(status: string): string {
       return "#16a34a";
     case "rejected":
       return "#dc2626";
+    case "completed":
+      return "var(--color-text-muted)";
     default:
       return "var(--color-text-muted)";
   }

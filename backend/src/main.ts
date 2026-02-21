@@ -11,6 +11,7 @@ const logger = new Logger('Bootstrap');
 
 async function ensureDatabase(): Promise<void> {
   const dbName = process.env.DB_NAME || 'miniapp_bot';
+  /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- pg Client API used before app bootstrap */
   const client = new Client({
     host: process.env.DB_HOST || 'localhost',
     port: Number(process.env.DB_PORT) || 5432,
@@ -21,10 +22,11 @@ async function ensureDatabase(): Promise<void> {
 
   try {
     await client.connect();
-    const { rows } = await client.query(
+    const result = await client.query(
       'SELECT 1 FROM pg_database WHERE datname = $1',
       [dbName],
     );
+    const rows = result.rows ?? [];
     if (rows.length === 0) {
       await client.query(`CREATE DATABASE "${dbName}"`);
       logger.log(`Database "${dbName}" created.`);
@@ -32,6 +34,7 @@ async function ensureDatabase(): Promise<void> {
   } finally {
     await client.end();
   }
+  /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 }
 
 async function bootstrap() {
@@ -55,4 +58,7 @@ async function bootstrap() {
   await app.listen(port);
   logger.log(`Application listening on port ${port}`);
 }
-bootstrap();
+void bootstrap().catch((err) => {
+  logger.error('Bootstrap failed', err);
+  process.exit(1);
+});

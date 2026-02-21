@@ -134,8 +134,12 @@ export class AppService {
     return saved;
   }
 
-  private async ensureUserActivity(userId: string): Promise<UserActivityEntity> {
-    let activity = await this.userActivityRepository.findOne({ where: { userId } });
+  private async ensureUserActivity(
+    userId: string,
+  ): Promise<UserActivityEntity> {
+    let activity = await this.userActivityRepository.findOne({
+      where: { userId },
+    });
     if (!activity) {
       activity = this.userActivityRepository.create({ userId });
       activity = await this.userActivityRepository.save(activity);
@@ -144,8 +148,12 @@ export class AppService {
   }
 
   private calculateDaysInProject(user: UserEntity): number {
-    const createdAtTime = user.createdAt ? new Date(user.createdAt).getTime() : Date.now();
-    const days = Math.floor((Date.now() - createdAtTime) / (1000 * 60 * 60 * 24));
+    const createdAtTime = user.createdAt
+      ? new Date(user.createdAt).getTime()
+      : Date.now();
+    const days = Math.floor(
+      (Date.now() - createdAtTime) / (1000 * 60 * 60 * 24),
+    );
     return Math.max(0, days);
   }
 
@@ -154,12 +162,25 @@ export class AppService {
     successful: number;
     disputed: number;
   }> {
-    const allDeals = await this.dealsRepository.find({
-      where: [{ buyerUserId: userId }, { sellerUserId: userId }],
-    });
-    const successful = allDeals.filter((deal) => deal.status === 'successful').length;
-    const disputed = allDeals.filter((deal) => deal.status === 'disputed').length;
-    return { total: allDeals.length, successful, disputed };
+    const rows = await this.dealsRepository
+      .createQueryBuilder('d')
+      .select('d.status', 'status')
+      .addSelect('COUNT(*)', 'cnt')
+      .where('(d.buyerUserId = :userId OR d.sellerUserId = :userId)', {
+        userId,
+      })
+      .groupBy('d.status')
+      .getRawMany<{ status: string; cnt: string }>();
+    let total = 0;
+    let successful = 0;
+    let disputed = 0;
+    for (const row of rows) {
+      const n = Number(row.cnt) || 0;
+      total += n;
+      if (row.status === 'successful') successful = n;
+      else if (row.status === 'disputed') disputed = n;
+    }
+    return { total, successful, disputed };
   }
 
   private async getProfileViewsStats(profileUserId: string): Promise<{
@@ -188,7 +209,9 @@ export class AppService {
     return { week, month };
   }
 
-  private async ensureUserActivitiesBatch(userIds: string[]): Promise<Map<string, UserActivityEntity>> {
+  private async ensureUserActivitiesBatch(
+    userIds: string[],
+  ): Promise<Map<string, UserActivityEntity>> {
     if (userIds.length === 0) return new Map();
     const existing = await this.userActivityRepository.find({
       where: userIds.map((userId) => ({ userId })),
@@ -196,40 +219,68 @@ export class AppService {
     const map = new Map<string, UserActivityEntity>();
     existing.forEach((a) => map.set(a.userId, a));
     const missing = userIds.filter((id) => !map.has(id));
-    for (const userId of missing) {
-      const activity = this.userActivityRepository.create({ userId });
-      const saved = await this.userActivityRepository.save(activity);
-      map.set(userId, saved);
+    if (missing.length > 0) {
+      const toInsert = missing.map((userId) =>
+        this.userActivityRepository.create({ userId }),
+      );
+      await this.userActivityRepository.insert(
+        toInsert.map((e) => ({ userId: e.userId })),
+      );
+      const inserted = await this.userActivityRepository.find({
+        where: missing.map((userId) => ({ userId })),
+      });
+      inserted.forEach((a) => map.set(a.userId, a));
     }
     return map;
   }
 
-  private async getDealStatsForUserIds(userIds: string[]): Promise<
+  private async getDealStatsForUserIds(
+    userIds: string[],
+  ): Promise<
     Map<string, { total: number; successful: number; disputed: number }>
   > {
     if (userIds.length === 0) return new Map();
-    const deals = await this.dealsRepository
-      .createQueryBuilder('d')
-      .where('d.buyerUserId IN (:...ids)', { ids: userIds })
-      .orWhere('d.sellerUserId IN (:...ids)', { ids: userIds })
-      .getMany();
-    const map = new Map<string, { total: number; successful: number; disputed: number }>();
+    const [buyerRows, sellerRows] = await Promise.all([
+      this.dealsRepository
+        .createQueryBuilder('d')
+        .select('d.buyerUserId', 'userId')
+        .addSelect('d.status', 'status')
+        .addSelect('COUNT(*)', 'cnt')
+        .where('d.buyerUserId IN (:...ids)', { ids: userIds })
+        .groupBy('d.buyerUserId')
+        .addGroupBy('d.status')
+        .getRawMany<{ userId: string; status: string; cnt: string }>(),
+      this.dealsRepository
+        .createQueryBuilder('d')
+        .select('d.sellerUserId', 'userId')
+        .addSelect('d.status', 'status')
+        .addSelect('COUNT(*)', 'cnt')
+        .where('d.sellerUserId IN (:...ids)', { ids: userIds })
+        .groupBy('d.sellerUserId')
+        .addGroupBy('d.status')
+        .getRawMany<{ userId: string; status: string; cnt: string }>(),
+    ]);
+    const map = new Map<
+      string,
+      { total: number; successful: number; disputed: number }
+    >();
     for (const userId of userIds) {
-      const userDeals = deals.filter(
-        (d) => d.buyerUserId === userId || d.sellerUserId === userId,
-      );
-      map.set(userId, {
-        total: userDeals.length,
-        successful: userDeals.filter((d) => d.status === 'successful').length,
-        disputed: userDeals.filter((d) => d.status === 'disputed').length,
-      });
+      map.set(userId, { total: 0, successful: 0, disputed: 0 });
+    }
+    for (const row of [...buyerRows, ...sellerRows]) {
+      const cur = map.get(row.userId);
+      if (!cur) continue;
+      const n = Number(row.cnt) || 0;
+      cur.total += n;
+      if (row.status === 'successful') cur.successful += n;
+      else if (row.status === 'disputed') cur.disputed += n;
     }
     return map;
   }
 
-  private async getProfileViewsStatsBatch(userIds: string[]): Promise<
-    Map<string, { week: number; month: number }>
-  > {
+  private async getProfileViewsStatsBatch(
+    userIds: string[],
+  ): Promise<Map<string, { week: number; month: number }>> {
     if (userIds.length === 0) return new Map();
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -252,46 +303,76 @@ export class AppService {
         .groupBy('pv.profileUserId')
         .getRawMany(),
     ]);
+    type ProfileCountRow = { profileUserId: string; cnt: string };
     const map = new Map<string, { week: number; month: number }>();
+    const weekTyped = weekRows as ProfileCountRow[];
+    const monthTyped = monthRows as ProfileCountRow[];
     for (const userId of userIds) {
-      const week = Number(weekRows.find((r: { profileUserId: string }) => r.profileUserId === userId)?.cnt ?? 0);
-      const month = Number(monthRows.find((r: { profileUserId: string }) => r.profileUserId === userId)?.cnt ?? 0);
+      const week = Number(
+        weekTyped.find((r) => r.profileUserId === userId)?.cnt ?? 0,
+      );
+      const month = Number(
+        monthTyped.find((r) => r.profileUserId === userId)?.cnt ?? 0,
+      );
       map.set(userId, { week, month });
     }
     return map;
   }
 
   private async getModerationCountsBatch(users: UserEntity[]): Promise<
-    Map<string, { adsActive: number; adsHidden: number; adsOnModeration: number }>
+    Map<
+      string,
+      {
+        adsActive: number;
+        adsCompleted: number;
+        adsHidden: number;
+        adsOnModeration: number;
+      }
+    >
   > {
     if (users.length === 0) return new Map();
     const ids = users.map((u) => u.id);
     const telegramIds = users.map((u) => u.telegramId);
     const rows = await this.moderationRequestsRepository.find({
-      where: [
-        { userId: In(ids) },
-        { telegramId: In(telegramIds) },
-      ],
+      where: [{ userId: In(ids) }, { telegramId: In(telegramIds) }],
       select: ['userId', 'telegramId', 'status'],
     });
     const idToUser = new Map(users.map((u) => [u.id, u]));
     const telegramToUser = new Map(users.map((u) => [u.telegramId, u]));
-    const map = new Map<string, { adsActive: number; adsHidden: number; adsOnModeration: number }>();
+    const map = new Map<
+      string,
+      {
+        adsActive: number;
+        adsCompleted: number;
+        adsHidden: number;
+        adsOnModeration: number;
+      }
+    >();
     for (const u of users) {
-      map.set(u.id, { adsActive: 0, adsHidden: 0, adsOnModeration: 0 });
+      map.set(u.id, {
+        adsActive: 0,
+        adsCompleted: 0,
+        adsHidden: 0,
+        adsOnModeration: 0,
+      });
     }
     for (const row of rows) {
-      const user = row.userId ? idToUser.get(row.userId) : telegramToUser.get(row.telegramId);
+      const user = row.userId
+        ? idToUser.get(row.userId)
+        : telegramToUser.get(row.telegramId);
       if (!user) continue;
       const cur = map.get(user.id)!;
       if (row.status === 'approved') cur.adsActive += 1;
+      else if (row.status === 'completed') cur.adsCompleted += 1;
       else if (row.status === 'rejected') cur.adsHidden += 1;
       else if (row.status === 'pending') cur.adsOnModeration += 1;
     }
     return map;
   }
 
-  private async getUserLabelsBatch(userIds: string[]): Promise<
+  private async getUserLabelsBatch(
+    userIds: string[],
+  ): Promise<
     Map<string, Array<{ labelId: string; labelName: string; color: string }>>
   > {
     if (userIds.length === 0) return new Map();
@@ -299,7 +380,10 @@ export class AppService {
       where: userIds.map((id) => ({ userId: id })),
       relations: ['label'],
     });
-    const map = new Map<string, Array<{ labelId: string; labelName: string; color: string }>>();
+    const map = new Map<
+      string,
+      Array<{ labelId: string; labelName: string; color: string }>
+    >();
     for (const userId of userIds) map.set(userId, []);
     for (const ul of rows) {
       const list = map.get(ul.userId)!;
@@ -315,20 +399,50 @@ export class AppService {
   private buildUserStatisticsFromBatch(
     user: UserEntity,
     activityMap: Map<string, UserActivityEntity>,
-    dealStatsMap: Map<string, { total: number; successful: number; disputed: number }>,
+    dealStatsMap: Map<
+      string,
+      { total: number; successful: number; disputed: number }
+    >,
     viewStatsMap: Map<string, { week: number; month: number }>,
-    moderationMap: Map<string, { adsActive: number; adsHidden: number; adsOnModeration: number }>,
+    moderationMap: Map<
+      string,
+      {
+        adsActive: number;
+        adsCompleted: number;
+        adsHidden: number;
+        adsOnModeration: number;
+      }
+    >,
   ): UserStatistics {
     const activity = activityMap.get(user.id);
-    const dealStats = dealStatsMap.get(user.id) ?? { total: 0, successful: 0, disputed: 0 };
+    const dealStats = dealStatsMap.get(user.id) ?? {
+      total: 0,
+      successful: 0,
+      disputed: 0,
+    };
     const viewStats = viewStatsMap.get(user.id) ?? { week: 0, month: 0 };
-    const mod = moderationMap.get(user.id) ?? { adsActive: 0, adsHidden: 0, adsOnModeration: 0 };
+    const mod = moderationMap.get(user.id) ?? {
+      adsActive: 0,
+      adsCompleted: 0,
+      adsHidden: 0,
+      adsOnModeration: 0,
+    };
     const dealsTotal = dealStats.total || (activity?.dealsTotal ?? 0);
-    const dealsSuccessful = dealStats.successful || (activity?.dealsSuccessful ?? 0);
+    const dealsSuccessful =
+      dealStats.successful || (activity?.dealsSuccessful ?? 0);
     const dealsDisputed = dealStats.disputed || (activity?.dealsDisputed ?? 0);
     return {
-      ads: { active: mod.adsActive, completed: 0, hidden: mod.adsHidden, onModeration: mod.adsOnModeration },
-      deals: { total: dealsTotal, successful: dealsSuccessful, disputed: dealsDisputed },
+      ads: {
+        active: mod.adsActive,
+        completed: mod.adsCompleted,
+        hidden: mod.adsHidden,
+        onModeration: mod.adsOnModeration,
+      },
+      deals: {
+        total: dealsTotal,
+        successful: dealsSuccessful,
+        disputed: dealsDisputed,
+      },
       profileViews: viewStats,
     };
   }
@@ -340,7 +454,8 @@ export class AppService {
   ) {
     const daysInProject = this.calculateDaysInProject(user);
     const ratingAuto = this.calculateAutoRating(user, stats, daysInProject);
-    const ratingTotal = Math.round((ratingAuto + (user.ratingManualDelta || 0)) * 10) / 10;
+    const ratingTotal =
+      Math.round((ratingAuto + (user.ratingManualDelta || 0)) * 10) / 10;
     return {
       id: user.id,
       telegramId: user.telegramId,
@@ -350,10 +465,18 @@ export class AppService {
       verified: user.verified,
       isScam: user.isScam,
       isBlocked: user.isBlocked,
-      rating: { auto: ratingAuto, manualDelta: user.ratingManualDelta || 0, total: ratingTotal },
+      rating: {
+        auto: ratingAuto,
+        manualDelta: user.ratingManualDelta || 0,
+        total: ratingTotal,
+      },
       statistics: stats,
       daysInProject,
-      labels: labels.map((l) => ({ id: l.labelId, name: l.labelName, color: l.color })),
+      labels: labels.map((l) => ({
+        id: l.labelId,
+        name: l.labelName,
+        color: l.color,
+      })),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -389,18 +512,25 @@ export class AppService {
     const dealStats = await this.getDealStatsForUser(user.id);
     const viewStats = await this.getProfileViewsStats(user.id);
 
-    const baseQuery = this.moderationRequestsRepository
+    const rows = await this.moderationRequestsRepository
       .createQueryBuilder('m')
+      .select('m.status', 'status')
+      .addSelect('COUNT(*)', 'cnt')
       .where('(m.userId = :userId OR m.telegramId = :telegramId)', {
         userId: user.id,
         telegramId: user.telegramId,
-      });
+      })
+      .groupBy('m.status')
+      .getRawMany<{ status: string; cnt: string }>();
 
-    const [adsActive, adsHidden, adsOnModeration] = await Promise.all([
-      baseQuery.clone().andWhere('m.status = :status', { status: 'approved' }).getCount(),
-      baseQuery.clone().andWhere('m.status = :status', { status: 'rejected' }).getCount(),
-      baseQuery.clone().andWhere('m.status = :status', { status: 'pending' }).getCount(),
-    ]);
+    const countByStatus: Record<string, number> = {};
+    for (const row of rows) {
+      countByStatus[row.status] = Number(row.cnt) || 0;
+    }
+    const adsActive = countByStatus['approved'] ?? 0;
+    const adsCompleted = countByStatus['completed'] ?? 0;
+    const adsHidden = countByStatus['rejected'] ?? 0;
+    const adsOnModeration = countByStatus['pending'] ?? 0;
 
     const dealsTotal = dealStats.total || activity.dealsTotal;
     const dealsSuccessful = dealStats.successful || activity.dealsSuccessful;
@@ -409,7 +539,7 @@ export class AppService {
     return {
       ads: {
         active: adsActive,
-        completed: 0,
+        completed: adsCompleted,
         hidden: adsHidden,
         onModeration: adsOnModeration,
       },
@@ -426,7 +556,8 @@ export class AppService {
     const stats = await this.buildUserStatistics(user);
     const daysInProject = this.calculateDaysInProject(user);
     const ratingAuto = this.calculateAutoRating(user, stats, daysInProject);
-    const ratingTotal = Math.round((ratingAuto + (user.ratingManualDelta || 0)) * 10) / 10;
+    const ratingTotal =
+      Math.round((ratingAuto + (user.ratingManualDelta || 0)) * 10) / 10;
     const userLabels = await this.getUserLabels(user.id);
 
     return {
@@ -460,7 +591,9 @@ export class AppService {
     if (!normalized) {
       throw new Error('telegramId is required');
     }
-    const user = await this.usersRepository.findOne({ where: { telegramId: normalized } });
+    const user = await this.usersRepository.findOne({
+      where: { telegramId: normalized },
+    });
     if (!user) {
       return null;
     }
@@ -473,19 +606,25 @@ export class AppService {
     if (!normalized) {
       throw new Error('username is required');
     }
-    const user = await this.usersRepository.findOne({ where: { username: normalized } });
+    const user = await this.usersRepository.findOne({
+      where: { username: normalized },
+    });
     if (!user) {
       return null;
     }
     return this.buildUserProfile(user);
   }
 
-  async getUserStatisticsByTelegramId(telegramId: string | number): Promise<UserStatistics | null> {
+  async getUserStatisticsByTelegramId(
+    telegramId: string | number,
+  ): Promise<UserStatistics | null> {
     const normalized = String(telegramId || '').trim();
     if (!normalized) {
       throw new Error('telegramId is required');
     }
-    const user = await this.usersRepository.findOne({ where: { telegramId: normalized } });
+    const user = await this.usersRepository.findOne({
+      where: { telegramId: normalized },
+    });
     if (!user) {
       return null;
     }
@@ -495,22 +634,26 @@ export class AppService {
   async listUsers(query: string) {
     const qb = this.usersRepository.createQueryBuilder('user');
     if (query.trim()) {
-      qb.where('LOWER(COALESCE(user.username, \'\')) LIKE :q', {
+      qb.where("LOWER(COALESCE(user.username, '')) LIKE :q", {
         q: `%${query.trim().toLowerCase()}%`,
       }).orWhere('CAST(user.telegramId AS TEXT) LIKE :qRaw', {
         qRaw: `%${query.trim()}%`,
       });
     }
-    const users = await qb.orderBy('user.createdAt', 'DESC').limit(200).getMany();
+    const users = await qb
+      .orderBy('user.createdAt', 'DESC')
+      .limit(200)
+      .getMany();
     if (users.length === 0) return [];
 
     const userIds = users.map((u) => u.id);
-    const [activityMap, dealStatsMap, viewStatsMap, moderationMap] = await Promise.all([
-      this.ensureUserActivitiesBatch(userIds),
-      this.getDealStatsForUserIds(userIds),
-      this.getProfileViewsStatsBatch(userIds),
-      this.getModerationCountsBatch(users),
-    ]);
+    const [activityMap, dealStatsMap, viewStatsMap, moderationMap] =
+      await Promise.all([
+        this.ensureUserActivitiesBatch(userIds),
+        this.getDealStatsForUserIds(userIds),
+        this.getProfileViewsStatsBatch(userIds),
+        this.getModerationCountsBatch(users),
+      ]);
 
     return users.map((user) => {
       const stats = this.buildUserStatisticsFromBatch(
@@ -522,7 +665,8 @@ export class AppService {
       );
       const daysInProject = this.calculateDaysInProject(user);
       const ratingAuto = this.calculateAutoRating(user, stats, daysInProject);
-      const ratingTotal = Math.round((ratingAuto + (user.ratingManualDelta || 0)) * 10) / 10;
+      const ratingTotal =
+        Math.round((ratingAuto + (user.ratingManualDelta || 0)) * 10) / 10;
       return {
         id: user.id,
         telegramId: user.telegramId,
@@ -555,12 +699,13 @@ export class AppService {
     if (users.length === 0) return { users: [], nextCursor: null };
 
     const userIds = users.map((u) => u.id);
-    const [activityMap, dealStatsMap, viewStatsMap, moderationMap] = await Promise.all([
-      this.ensureUserActivitiesBatch(userIds),
-      this.getDealStatsForUserIds(userIds),
-      this.getProfileViewsStatsBatch(userIds),
-      this.getModerationCountsBatch(users),
-    ]);
+    const [activityMap, dealStatsMap, viewStatsMap, moderationMap] =
+      await Promise.all([
+        this.ensureUserActivitiesBatch(userIds),
+        this.getDealStatsForUserIds(userIds),
+        this.getProfileViewsStatsBatch(userIds),
+        this.getModerationCountsBatch(users),
+      ]);
 
     const profiles = users.map((user) => {
       const stats = this.buildUserStatisticsFromBatch(
@@ -572,7 +717,8 @@ export class AppService {
       );
       const daysInProject = this.calculateDaysInProject(user);
       const ratingAuto = this.calculateAutoRating(user, stats, daysInProject);
-      const ratingTotal = Math.round((ratingAuto + (user.ratingManualDelta || 0)) * 10) / 10;
+      const ratingTotal =
+        Math.round((ratingAuto + (user.ratingManualDelta || 0)) * 10) / 10;
       return {
         id: user.id,
         username: user.username,
@@ -589,7 +735,10 @@ export class AppService {
       return (a.id || '').localeCompare(b.id || '');
     });
 
-    const offset = cursor != null && cursor !== '' ? Math.max(0, parseInt(cursor, 10) || 0) : 0;
+    const offset =
+      cursor != null && cursor !== ''
+        ? Math.max(0, parseInt(cursor, 10) || 0)
+        : 0;
     const slice = profiles.slice(offset, offset + limit);
     const topUsers = slice.map((profile, index) => {
       const name =
@@ -653,7 +802,10 @@ export class AppService {
     return this.buildUserProfile(user);
   }
 
-  async addProfileView(profileTelegramId: string | number, viewerTelegramId?: string | number) {
+  async addProfileView(
+    profileTelegramId: string | number,
+    viewerTelegramId?: string | number,
+  ) {
     const profileUser = await this.usersRepository.findOne({
       where: { telegramId: String(profileTelegramId) },
     });
@@ -686,12 +838,17 @@ export class AppService {
     if (!normalized) {
       throw new Error('telegramId is required');
     }
-    const user = await this.usersRepository.findOne({ where: { telegramId: normalized } });
+    const user = await this.usersRepository.findOne({
+      where: { telegramId: normalized },
+    });
     if (!user) {
       return null;
     }
     const links = await this.userAdLinksRepository.find({
-      where: [{ userId: user.id, status: 'favorite' }, { userId: user.id, status: 'bookmarked' }],
+      where: [
+        { userId: user.id, status: 'favorite' },
+        { userId: user.id, status: 'bookmarked' },
+      ],
       order: { createdAt: 'DESC' },
     });
 
@@ -716,7 +873,9 @@ export class AppService {
     }));
   }
 
-  private validateModerationSection(section: string): section is ModerationSection {
+  private validateModerationSection(
+    section: string,
+  ): section is ModerationSection {
     return ALLOWED_MODERATION_SECTIONS.includes(section as ModerationSection);
   }
 
@@ -732,7 +891,10 @@ export class AppService {
     if (!this.validateModerationSection(payload.section)) {
       throw new Error('invalid section');
     }
-    if (!this.ensureObject(payload.formData) || Object.keys(payload.formData).length === 0) {
+    if (
+      !this.ensureObject(payload.formData) ||
+      Object.keys(payload.formData).length === 0
+    ) {
       throw new Error('formData must be non-empty object');
     }
 
@@ -759,11 +921,19 @@ export class AppService {
     });
   }
 
-  async getMyModerationRequests(telegramId: string | number, limit?: number, cursor?: string) {
+  async getMyModerationRequests(
+    telegramId: string | number,
+    limit?: number,
+    cursor?: string,
+  ) {
     const normalized = String(telegramId ?? '').trim();
     if (!normalized) return { publications: [], nextCursor: null };
-    const limitNum = Number.isFinite(limit) && limit! > 0 ? Math.min(limit!, 100) : 20;
-    const offset = cursor != null && cursor !== '' ? Math.max(0, parseInt(cursor, 10) || 0) : 0;
+    const limitNum =
+      Number.isFinite(limit) && limit! > 0 ? Math.min(limit!, 100) : 20;
+    const offset =
+      cursor != null && cursor !== ''
+        ? Math.max(0, parseInt(cursor, 10) || 0)
+        : 0;
     const rows = await this.moderationRequestsRepository.find({
       where: { telegramId: normalized },
       order: { createdAt: 'DESC' },
@@ -772,13 +942,21 @@ export class AppService {
     });
     const hasMore = rows.length > limitNum;
     const slice = hasMore ? rows.slice(0, limitNum) : rows;
-    const publications = slice.map((r) => ({
-      id: r.id,
-      status: r.status,
-      section: r.section,
-      formData: r.formData ?? {},
-      createdAt: r.createdAt?.toISOString?.() ?? new Date().toISOString(),
-    }));
+    const now = new Date();
+    const publications = slice.map((r) => {
+      let status = r.status;
+      if (r.status === 'approved' && r.expiresAt != null && now > r.expiresAt) {
+        status = 'completed';
+      }
+      return {
+        id: r.id,
+        status,
+        section: r.section,
+        formData: r.formData ?? {},
+        createdAt: r.createdAt?.toISOString?.() ?? new Date().toISOString(),
+        ...(r.expiresAt != null && { expiresAt: r.expiresAt.toISOString() }),
+      };
+    });
     const nextCursor = hasMore ? String(offset + limitNum) : null;
     return { publications, nextCursor };
   }
@@ -787,8 +965,13 @@ export class AppService {
     return this.moderationRequestsRepository.findOne({ where: { id } });
   }
 
-  async updateModerationRequest(id: string, payload: UpdateModerationRequestPayload) {
-    const entity = await this.moderationRequestsRepository.findOne({ where: { id } });
+  async updateModerationRequest(
+    id: string,
+    payload: UpdateModerationRequestPayload,
+  ) {
+    const entity = await this.moderationRequestsRepository.findOne({
+      where: { id },
+    });
     if (!entity) {
       return null;
     }
@@ -796,7 +979,10 @@ export class AppService {
       throw new Error('only pending requests can be edited');
     }
     if (payload.formData != null) {
-      if (!this.ensureObject(payload.formData) || Object.keys(payload.formData).length === 0) {
+      if (
+        !this.ensureObject(payload.formData) ||
+        Object.keys(payload.formData).length === 0
+      ) {
         throw new Error('formData must be non-empty object');
       }
       entity.formData = payload.formData;
@@ -807,8 +993,14 @@ export class AppService {
     return this.moderationRequestsRepository.save(entity);
   }
 
-  async approveModerationRequest(id: string, publishedItemId?: string, adminNote?: string | null) {
-    const entity = await this.moderationRequestsRepository.findOne({ where: { id } });
+  async approveModerationRequest(
+    id: string,
+    publishedItemId?: string,
+    adminNote?: string | null,
+  ) {
+    const entity = await this.moderationRequestsRepository.findOne({
+      where: { id },
+    });
     if (!entity) {
       return null;
     }
@@ -819,17 +1011,54 @@ export class AppService {
     entity.publishedItemId = publishedItemId || entity.publishedItemId || null;
     entity.adminNote = adminNote ?? entity.adminNote;
     entity.processedAt = new Date();
+    const rawDuration = entity.formData?.listingDuration;
+    const durationHours = Math.max(
+      0,
+      typeof rawDuration === 'number'
+        ? rawDuration
+        : typeof rawDuration === 'string'
+          ? parseInt(rawDuration, 10) || 168
+          : 168,
+    );
+    entity.expiresAt = new Date(
+      entity.processedAt.getTime() + durationHours * 3600 * 1000,
+    );
     return this.moderationRequestsRepository.save(entity);
   }
 
   async rejectModerationRequest(id: string, adminNote?: string | null) {
-    const entity = await this.moderationRequestsRepository.findOne({ where: { id } });
+    const entity = await this.moderationRequestsRepository.findOne({
+      where: { id },
+    });
     if (!entity) {
       return null;
     }
     entity.status = 'rejected';
     entity.adminNote = adminNote ?? entity.adminNote;
     entity.processedAt = new Date();
+    return this.moderationRequestsRepository.save(entity);
+  }
+
+  async completeModerationRequest(id: string, telegramId: string) {
+    const normalized = String(telegramId ?? '').trim();
+    if (!normalized) return null;
+    const entity = await this.moderationRequestsRepository.findOne({
+      where: { id },
+    });
+    if (!entity) return null;
+    if (entity.telegramId !== normalized) return null;
+    if (entity.status !== 'approved') return null;
+    entity.status = 'completed';
+    return this.moderationRequestsRepository.save(entity);
+  }
+
+  async completeModerationRequestByAdmin(id: string) {
+    const entity = await this.moderationRequestsRepository.findOne({
+      where: { id },
+    });
+    if (!entity) return null;
+    if (entity.status !== 'approved') return null;
+    entity.status = 'completed';
     return this.moderationRequestsRepository.save(entity);
   }
 
@@ -842,7 +1071,8 @@ export class AppService {
     if (!telegramId) {
       throw new Error('telegramId is required');
     }
-    const message = typeof payload.message === 'string' ? payload.message.trim() : '';
+    const message =
+      typeof payload.message === 'string' ? payload.message.trim() : '';
     if (!message) {
       throw new Error('message is required');
     }
@@ -960,7 +1190,11 @@ export class AppService {
     return true;
   }
 
-  async updateUserLabelColor(userId: string, labelId: string, customColor?: string) {
+  async updateUserLabelColor(
+    userId: string,
+    labelId: string,
+    customColor?: string,
+  ) {
     const userLabel = await this.userUserLabelsRepository.findOne({
       where: { userId, labelId },
     });

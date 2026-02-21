@@ -44,6 +44,38 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
+## Database migrations
+
+Миграции TypeORM применяются к PostgreSQL. Настройте переменные окружения (`.env`): `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`.
+
+### Как включить миграции
+
+**Вариант 1 — при старте приложения (рекомендуется для продакшена)**  
+Установите переменную окружения и запустите backend:
+
+```bash
+RUN_MIGRATIONS=1 npm run start:prod
+```
+
+В коде (`app.module.ts`) при `RUN_MIGRATIONS=1` включено `migrationsRun: true`, поэтому при каждом запуске приложения будут выполнены все ещё не применённые миграции.
+
+**Вариант 2 — вручную один раз (или после добавления новых миграций)**  
+Из папки `backend`:
+
+```bash
+npm run migration:run
+```
+
+Скрипт сначала собирает проект (`nest build`), затем запускает TypeORM CLI: `npx typeorm migration:run -d dist/data-source.js`. Выполняются только те миграции, которых ещё нет в таблице `migrations`.
+
+### Нужно ли запускать миграции один раз?
+
+- **Один раз достаточно** для каждой новой миграции: после первого успешного `migration:run` (или старта с `RUN_MIGRATIONS=1`) запись о миграции попадает в БД, и повторный запуск её не выполняет.
+- При **деплое на новый сервер или новую БД** миграции нужно применить снова (один раз для этой БД), тем же способом: либо `RUN_MIGRATIONS=1` при старте, либо `npm run migration:run` в `backend` перед первым запуском.
+- При **добавлении новых файлов миграций** в `src/migrations/` — снова выполните применение (один раз): `npm run migration:run` или запуск с `RUN_MIGRATIONS=1`.
+
+Текущие миграции в проекте: `1730000000000-InitialSchema.ts` (схема таблиц), `1730100000000-AddExpiresAtToModerationRequests.ts` (поле `expiresAt`).
+
 ## Run tests
 
 ```bash

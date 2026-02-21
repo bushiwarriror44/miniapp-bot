@@ -27,7 +27,7 @@ export function getDefaultFormDataForSection(section: SubmitFormSection): Record
   const username = tg?.initDataUnsafe?.user?.username ?? "";
   const uname = typeof username === "string" ? username.replace(/^@/, "").trim() : "";
   const link = uname ? `https://t.me/${uname}` : "";
-  const base: Record<string, string> = {};
+  const base: Record<string, string> = { listingDuration: "168" };
   if (uname) base.username = uname;
   if (section === "jobs" && link) base.usernameLink = link;
   return base;

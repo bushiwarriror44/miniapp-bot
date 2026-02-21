@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 
@@ -91,10 +92,21 @@ def _filter_exchange_items(dataset_name, items, args):
     if not items:
         return items
     result = []
+    now = datetime.now(timezone.utc)
     for item in items:
         if not isinstance(item, dict):
             result.append(item)
             continue
+        if dataset_name != "currency":
+            expires_at_str = item.get("expiresAt")
+            if expires_at_str:
+                try:
+                    s = str(expires_at_str).replace("Z", "+00:00")
+                    expires_at = datetime.fromisoformat(s)
+                    if now > expires_at:
+                        continue
+                except (TypeError, ValueError):
+                    pass
         if dataset_name == "ads":
             try:
                 price = float(item.get("price") or 0)
@@ -178,6 +190,39 @@ def _filter_exchange_items(dataset_name, items, args):
         result.append(item)
     return result
 
+
+def _sort_key_date(item):
+    """Return (publishedAt or createdAt) for sorting; empty string sorts last when reverse=True."""
+    return (item.get("publishedAt") or item.get("createdAt") or "") if isinstance(item, dict) else ""
+
+
+def _sort_exchange_items(dataset_name, items):
+    """
+    Sort exchange list: pinned first (by date desc), then verified (by date desc), then rest (by date desc).
+    Stable secondary sort by id. Datasets without pinned/verified sort by date desc only.
+    """
+    if not items:
+        return items
+    # Datasets that have both pinned and verified (ads only for now)
+    pinned_verified_datasets = ("ads",)
+    # Datasets that have verified but no pinned
+    verified_only_datasets = ("buyAds", "other", "services", "currency", "sellChannels", "buyChannels")
+    has_pinned = dataset_name in pinned_verified_datasets
+    has_verified = dataset_name in pinned_verified_datasets or dataset_name in verified_only_datasets
+
+    def key_func(it):
+        if not isinstance(it, dict):
+            return (False, False, "", "")
+        pinned = bool(it.get("pinned")) if has_pinned else False
+        verified = bool(it.get("verified")) if has_verified else False
+        date_str = _sort_key_date(it)
+        item_id = str(it.get("id") or "")
+        # Order: pinned desc, verified desc, date desc (newer first), then id for stability
+        return (pinned, verified, date_str, item_id)
+
+    return sorted(items, key=key_func, reverse=True)
+
+
 @api_bp.route('/health', methods=['GET'])
 def healthcheck():
     return jsonify({'ok': True})
@@ -220,6 +265,7 @@ def get_dataset(dataset_name):
     if use_pagination:
         raw_list = _get_list_from_payload(payload, dataset_name)
         filtered = _filter_exchange_items(dataset_name, raw_list, request.args)
+        filtered = _sort_exchange_items(dataset_name, filtered)
         try:
             offset = int(request.args.get('cursor') or 0)
         except (TypeError, ValueError):
@@ -270,10 +316,13 @@ def get_user_listings(username):
     if not username_clean:
         return jsonify({'items': [], 'nextCursor': None})
 
+    rows = Dataset.query.filter(Dataset.name.in_(EXCHANGE_DATASETS)).all()
+    datasets_by_name = {r.name: r for r in rows}
+
     merged = []
     args_username = {"username": username_clean}
     for dataset_name in EXCHANGE_DATASETS:
-        row = Dataset.query.filter_by(name=dataset_name).first()
+        row = datasets_by_name.get(dataset_name)
         if not row:
             continue
         try:

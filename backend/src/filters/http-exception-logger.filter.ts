@@ -32,16 +32,25 @@ export class HttpExceptionLoggerFilter implements ExceptionFilter {
     this.logger.warn(
       `${request.method} ${request.url} ${status} - ${JSON.stringify(message)}`,
     );
-    if (status === HttpStatus.INTERNAL_SERVER_ERROR && exception instanceof Error) {
+    if (
+      status === Number(HttpStatus.INTERNAL_SERVER_ERROR) &&
+      exception instanceof Error
+    ) {
       this.logger.error(exception.stack);
     }
 
     const body =
       exception instanceof HttpException
         ? exception.getResponse()
-        : { statusCode: HttpStatus.INTERNAL_SERVER_ERROR, message: 'Internal server error' };
+        : {
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            message: 'Internal server error',
+          };
 
-    const payload = typeof body === 'object' && body !== null ? body : { statusCode: status, message: body };
+    const payload =
+      typeof body === 'object' && body !== null
+        ? body
+        : { statusCode: status, message: body };
     response.status(status).json(payload);
   }
 }

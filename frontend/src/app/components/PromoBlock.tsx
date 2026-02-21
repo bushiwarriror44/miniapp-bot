@@ -8,8 +8,13 @@ import { useRenderLoggerContext } from '../contexts/RenderLoggerContext';
 
 const STORAGE_KEY = 'miniapp-promo-closed';
 
+function getInitialPromoVisible(): boolean {
+	if (typeof window === 'undefined') return true;
+	return sessionStorage.getItem(STORAGE_KEY) !== '1';
+}
+
 export function PromoBlock() {
-	const [visible, setVisible] = useState(true);
+	const [visible, setVisible] = useState(getInitialPromoVisible);
 	const logger = useRenderLoggerContext();
 	const hasLoggedMount = useRef(false);
 
@@ -24,12 +29,11 @@ export function PromoBlock() {
 		logger?.logEvent('PromoBlock', 'checking sessionStorage');
 		if (typeof window === 'undefined') return;
 		if (sessionStorage.getItem(STORAGE_KEY) === '1') {
-			setVisible(false);
 			logger?.logEvent('PromoBlock', 'promo already closed in session');
 		} else {
 			logger?.logEvent('PromoBlock', 'promo visible');
 		}
-	}, []);
+	}, [logger]);
 
 	const handleClose = () => {
 		sessionStorage.setItem(STORAGE_KEY, '1');

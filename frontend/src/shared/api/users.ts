@@ -70,7 +70,7 @@ export type UserStatisticsResponse = {
 
 export type MyPublicationItem = {
   id: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "completed";
   section: string;
   formData: Record<string, unknown>;
   createdAt: string;
@@ -141,6 +141,22 @@ export async function fetchMyPublicationsPaginated(
     publications: Array.isArray(data.publications) ? data.publications : [],
     nextCursor: data.nextCursor ?? null,
   };
+}
+
+export async function completePublication(
+  telegramId: string | number,
+  publicationId: string,
+): Promise<MyPublicationItem> {
+  const url = `${API_BASE}/users/me/publications/${encodeURIComponent(publicationId)}/complete?telegramId=${encodeURIComponent(String(telegramId))}`;
+  const res = await fetch(url, { method: "PATCH" });
+  if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error("Публикация не найдена или уже завершена");
+    }
+    throw new Error(res.status === 400 ? "Неверный запрос" : `Ошибка: ${res.status}`);
+  }
+  const data = await res.json();
+  return data.publication;
 }
 
 export type ListUserItem = {

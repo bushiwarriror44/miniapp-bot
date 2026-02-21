@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronLeft, faClipboard, faCheckCircle, faXmarkCircle } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faClipboard, faCheckCircle, faXmarkCircle, faFlagCheckered } from "@fortawesome/free-solid-svg-icons";
 import { getTelegramWebApp } from "@/shared/api/client";
-import { fetchMyPublications, type MyPublicationItem } from "@/shared/api/users";
+import { fetchMyPublications, completePublication, type MyPublicationItem } from "@/shared/api/users";
 import { AD_TYPE_LABELS, PAYMENT_LABELS, type AdType, type PaymentMethod } from "@/shared/api/ads";
 import { safeLocaleNumber } from "@/shared/format";
 import {
@@ -17,6 +17,7 @@ import {
   getStatusColor,
   getSectionLabel,
 } from "../publicationDetailUtils";
+import { CompletePublicationModal } from "../CompletePublicationModal";
 
 export default function PublicationDetailPage() {
   const params = useParams();
@@ -25,6 +26,9 @@ export default function PublicationDetailPage() {
   const [publication, setPublication] = useState<MyPublicationItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [completeModalOpen, setCompleteModalOpen] = useState(false);
+  const [completeLoading, setCompleteLoading] = useState(false);
+  const [completeError, setCompleteError] = useState<string | null>(null);
 
   const telegramId = useMemo(() => {
     const telegram = getTelegramWebApp();
@@ -134,9 +138,34 @@ export default function PublicationDetailPage() {
             {publication.status === "rejected" && (
               <FontAwesomeIcon icon={faXmarkCircle} className="w-3 h-3" style={{ color: "#dc2626" }} />
             )}
+            {publication.status === "completed" && (
+              <FontAwesomeIcon icon={faFlagCheckered} className="w-3 h-3" style={{ color: "var(--color-text-muted)" }} />
+            )}
             {getStatusLabel(publication.status)}
           </span>
         </div>
+
+        {publication.status === "approved" && (
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => { setCompleteError(null); setCompleteModalOpen(true); }}
+              className="w-full rounded-xl py-2.5 text-sm font-medium"
+              style={{
+                backgroundColor: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text)",
+              }}
+            >
+              Завершить объявление
+            </button>
+            {completeError && (
+              <p className="text-xs mt-2" style={{ color: "var(--color-accent)" }}>
+                {completeError}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="space-y-4">
           <div>
@@ -312,6 +341,26 @@ export default function PublicationDetailPage() {
           </div>
         </div>
       </section>
+
+      <CompletePublicationModal
+        open={completeModalOpen}
+        loading={completeLoading}
+        onConfirm={async () => {
+          if (!telegramId || !publication) return;
+          setCompleteLoading(true);
+          setCompleteError(null);
+          try {
+            await completePublication(telegramId, publication.id);
+            setPublication({ ...publication, status: "completed" });
+            setCompleteModalOpen(false);
+          } catch (err) {
+            setCompleteError(err instanceof Error ? err.message : String(err));
+          } finally {
+            setCompleteLoading(false);
+          }
+        }}
+        onCancel={() => setCompleteModalOpen(false)}
+      />
     </main>
   );
 }

@@ -26,7 +26,9 @@ export class DealEntity {
   @JoinColumn({ name: 'buyerUserId' })
   buyerUser: UserEntity;
 
-  @ManyToOne(() => UserEntity, (user) => user.sellDeals, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, (user) => user.sellDeals, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'sellerUserId' })
   sellerUser: UserEntity;
 

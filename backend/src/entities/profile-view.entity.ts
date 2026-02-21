@@ -21,11 +21,15 @@ export class ProfileViewEntity {
   @Column({ type: 'uuid' })
   profileUserId: string;
 
-  @ManyToOne(() => UserEntity, (user) => user.viewedProfiles, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, (user) => user.viewedProfiles, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'viewerUserId' })
   viewerUser: UserEntity;
 
-  @ManyToOne(() => UserEntity, (user) => user.profileViews, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, (user) => user.profileViews, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'profileUserId' })
   profileUser: UserEntity;
 

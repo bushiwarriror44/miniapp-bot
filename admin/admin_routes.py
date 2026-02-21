@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from functools import wraps
 from uuid import uuid4
@@ -263,6 +263,8 @@ def _parse_range(value, default_min=0, default_max=0):
 
 def _normalize_item_for_dataset(section, form_data):
     today = datetime.utcnow().strftime("%Y-%m-%d")
+    duration_hours = int(form_data.get("listingDuration") or 168)
+    expires_at = (datetime.utcnow() + timedelta(hours=duration_hours)).isoformat() + "Z"
     if section == "buy-ads":
         username = str(form_data.get("username") or "").lstrip("@")
         price_min, price_max = _parse_range(form_data.get("priceRange"))
@@ -280,6 +282,7 @@ def _normalize_item_for_dataset(section, form_data):
             "theme": str(form_data.get("theme") or ""),
             "description": str(form_data.get("description") or ""),
             "publishedAt": today,
+            "expiresAt": expires_at,
         }
     if section == "sell-ads":
         return {
@@ -298,6 +301,7 @@ def _normalize_item_for_dataset(section, form_data):
             "theme": str(form_data.get("theme") or ""),
             "description": str(form_data.get("description") or ""),
             "publishedAt": today,
+            "expiresAt": expires_at,
         }
     if section == "jobs":
         return {
@@ -311,6 +315,7 @@ def _normalize_item_for_dataset(section, form_data):
             "paymentAmount": str(form_data.get("paymentAmount") or ""),
             "theme": str(form_data.get("theme") or ""),
             "description": str(form_data.get("description") or ""),
+            "expiresAt": expires_at,
         }
     if section == "designers":
         return {
@@ -321,6 +326,7 @@ def _normalize_item_for_dataset(section, form_data):
             "theme": str(form_data.get("theme") or ""),
             "description": str(form_data.get("description") or ""),
             "publishedAt": today,
+            "expiresAt": expires_at,
         }
     if section == "sell-channel":
         return {
@@ -334,6 +340,7 @@ def _normalize_item_for_dataset(section, form_data):
             "viaGuarantor": _to_bool(form_data.get("viaGuarantor"), False),
             "theme": str(form_data.get("theme") or ""),
             "description": str(form_data.get("description") or ""),
+            "expiresAt": expires_at,
         }
     if section == "buy-channel":
         return {
@@ -349,6 +356,7 @@ def _normalize_item_for_dataset(section, form_data):
             "viaGuarantor": _to_bool(form_data.get("viaGuarantor"), False),
             "theme": str(form_data.get("theme") or ""),
             "description": str(form_data.get("description") or ""),
+            "expiresAt": expires_at,
         }
     if section == "other":
         return {
@@ -358,6 +366,7 @@ def _normalize_item_for_dataset(section, form_data):
             "verified": _to_bool(form_data.get("verified"), False),
             "price": _to_number(form_data.get("price"), 0),
             "description": str(form_data.get("description") or ""),
+            "expiresAt": expires_at,
         }
     raise ValueError("Unsupported moderation section")
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faExternalLink, faFire } from "@fortawesome/free-solid-svg-icons";
+import { faExternalLink, faFire, faThumbtack } from "@fortawesome/free-solid-svg-icons";
 import { AD_TYPE_LABELS, PAYMENT_LABELS, type AdItem } from "@/shared/api/ads";
 import { formatServiceDate } from "@/shared/api/services";
 import { safeLocaleNumber } from "@/shared/format";
@@ -25,6 +25,12 @@ export function AdCard({
       onClick={() => onOpenView?.(ad.id)}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpenView?.(ad.id))}
     >
+      {ad.pinned && (
+        <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)", border: "1px solid var(--color-border)" }} aria-label="Закреплено">
+          <FontAwesomeIcon icon={faThumbtack} className="w-3.5 h-3.5" />
+          Закреплено
+        </span>
+      )}
       {isHot && (
         <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
           <FontAwesomeIcon icon={faFire} className="w-4 h-4" />
