@@ -8,7 +8,7 @@ import { fetchBanners, type BannerItem } from "@/shared/api/banners";
 
 function BannerSlide({ banner }: { banner: BannerItem }) {
   const [loaded, setLoaded] = useState(false);
-  return (
+  const content = (
     <div className="relative w-full overflow-hidden rounded-xl" style={{ minHeight: 140 }}>
       {!loaded && (
         <div
@@ -26,6 +26,21 @@ function BannerSlide({ banner }: { banner: BannerItem }) {
       />
     </div>
   );
+  if (banner.linkUrl?.trim()) {
+    const href = banner.linkUrl.trim();
+    const isExternal = /^https?:\/\//i.test(href);
+    return (
+      <a
+        href={href}
+        target={isExternal ? "_blank" : undefined}
+        rel={isExternal ? "noopener noreferrer" : undefined}
+        className="block w-full"
+      >
+        {content}
+      </a>
+    );
+  }
+  return content;
 }
 
 export function BannersBlock() {

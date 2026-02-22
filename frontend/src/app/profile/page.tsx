@@ -15,8 +15,10 @@ import {
   ProfileMenuRow,
   SupportModal,
   VerifyModal,
+  VerifyConsentDialog,
   ProfileNotice,
 } from "./components";
+import { submitVerifyPhone } from "@/shared/api/users";
 
 const ADMIN_TG_LINK = "https://t.me/miniapp_admin_example";
 
@@ -24,6 +26,7 @@ export default function ProfilePage() {
   const { theme, setTheme } = useTheme();
   const [{ username: tgUsername, userId: tgUserId, avatarUrl: tgAvatarUrl }] =
     useState(getInitialTelegramProfile);
+  const [showVerifyConsent, setShowVerifyConsent] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyPhone, setVerifyPhone] = useState("");
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -40,12 +43,45 @@ export default function ProfilePage() {
     setTimeout(() => setNotice(null), 6000);
   };
 
-  const handleVerifySubmit = () => {
-    setShowVerifyModal(false);
-    setVerifyPhone("");
-    showNotice(
-      "Заявка на верификацию отправлена. Модераторы свяжутся с вами по указанному номеру телефона."
-    );
+  const handleVerifyConsentConfirm = async () => {
+    setShowVerifyConsent(false);
+    const telegram = getTelegramWebApp();
+    const requestContact = telegram?.requestContact;
+    if (typeof requestContact === "function") {
+      try {
+        const result = await requestContact();
+        const phone = result?.contact?.phone_number?.trim();
+        if (phone && tgUserId && tgUserId !== "-") {
+          await submitVerifyPhone(tgUserId, phone);
+          showNotice(
+            "Номер телефона передан для верификации. Модераторы свяжутся с вами при необходимости."
+          );
+          return;
+        }
+      } catch {
+        // User cancelled or error — fallback to manual modal
+      }
+    }
+    setShowVerifyModal(true);
+  };
+
+  const handleVerifySubmit = async () => {
+    const phone = verifyPhone.trim();
+    if (!phone) return;
+    if (!tgUserId || tgUserId === "-") {
+      showNotice("Не удалось определить пользователя.");
+      return;
+    }
+    try {
+      await submitVerifyPhone(tgUserId, phone);
+      setShowVerifyModal(false);
+      setVerifyPhone("");
+      showNotice(
+        "Заявка на верификацию отправлена. Модераторы свяжутся с вами по указанному номеру телефона."
+      );
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : "Не удалось отправить номер. Попробуйте позже.");
+    }
   };
 
   const handleSupportSubmit = async () => {
@@ -123,7 +159,7 @@ export default function ProfilePage() {
       <section className="mb-4">
         <ProfileVerifiedBlock
           verified={!!profile?.verified}
-          onVerifyClick={() => setShowVerifyModal(true)}
+          onVerifyClick={() => setShowVerifyConsent(true)}
         />
       </section>
 
@@ -139,8 +175,8 @@ export default function ProfilePage() {
         className="rounded-xl p-4 mb-4"
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
       >
-        <h2 className="font-semibold mb-2 flex items-center gap-2" style={{ color: "var(--color-text)" }}>
-          <FontAwesomeIcon icon={faCircleExclamation} className="w-4 h-4 shrink-0" style={{ color: "var(--color-text)" }} />
+        <h2 className="font-semibold mb-2 flex items-start gap-2" style={{ color: "var(--color-text)" }}>
+          <FontAwesomeIcon icon={faCircleExclamation} className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--color-text)" }} />
           Нашли проблему в приложении?
         </h2>
         <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>
@@ -168,6 +204,11 @@ export default function ProfilePage() {
         </div>
       </section>
 
+      <VerifyConsentDialog
+        open={showVerifyConsent}
+        onConfirm={handleVerifyConsentConfirm}
+        onCancel={() => setShowVerifyConsent(false)}
+      />
       <VerifyModal
         open={showVerifyModal}
         phone={verifyPhone}

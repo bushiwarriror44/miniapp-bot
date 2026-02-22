@@ -17,7 +17,7 @@ export function AdCard({
     <article
       role="button"
       tabIndex={0}
-      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer relative"
+      className="rounded-xl p-4 space-y-3 min-w-0 cursor-pointer"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",
@@ -25,16 +25,24 @@ export function AdCard({
       onClick={() => onOpenView?.(ad.id)}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpenView?.(ad.id))}
     >
-      {ad.pinned && (
-        <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)", border: "1px solid var(--color-border)" }} aria-label="Закреплено">
-          <FontAwesomeIcon icon={faThumbtack} className="w-3.5 h-3.5" />
-          Закреплено
-        </span>
-      )}
-      {isHot && (
-        <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
-          <FontAwesomeIcon icon={faFire} className="w-4 h-4" />
-        </span>
+      {(ad.pinned || isHot) && (
+        <div className="flex items-center justify-between">
+          {ad.pinned ? (
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)", border: "1px solid var(--color-border)" }} aria-label="Закреплено">
+              <FontAwesomeIcon icon={faThumbtack} className="w-3.5 h-3.5" />
+              Закреплено
+            </span>
+          ) : (
+            <span />
+          )}
+          {isHot ? (
+            <span style={{ color: "var(--color-accent)" }} aria-hidden>
+              <FontAwesomeIcon icon={faFire} className="w-4 h-4" />
+            </span>
+          ) : (
+            <span />
+          )}
+        </div>
       )}
       <div className="flex gap-3">
         {ad.imageUrl ? (

@@ -6,7 +6,7 @@ import * as dotenv from 'dotenv';
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const token = process.env.BOT_TOKEN;
-const webAppUrl = process.env.WEBAPP_URL || 'http://localhost:3000';
+const defaultWebAppUrl = process.env.WEBAPP_URL || 'http://localhost:3000';
 const botConfigApiUrl =
   process.env.BOT_CONFIG_API_URL || 'http://127.0.0.1:5000/api/datasets/botConfig';
 
@@ -17,21 +17,38 @@ if (!token) {
 
 const bot = new Bot(token);
 
-// Проверяем, является ли URL HTTPS (Telegram требует только HTTPS для Web App)
-const isHttps = webAppUrl.startsWith('https://');
+function getWebAppUrl(config: BotConfigPayload): string {
+  const url = (config?.webAppUrl || '').trim() || defaultWebAppUrl;
+  return url;
+}
 
-// Создаём клавиатуру только если URL HTTPS, иначе обычная кнопка или без кнопки
-const createStartKeyboard = () => {
-  if (isHttps) {
-    return new Keyboard().webApp('Открыть мини‑приложение', webAppUrl).resized();
+function isHttps(url: string): boolean {
+  return url.startsWith('https://');
+}
+
+function createStartKeyboard(config: BotConfigPayload) {
+  const webAppUrl = getWebAppUrl(config);
+  const hasSupport = Boolean((config?.supportLink || '').trim());
+
+  if (isHttps(webAppUrl)) {
+    const kb = new Keyboard().webApp('Открыть приложение', webAppUrl);
+    if (hasSupport) {
+      kb.row().text('Поддержка');
+    }
+    return kb.resized();
   }
-  // Для локальной разработки (http/localhost) показываем обычную кнопку или без кнопки
-  return new Keyboard().text('Открыть мини‑приложение (локально)').resized();
-};
+  const kb = new Keyboard().text('Открыть приложение (локально)');
+  if (hasSupport) {
+    kb.row().text('Поддержка');
+  }
+  return kb.resized();
+}
 
 type BotConfigPayload = {
   welcomeMessage?: string;
   welcomePhotoUrl?: string | null;
+  webAppUrl?: string | null;
+  supportLink?: string | null;
 };
 
 let cachedBotConfig: BotConfigPayload | null = null;
@@ -63,9 +80,10 @@ async function loadBotConfig(): Promise<BotConfigPayload> {
 
 bot.command('start', async (ctx) => {
   const config = await loadBotConfig();
-  const defaultMessage = isHttps
-    ? 'Привет! Это Telegram Mini App бот. Нажми кнопку ниже, чтобы открыть мини‑приложение.'
-    : 'Привет! Это Telegram Mini App бот.\n\n⚠️ Для работы mini‑app нужен HTTPS. Локально открой http://localhost:3000 в браузере.';
+  const webAppUrl = getWebAppUrl(config);
+  const defaultMessage = isHttps(webAppUrl)
+    ? 'Привет! Нажми кнопку ниже, чтобы открыть приложение.'
+    : 'Привет!\n\n⚠️ Для работы приложения нужен HTTPS. Локально открой ссылку в браузере.';
 
   const message = (config?.welcomeMessage || '').trim() || defaultMessage;
   const photoUrl = (config?.welcomePhotoUrl || '').trim();
@@ -74,7 +92,7 @@ bot.command('start', async (ctx) => {
     try {
       await ctx.replyWithPhoto(photoUrl, {
         caption: message,
-        reply_markup: createStartKeyboard(),
+        reply_markup: createStartKeyboard(config),
       });
       return;
     } catch (error) {
@@ -83,19 +101,35 @@ bot.command('start', async (ctx) => {
   }
 
   await ctx.reply(message, {
-    reply_markup: createStartKeyboard(),
+    reply_markup: createStartKeyboard(config),
   });
 });
 
-bot.on('message:text', (ctx) => {
-  // Если пользователь нажал кнопку "Открыть мини‑приложение (локально)"
-  if (ctx.message.text === 'Открыть мини‑приложение (локально)') {
-    ctx.reply(
+bot.on('message:text', async (ctx) => {
+  const config = await loadBotConfig();
+  const webAppUrl = getWebAppUrl(config);
+
+  if (ctx.message.text === 'Открыть приложение (локально)') {
+    await ctx.reply(
       `Для локальной разработки открой в браузере:\n${webAppUrl}\n\nНа сервере с HTTPS кнопка будет работать автоматически.`,
     );
     return;
   }
-  ctx.reply(`Вы написали: ${ctx.message.text}`);
+  if (ctx.message.text === 'Поддержка') {
+    const support = (config?.supportLink || '').trim();
+    if (support) {
+      const text = support.startsWith('http')
+        ? `Поддержка: ${support}`
+        : support.startsWith('@')
+          ? `Поддержка: ${support}`
+          : `Поддержка: ${support}`;
+      await ctx.reply(text);
+      return;
+    }
+    await ctx.reply('Ссылка на поддержку не настроена.');
+    return;
+  }
+  await ctx.reply(`Вы написали: ${ctx.message.text}`);
 });
 
 // Обработчик ошибок, чтобы бот не падал
@@ -112,7 +146,7 @@ bot.catch((err) => {
 bot.start();
 
 console.log('Bot started');
-if (!isHttps) {
+if (!isHttps(defaultWebAppUrl)) {
   console.warn('⚠️  WEBAPP_URL не HTTPS. Кнопка Web App будет заменена на обычную кнопку.');
-  console.warn('   Для полноценной работы mini‑app используй HTTPS URL на сервере.');
+  console.warn('   Для полноценной работы приложения используй HTTPS URL на сервере или настрой webAppUrl в админке.');
 }

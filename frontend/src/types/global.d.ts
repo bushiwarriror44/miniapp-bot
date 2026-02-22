@@ -6,7 +6,10 @@ interface TelegramWebApp {
   enableVerticalSwipes?: () => void;
   requestFullscreen?: () => void;
   exitFullscreen?: () => void;
-  initDataUnsafe?: { user?: { first_name?: string; username?: string } };
+  close?: () => void;
+  initDataUnsafe?: { user?: { first_name?: string; username?: string; id?: number } };
+  /** Request user contact (phone). Bot API 6.9+. Returns promise with contact. */
+  requestContact?: () => Promise<{ contact?: { phone_number?: string } }>;
   [key: string]: unknown;
 }
 

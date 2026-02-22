@@ -26,6 +26,8 @@ export type OtherPaginatedParams = FetchDatasetPaginatedParams & {
   theme?: string;
   dateFrom?: string;
   dateTo?: string;
+  priceFrom?: string;
+  priceTo?: string;
 };
 
 export async function fetchOtherPaginated(

@@ -37,6 +37,9 @@ import {
   LimitCursorQueryDto,
   ModerationStatusQueryDto,
   PublicationsQueryDto,
+  AddFavoriteBodyDto,
+  RemoveFavoriteQueryDto,
+  VerifyPhoneBodyDto,
 } from './dto';
 
 @Controller()
@@ -107,6 +110,44 @@ export class AppController {
       return { favorites: [] };
     }
     return { favorites };
+  }
+
+  @Post('users/me/favorites')
+  @HttpCode(HttpStatus.OK)
+  async addFavorite(
+    @Query() query: TelegramIdQueryDto,
+    @Body() body: AddFavoriteBodyDto,
+  ) {
+    await this.appService.addFavorite(
+      query.telegramId,
+      body.section,
+      body.itemId,
+    );
+    return { ok: true };
+  }
+
+  @Delete('users/me/favorites')
+  @HttpCode(HttpStatus.OK)
+  async removeFavorite(@Query() query: RemoveFavoriteQueryDto) {
+    await this.appService.removeFavorite(
+      query.telegramId,
+      query.section,
+      query.itemId,
+    );
+    return { ok: true };
+  }
+
+  @Post('users/me/verify-phone')
+  @HttpCode(HttpStatus.OK)
+  async verifyPhone(
+    @Query() query: TelegramIdQueryDto,
+    @Body() body: VerifyPhoneBodyDto,
+  ) {
+    await this.appService.setUserPhoneNumberByTelegramId(
+      query.telegramId,
+      body.phoneNumber,
+    );
+    return { ok: true };
   }
 
   @Get('users/me/publications')

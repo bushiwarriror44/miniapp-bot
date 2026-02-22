@@ -29,7 +29,14 @@ export async function fetchBuyChannels(): Promise<BuyChannelsResponse> {
   return payload;
 }
 
-export type BuyChannelsPaginatedParams = FetchDatasetPaginatedParams & { theme?: string };
+export type BuyChannelsPaginatedParams = FetchDatasetPaginatedParams & {
+  theme?: string;
+  priceFrom?: string;
+  priceTo?: string;
+  reachFrom?: string;
+  dateFrom?: string;
+  dateTo?: string;
+};
 
 export async function fetchBuyChannelsPaginated(
   params: BuyChannelsPaginatedParams = {},

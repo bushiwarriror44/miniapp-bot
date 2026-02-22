@@ -5,6 +5,47 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faShieldHalved, faCoins, faChartColumn } from "@fortawesome/free-solid-svg-icons";
 import { fetchGuarantConfig, type GuarantConfig } from "@/shared/api/guarant-config";
 
+function AutogarantSkeleton() {
+  return (
+    <>
+      <section
+        className="rounded-xl p-4 mb-4"
+        style={{
+          backgroundColor: "var(--color-bg-elevated)",
+          border: "1px solid var(--color-border)",
+        }}
+      >
+        <div className="flex items-center gap-3 mb-3">
+          <div
+            className="w-12 h-12 shrink-0 rounded-full animate-pulse"
+            style={{ backgroundColor: "var(--color-surface)" }}
+          />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-4 rounded animate-pulse" style={{ backgroundColor: "var(--color-surface)", width: "60%" }} />
+            <div className="h-3 rounded animate-pulse" style={{ backgroundColor: "var(--color-surface)", width: "40%" }} />
+          </div>
+        </div>
+        <div className="h-3 rounded animate-pulse" style={{ backgroundColor: "var(--color-surface)", width: "100%" }} />
+        <div className="h-3 rounded animate-pulse mt-2" style={{ backgroundColor: "var(--color-surface)", width: "90%" }} />
+      </section>
+      <section
+        className="rounded-xl p-4 mb-4"
+        style={{
+          backgroundColor: "var(--color-bg-elevated)",
+          border: "1px solid var(--color-border)",
+        }}
+      >
+        <div className="h-4 rounded animate-pulse mb-3" style={{ backgroundColor: "var(--color-surface)", width: "70%" }} />
+        <ul className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <li key={i} className="h-10 rounded-lg animate-pulse" style={{ backgroundColor: "var(--color-surface)" }} />
+          ))}
+        </ul>
+      </section>
+    </>
+  );
+}
+
 export default function AutogarantPage() {
   const [config, setConfig] = useState<GuarantConfig | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -21,6 +62,7 @@ export default function AutogarantPage() {
       });
   }, []);
 
+  const loading = config === null && !loadError;
   const tgUsername = (config?.guarantor?.username || "").replace(/^@/, "");
   const tgDisplayName = config?.guarantor?.displayName || "";
   const tgProfileLink = config?.guarantor?.profileLink || "#";
@@ -44,6 +86,10 @@ export default function AutogarantPage() {
         </p>
       )}
 
+      {loading ? (
+        <AutogarantSkeleton />
+      ) : (
+        <>
 			<section
 				className="rounded-xl p-4 mb-4"
 				style={{
@@ -179,6 +225,8 @@ export default function AutogarantPage() {
 					</div>
 				</div>
 			</section>
+        </>
+      )}
 		</main>
 	);
 }

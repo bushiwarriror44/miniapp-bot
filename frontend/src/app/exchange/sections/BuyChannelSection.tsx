@@ -37,7 +37,15 @@ export function BuyChannelSection({ hotItemIds }: { hotItemIds?: Set<string> }) 
     setLoadError(null);
     setItems([]);
     setNextCursor(null);
-    fetchBuyChannelsPaginated({ theme: themeSearch.trim() || undefined, limit: EXCHANGE_PAGE_SIZE })
+    fetchBuyChannelsPaginated({
+      theme: themeSearch.trim() || undefined,
+      priceFrom: priceFrom.trim() || undefined,
+      priceTo: priceTo.trim() || undefined,
+      reachFrom: reachFrom.trim() || undefined,
+      dateFrom: dateFrom.trim() || undefined,
+      dateTo: dateTo.trim() || undefined,
+      limit: EXCHANGE_PAGE_SIZE,
+    })
       .then((res) => {
         if (res) {
           setItems(res.buyChannels ?? []);
@@ -53,7 +61,7 @@ export function BuyChannelSection({ hotItemIds }: { hotItemIds?: Set<string> }) 
         setLoadError(toErrorMessage(error));
       })
       .finally(() => setLoading(false));
-  }, [themeSearch]);
+  }, [themeSearch, priceFrom, priceTo, reachFrom, dateFrom, dateTo]);
 
   useEffect(() => {
     const t = setTimeout(() => loadFirstPage(), 0);
@@ -63,7 +71,16 @@ export function BuyChannelSection({ hotItemIds }: { hotItemIds?: Set<string> }) 
   const loadMore = useCallback(() => {
     if (loadMoreLoading || nextCursor == null) return;
     setLoadMoreLoading(true);
-    fetchBuyChannelsPaginated({ theme: themeSearch.trim() || undefined, cursor: nextCursor, limit: EXCHANGE_PAGE_SIZE })
+    fetchBuyChannelsPaginated({
+      theme: themeSearch.trim() || undefined,
+      priceFrom: priceFrom.trim() || undefined,
+      priceTo: priceTo.trim() || undefined,
+      reachFrom: reachFrom.trim() || undefined,
+      dateFrom: dateFrom.trim() || undefined,
+      dateTo: dateTo.trim() || undefined,
+      cursor: nextCursor,
+      limit: EXCHANGE_PAGE_SIZE,
+    })
       .then((res) => {
         if (res) {
           setItems((prev) => [...prev, ...(res.buyChannels ?? [])]);
@@ -72,7 +89,7 @@ export function BuyChannelSection({ hotItemIds }: { hotItemIds?: Set<string> }) 
       })
       .catch(() => {})
       .finally(() => setLoadMoreLoading(false));
-  }, [nextCursor, loadMoreLoading, themeSearch]);
+  }, [nextCursor, loadMoreLoading, themeSearch, priceFrom, priceTo, reachFrom, dateFrom, dateTo]);
 
   const { sentinelRef } = useInfiniteScroll({
     onLoadMore: loadMore,

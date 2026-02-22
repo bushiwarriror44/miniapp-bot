@@ -170,7 +170,16 @@ export default function PublicUserProfilePage() {
               {profile.isBlocked && (
                 <span className="inline-flex items-center px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: "rgba(220,38,38,0.15)", color: "#dc2626" }}>Заблокирован</span>
               )}
-              {!profile.verified && !profile.isScam && !profile.isBlocked && (
+              {profile.labels?.map((label) => (
+                <span
+                  key={label.id}
+                  className="inline-flex items-center px-2.5 py-1 rounded-full font-medium"
+                  style={{ backgroundColor: `${label.color}20`, color: label.color }}
+                >
+                  {label.name}
+                </span>
+              ))}
+              {!profile.verified && !profile.isScam && !profile.isBlocked && (!profile.labels || profile.labels.length === 0) && (
                 <span className="inline-flex items-center px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text-muted)" }}>Без специальных меток</span>
               )}
             </div>

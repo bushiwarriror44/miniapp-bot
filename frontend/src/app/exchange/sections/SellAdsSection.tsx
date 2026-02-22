@@ -22,12 +22,13 @@ export function SellAdsSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
         priceFrom: priceFrom.trim() || undefined,
         priceTo: priceTo.trim() || undefined,
         theme: theme.trim() || undefined,
+        reachFrom: reachFrom.trim() || undefined,
         limit: EXCHANGE_PAGE_SIZE,
       }).then((res) => ({
         items: res?.ads ?? [],
         nextCursor: res?.nextCursor ?? null,
       })),
-    [priceFrom, priceTo, theme],
+    [priceFrom, priceTo, theme, reachFrom],
   );
   const fetchNext = useCallback(
     (cursor: string) =>
@@ -35,13 +36,14 @@ export function SellAdsSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
         priceFrom: priceFrom.trim() || undefined,
         priceTo: priceTo.trim() || undefined,
         theme: theme.trim() || undefined,
+        reachFrom: reachFrom.trim() || undefined,
         cursor,
         limit: EXCHANGE_PAGE_SIZE,
       }).then((res) => ({
         items: res?.ads ?? [],
         nextCursor: res?.nextCursor ?? null,
       })),
-    [priceFrom, priceTo, theme],
+    [priceFrom, priceTo, theme, reachFrom],
   );
 
   const { items: ads, loading, loadMoreLoading, loadError, sentinelRef } = useExchangeSectionList<AdItem>({

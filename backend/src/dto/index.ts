@@ -4,6 +4,9 @@ export {
   LimitCursorQueryDto,
   ModerationStatusQueryDto,
   PublicationsQueryDto,
+  AddFavoriteBodyDto,
+  RemoveFavoriteQueryDto,
+  VerifyPhoneBodyDto,
 } from './query.dto';
 export { TrackUserDto } from './track-user.dto';
 export { UpdateRatingDto } from './update-rating.dto';

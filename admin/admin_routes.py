@@ -771,6 +771,8 @@ def put_bot_config():
         return jsonify({"error": "payload.welcomePhotoUrl must be null or string"}), 400
     if payload.get("supportLink") is not None and not isinstance(payload.get("supportLink"), str):
         return jsonify({"error": "payload.supportLink must be null or string"}), 400
+    if payload.get("webAppUrl") is not None and not isinstance(payload.get("webAppUrl"), str):
+        return jsonify({"error": "payload.webAppUrl must be null or string"}), 400
     row = _upsert_dataset("botConfig", payload)
     return jsonify({"ok": True, "updatedAt": row.updated_at.isoformat() if row.updated_at else None})
 

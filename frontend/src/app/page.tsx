@@ -14,9 +14,6 @@ import { trackTelegramUser } from '@/shared/api/users';
 import { RenderLogger } from './components/RenderLogger';
 import { useRenderLogger } from './hooks/useRenderLogger';
 import { RenderLoggerProvider } from './contexts/RenderLoggerContext';
-import Link from 'next/link';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStar } from '@fortawesome/free-solid-svg-icons';
 
 export default function Home() {
 	const { logs, logRender, logEvent, clearLogs, appendLog } = useRenderLogger('Home');
@@ -118,25 +115,6 @@ export default function Home() {
 					<CryptoPrices />
 					<HotOffersBlock />
 					<TopUsersBlock />
-					<section
-						className="mb-6 rounded-xl p-4"
-						style={{
-							backgroundColor: 'var(--color-bg-elevated)',
-							border: '1px solid var(--color-border)',
-						}}
-					>
-						<h2 className="font-semibold text-sm flex items-center gap-2 mb-2" style={{ color: 'var(--color-text)' }}>
-							<FontAwesomeIcon icon={faStar} className="w-4 h-4 shrink-0" />
-							Ваш рейтинг
-						</h2>
-						<Link
-							href="/profile/rating-rules"
-							className="text-xs font-medium"
-							style={{ color: 'var(--color-accent)', textDecoration: 'none' }}
-						>
-							Правила рассчета рейтинга
-						</Link>
-					</section>
 					<PublicationsBlock />
 					<NewsBlock />
 				</RenderLoggerProvider>

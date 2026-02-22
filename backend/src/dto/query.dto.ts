@@ -52,3 +52,32 @@ export class PublicationsQueryDto {
   @IsString()
   cursor?: string;
 }
+
+export class AddFavoriteBodyDto {
+  @IsNotEmpty({ message: 'section is required' })
+  @IsString()
+  section: string;
+
+  @IsNotEmpty({ message: 'itemId is required' })
+  @IsString()
+  itemId: string;
+}
+
+export class RemoveFavoriteQueryDto {
+  @IsNotEmpty({ message: 'telegramId is required' })
+  telegramId: string;
+
+  @IsNotEmpty({ message: 'section is required' })
+  @IsString()
+  section: string;
+
+  @IsNotEmpty({ message: 'itemId is required' })
+  @IsString()
+  itemId: string;
+}
+
+export class VerifyPhoneBodyDto {
+  @IsNotEmpty({ message: 'phoneNumber is required' })
+  @IsString()
+  phoneNumber: string;
+}

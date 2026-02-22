@@ -23,7 +23,13 @@ export async function fetchServices(): Promise<ServicesResponse> {
   return payload;
 }
 
-export type ServicesPaginatedParams = FetchDatasetPaginatedParams & { theme?: string };
+export type ServicesPaginatedParams = FetchDatasetPaginatedParams & {
+  theme?: string;
+  priceFrom?: string;
+  priceTo?: string;
+  dateFrom?: string;
+  dateTo?: string;
+};
 
 export async function fetchServicesPaginated(
   params: ServicesPaginatedParams = {},

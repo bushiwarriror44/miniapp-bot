@@ -11,6 +11,8 @@ type TrackTelegramUserPayload = {
 
 export type FavoriteAdItem = {
   id: string;
+  section: string;
+  itemId: string;
   adType: "post_in_channel" | "post_in_chat";
   channelOrChatLink: string;
   imageUrl: string | null;
@@ -74,6 +76,8 @@ export type MyPublicationItem = {
   section: string;
   formData: Record<string, unknown>;
   createdAt: string;
+  /** ISO date string when the listing is planned to move to "completed" (if approved) */
+  expiresAt?: string;
 };
 
 export async function fetchUserProfile(telegramId: string | number): Promise<UserProfileResponse | null> {
@@ -105,6 +109,56 @@ export async function fetchUserFavorites(
   }
   const data = await res.json();
   return Array.isArray(data.favorites) ? data.favorites : [];
+}
+
+export async function addToFavorites(
+  telegramId: string | number,
+  section: string,
+  itemId: string,
+): Promise<void> {
+  const params = new URLSearchParams();
+  params.set("telegramId", String(telegramId));
+  const res = await fetch(`${API_BASE}/users/me/favorites?${params.toString()}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ section, itemId }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to add to favorites: ${res.status} ${res.statusText}`);
+  }
+}
+
+export async function removeFromFavorites(
+  telegramId: string | number,
+  section: string,
+  itemId: string,
+): Promise<void> {
+  const params = new URLSearchParams();
+  params.set("telegramId", String(telegramId));
+  params.set("section", section);
+  params.set("itemId", itemId);
+  const res = await fetch(`${API_BASE}/users/me/favorites?${params.toString()}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to remove from favorites: ${res.status} ${res.statusText}`);
+  }
+}
+
+export async function submitVerifyPhone(
+  telegramId: string | number,
+  phoneNumber: string,
+): Promise<void> {
+  const params = new URLSearchParams();
+  params.set("telegramId", String(telegramId));
+  const res = await fetch(`${API_BASE}/users/me/verify-phone?${params.toString()}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phoneNumber: String(phoneNumber).trim() }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to submit phone: ${res.status} ${res.statusText}`);
+  }
 }
 
 export type MyPublicationsPaginatedResponse = {

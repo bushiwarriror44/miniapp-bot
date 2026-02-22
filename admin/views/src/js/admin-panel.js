@@ -19,7 +19,7 @@ let selectedAdminUserId = null;
 let allLabels = [];
 let ratingUsers = [];
 let selectedRatingUserId = null;
-let botConfig = { welcomeMessage: "", welcomePhotoUrl: null, supportLink: "" };
+let botConfig = { welcomeMessage: "", welcomePhotoUrl: null, supportLink: "", webAppUrl: "" };
 let moderationRequests = [];
 let selectedModerationRequestId = null;
 const DEBUG_MODAL = true;
@@ -145,6 +145,7 @@ const faqTitleInput = document.getElementById("faqTitleInput");
 const faqTextInput = document.getElementById("faqTextInput");
 const faqResetBtn = document.getElementById("faqResetBtn");
 const saveFaqBtn = document.getElementById("saveFaqBtn");
+const botWebAppUrlInput = document.getElementById("botWebAppUrlInput");
 const botWelcomeMessageInput = document.getElementById("botWelcomeMessageInput");
 const botWelcomePhotoInput = document.getElementById("botWelcomePhotoInput");
 const botWelcomePhotoPreviewWrap = document.getElementById("botWelcomePhotoPreviewWrap");
@@ -526,11 +527,13 @@ function renderBannersList() {
         const previewHtml = imgSrc
           ? `<img src="${escapeHtml(imgSrc)}" alt="" style="width:80px;height:50px;object-fit:cover;border-radius:6px;display:block;" onerror="this.style.display='none';this.nextElementSibling.style.display='block';" /><span style="display:none;font-size:12px;color:var(--color-text-muted);">Превью</span>`
           : `<span class="muted" style="font-size:12px;">${escapeHtml(b.imageUrl || "Баннер")}</span>`;
+        const linkUrl = (b.linkUrl || b.link || "").trim();
         return `<div class="stack" style="flex-direction:row;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border-color,#eee);">
   <div style="width:80px;height:50px;flex-shrink:0;background:var(--surface,#f5f5f5);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;">${previewHtml}</div>
   <span style="font-size:13px;">#${index + 1}</span>
   <div style="flex:1;min-width:0;">
     <span class="muted" style="font-size:12px;word-break:break-all;">${escapeHtml(b.imageUrl || "")}</span>
+    <input type="url" class="input" data-banner-link data-banner-id="${escapeHtml(b.id || "")}" value="${escapeHtml(linkUrl)}" placeholder="Ссылка (URL)" style="margin-top:4px;max-width:100%;font-size:12px;" />
   </div>
   <div style="display:flex;gap:4px;">
     <button type="button" class="btn" data-banner-action="up" data-banner-index="${index}" ${index === 0 ? "disabled" : ""}>Вверх</button>
@@ -1196,6 +1199,7 @@ function renderAdminUserDetails(user, statistics) {
       <div>
         <p style="margin:0 0 6px 0;"><strong>Username:</strong> ${escapeHtml(user.username || "-")}</p>
         <p style="margin:0 0 6px 0;"><strong>Telegram ID:</strong> <span style="font-family:monospace;">${escapeHtml(user.telegramId || "")}</span></p>
+        <p style="margin:0 0 6px 0;"><strong>Телефон (верификация):</strong> ${escapeHtml(user.phoneNumber || "-")}</p>
         <p style="margin:0 0 6px 0;"><strong>Рейтинг auto:</strong> ${escapeHtml(formatMaybeRating(rating.auto))}</p>
         <p style="margin:0 0 6px 0;"><strong>Рейтинг total:</strong> ${escapeHtml(formatMaybeRating(rating.total))}</p>
       </div>
@@ -1888,7 +1892,8 @@ function renderBotPhotoPreview() {
 
 async function loadBotConfig() {
   const data = await apiGet("/admin/api/config/bot");
-  botConfig = data?.payload || { welcomeMessage: "", welcomePhotoUrl: null, supportLink: "" };
+  botConfig = data?.payload || { welcomeMessage: "", welcomePhotoUrl: null, supportLink: "", webAppUrl: "" };
+  if (botWebAppUrlInput) botWebAppUrlInput.value = botConfig.webAppUrl || "";
   if (botWelcomeMessageInput) botWelcomeMessageInput.value = botConfig.welcomeMessage || "";
   if (botSupportLinkInput) botSupportLinkInput.value = botConfig.supportLink || "";
   renderBotPhotoPreview();
@@ -1921,6 +1926,7 @@ async function saveBotConfig() {
     welcomeMessage: (botWelcomeMessageInput?.value || "").trim(),
     welcomePhotoUrl: botConfig?.welcomePhotoUrl || null,
     supportLink: (botSupportLinkInput?.value || "").trim() || null,
+    webAppUrl: (botWebAppUrlInput?.value || "").trim() || null,
   };
   await apiJson("/admin/api/config/bot", "PUT", { payload });
   notify("Настройки бота сохранены");
@@ -2159,6 +2165,15 @@ document.addEventListener("click", async (e) => {
     if (bannerActionBtn.dataset.bannerAction === "up") bannerMoveUp(index);
     else if (bannerActionBtn.dataset.bannerAction === "down") bannerMoveDown(index);
     else if (bannerActionBtn.dataset.bannerAction === "delete") bannerDelete(index);
+  }
+  const bannerLinkInput = e.target.closest && e.target.matches("input[data-banner-link]") ? e.target : null;
+  if (bannerLinkInput && e.type === "change") {
+    const id = bannerLinkInput.getAttribute("data-banner-id");
+    const banner = (bannersConfig.banners || []).find((b) => String(b.id) === String(id));
+    if (banner) {
+      banner.linkUrl = (bannerLinkInput.value || "").trim() || undefined;
+      saveBannersConfig();
+    }
   }
 
   const userSelectBtn = e.target.closest("[data-user-select-id]");

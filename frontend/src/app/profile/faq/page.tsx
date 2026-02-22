@@ -7,12 +7,33 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faChevronDown, faChevronUp, faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
 import { fetchFaqItems, type FaqItem } from "@/shared/api/faq";
 
+function FaqSkeleton() {
+  return (
+    <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="py-3">
+          <div
+            className="h-4 rounded animate-pulse"
+            style={{ backgroundColor: "var(--color-surface)", width: "80%" }}
+          />
+          <div
+            className="h-3 rounded mt-2 animate-pulse"
+            style={{ backgroundColor: "var(--color-surface)", width: "60%" }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ProfileFaqPage() {
   const [faqItems, setFaqItems] = useState<FaqItem[]>([]);
   const [openFaqId, setOpenFaqId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     fetchFaqItems()
       .then((items) => {
         setFaqItems(items);
@@ -22,7 +43,8 @@ export default function ProfileFaqPage() {
       .catch((error) => {
         console.error("Failed to load FAQ:", error);
         setLoadError(error instanceof Error ? error.message : String(error));
-      });
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -44,6 +66,9 @@ export default function ProfileFaqPage() {
           <FontAwesomeIcon icon={faCircleQuestion} className="w-4 h-4 shrink-0" style={{ color: "var(--color-text)" }} />
           Частые вопросы
         </h1>
+        {loading ? (
+          <FaqSkeleton />
+        ) : (
         <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
           {faqItems.map((item) => {
             const isOpen = openFaqId === item.id;
@@ -72,7 +97,8 @@ export default function ProfileFaqPage() {
             );
           })}
         </div>
-        {loadError && (
+        )}
+        {!loading && loadError && (
           <p className="mt-3 text-xs" style={{ color: "var(--color-accent)" }}>
             Ошибка загрузки FAQ: {loadError}
           </p>

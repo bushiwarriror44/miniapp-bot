@@ -47,6 +47,9 @@ export class UserEntity {
   @Column({ type: 'boolean', default: false })
   isBlocked: boolean;
 
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  phoneNumber: string | null;
+
   @Column({ type: 'float', default: 0 })
   ratingManualDelta: number;
 

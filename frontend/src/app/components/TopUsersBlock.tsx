@@ -142,6 +142,13 @@ export function TopUsersBlock() {
           ))}
         </div>
       )}
+      <Link
+        href="/profile/rating-rules"
+        className="block mt-3 text-xs font-medium"
+        style={{ color: "var(--color-accent)", textDecoration: "none" }}
+      >
+        Правила рассчета рейтинга
+      </Link>
     </section>
   );
 }

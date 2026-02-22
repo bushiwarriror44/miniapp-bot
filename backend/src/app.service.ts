@@ -42,8 +42,10 @@ type UserStatistics = {
   };
 };
 
-type FavoriteAdItem = {
+export type FavoriteAdItem = {
   id: string;
+  section: string;
+  itemId: string;
   adType: 'post_in_channel' | 'post_in_chat';
   channelOrChatLink: string;
   imageUrl: string | null;
@@ -569,6 +571,7 @@ export class AppService {
       verified: user.verified,
       isScam: user.isScam,
       isBlocked: user.isBlocked,
+      phoneNumber: user.phoneNumber ?? undefined,
       rating: {
         auto: ratingAuto,
         manualDelta: user.ratingManualDelta || 0,
@@ -782,6 +785,23 @@ export class AppService {
     return this.buildUserProfile(user);
   }
 
+  async setUserPhoneNumberByTelegramId(
+    telegramId: string | number,
+    phoneNumber: string,
+  ): Promise<{ ok: boolean }> {
+    const normalized = String(telegramId || '').trim();
+    if (!normalized) throw new Error('telegramId is required');
+    const phone = String(phoneNumber || '').trim();
+    if (!phone) throw new Error('phoneNumber is required');
+    const user = await this.usersRepository.findOne({
+      where: { telegramId: normalized },
+    });
+    if (!user) throw new Error('user not found');
+    user.phoneNumber = phone;
+    await this.usersRepository.save(user);
+    return { ok: true };
+  }
+
   async setUserScam(userId: string, isScam: boolean) {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) {
@@ -852,25 +872,85 @@ export class AppService {
       order: { createdAt: 'DESC' },
     });
 
-    return links.map((link) => ({
-      id: String(link.adId),
-      adType: 'post_in_channel',
-      channelOrChatLink: '',
-      imageUrl: null,
-      verified: user.verified,
-      username: user.username || 'user',
-      price: Number(link.priceCache || 0),
-      pinned: false,
-      underGuarantee: false,
-      publishTime: '-',
-      postDuration: '-',
-      paymentMethod: 'card',
-      theme: link.titleCache || 'Объявление из избранного',
-      description: '',
-      publishedAt: link.createdAt
-        ? new Date(link.createdAt).toISOString().slice(0, 10)
-        : new Date().toISOString().slice(0, 10),
-    }));
+    return links.map((link) => {
+      const adId = String(link.adId);
+      const colonIdx = adId.indexOf(':');
+      const section = colonIdx >= 0 ? adId.slice(0, colonIdx) : (link.category || 'sell-ads');
+      const itemId = colonIdx >= 0 ? adId.slice(colonIdx + 1) : adId;
+      return {
+        id: itemId,
+        section,
+        itemId,
+        adType: 'post_in_channel' as const,
+        channelOrChatLink: '',
+        imageUrl: null,
+        verified: user.verified,
+        username: user.username || 'user',
+        price: Number(link.priceCache || 0),
+        pinned: false,
+        underGuarantee: false,
+        publishTime: '-',
+        postDuration: '-',
+        paymentMethod: 'card' as const,
+        theme: link.titleCache || 'Объявление из избранного',
+        description: '',
+        publishedAt: link.createdAt
+          ? new Date(link.createdAt).toISOString().slice(0, 10)
+          : new Date().toISOString().slice(0, 10),
+      };
+    });
+  }
+
+  async addFavorite(
+    telegramId: string | number,
+    section: string,
+    itemId: string,
+  ): Promise<{ ok: boolean }> {
+    const normalized = String(telegramId || '').trim();
+    if (!normalized) throw new Error('telegramId is required');
+    const sec = String(section || '').trim();
+    const id = String(itemId || '').trim();
+    if (!sec || !id) throw new Error('section and itemId are required');
+    const user = await this.usersRepository.findOne({ where: { telegramId: normalized } });
+    if (!user) throw new Error('user not found');
+    const compositeId = `${sec}:${id}`;
+    const existing = await this.userAdLinksRepository.findOne({
+      where: { userId: user.id, adId: compositeId },
+    });
+    if (existing) {
+      existing.category = sec;
+      existing.status = 'favorite';
+      await this.userAdLinksRepository.save(existing);
+    } else {
+      await this.userAdLinksRepository.save(
+        this.userAdLinksRepository.create({
+          userId: user.id,
+          adId: compositeId,
+          category: sec,
+          titleCache: null,
+          priceCache: null,
+          status: 'favorite',
+        }),
+      );
+    }
+    return { ok: true };
+  }
+
+  async removeFavorite(
+    telegramId: string | number,
+    section: string,
+    itemId: string,
+  ): Promise<{ ok: boolean }> {
+    const normalized = String(telegramId || '').trim();
+    if (!normalized) throw new Error('telegramId is required');
+    const sec = String(section || '').trim();
+    const id = String(itemId || '').trim();
+    if (!sec || !id) throw new Error('section and itemId are required');
+    const user = await this.usersRepository.findOne({ where: { telegramId: normalized } });
+    if (!user) throw new Error('user not found');
+    const compositeId = `${sec}:${id}`;
+    await this.userAdLinksRepository.delete({ userId: user.id, adId: compositeId });
+    return { ok: true };
   }
 
   private validateModerationSection(
@@ -945,7 +1025,7 @@ export class AppService {
     };
 
     const rows: Row[] = await this.moderationRequestsRepository.manager.query(
-      `SELECT id, status, section, "formData", "createdAt"
+      `SELECT id, status, section, "formData", "createdAt", "expiresAt"
        FROM moderation_requests
        WHERE "telegramId" = $1::bigint
        ORDER BY "createdAt" DESC

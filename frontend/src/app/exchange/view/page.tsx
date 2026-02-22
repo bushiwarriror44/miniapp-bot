@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronLeft, faShieldHalved, faUser } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faShieldHalved, faUser, faStar } from "@fortawesome/free-solid-svg-icons";
+import { faStar as faStarRegular } from "@fortawesome/free-regular-svg-icons";
 import { fetchDatasetItem } from "@/shared/api/dataSource";
 import { fetchExchangeOptions, type ExchangeOptionsPayload } from "@/shared/api/exchangeOptions";
 import type { AdItem } from "@/shared/api/ads";
@@ -26,6 +27,8 @@ import {
   BuyChannelCard,
   OtherCard,
 } from "../cards";
+import { getTelegramWebApp } from "@/shared/api/client";
+import { fetchUserFavorites, addToFavorites, removeFromFavorites } from "@/shared/api/users";
 
 const SECTION_TO_DATASET: Record<ExchangeSection, string> = {
   "sell-ads": "ads",
@@ -97,6 +100,15 @@ export default function ExchangeViewPage() {
   const [exchangeOptions, setExchangeOptions] = useState<ExchangeOptionsPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+
+  const telegramId = useMemo(() => {
+    const telegram = getTelegramWebApp();
+    const user = telegram?.initDataUnsafe?.user;
+    const userId = user != null && "id" in user ? (user as { id: number }).id : undefined;
+    return userId != null ? String(userId) : "";
+  }, []);
 
   const validSections: ExchangeSection[] = [
     "sell-ads",
@@ -148,6 +160,36 @@ export default function ExchangeViewPage() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (!telegramId || !currentSection || !id.trim()) return;
+    fetchUserFavorites(telegramId)
+      .then((list) => {
+        const inList = list.some(
+          (f) => String(f.section) === currentSection && String(f.itemId) === id.trim(),
+        );
+        setIsFavorite(inList);
+      })
+      .catch(() => setIsFavorite(false));
+  }, [telegramId, currentSection, id]);
+
+  const handleToggleFavorite = useCallback(async () => {
+    if (!telegramId || !currentSection || !id.trim() || favoriteLoading) return;
+    setFavoriteLoading(true);
+    try {
+      if (isFavorite) {
+        await removeFromFavorites(telegramId, currentSection, id.trim());
+        setIsFavorite(false);
+      } else {
+        await addToFavorites(telegramId, currentSection, id.trim());
+        setIsFavorite(true);
+      }
+    } catch {
+      // keep previous state on error
+    } finally {
+      setFavoriteLoading(false);
+    }
+  }, [telegramId, currentSection, id, isFavorite, favoriteLoading]);
+
   const handleBack = () => {
     if (window.history.length > 1) {
       window.history.back();
@@ -180,15 +222,33 @@ export default function ExchangeViewPage() {
 
   return (
     <main className="min-h-screen px-4 py-6" style={{ backgroundColor: "var(--color-bg)" }}>
-      <button
-        type="button"
-        onClick={handleBack}
-        className="inline-flex items-center gap-2 text-sm font-medium mb-4"
-        style={{ color: "var(--color-accent)" }}
-      >
-        <FontAwesomeIcon icon={faChevronLeft} className="w-4 h-4" />
-        Назад
-      </button>
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="inline-flex items-center gap-2 text-sm font-medium"
+          style={{ color: "var(--color-accent)" }}
+        >
+          <FontAwesomeIcon icon={faChevronLeft} className="w-4 h-4" />
+          Назад
+        </button>
+        {telegramId && (
+          <button
+            type="button"
+            onClick={handleToggleFavorite}
+            disabled={favoriteLoading}
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+            style={{
+              backgroundColor: "var(--color-bg-elevated)",
+              border: "1px solid var(--color-border)",
+              color: isFavorite ? "var(--color-accent)" : "var(--color-text-muted)",
+            }}
+            aria-label={isFavorite ? "Убрать из избранного" : "В избранное"}
+          >
+            <FontAwesomeIcon icon={isFavorite ? faStar : faStarRegular} className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
       {loading && (
         <div

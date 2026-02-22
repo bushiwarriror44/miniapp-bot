@@ -37,6 +37,10 @@ export function BuyAdsSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
       priceFrom: priceFrom.trim() || undefined,
       priceTo: priceTo.trim() || undefined,
       theme: themeSearch.trim() || undefined,
+      viewsFrom: viewsFrom.trim() || undefined,
+      viewsTo: viewsTo.trim() || undefined,
+      dateFrom: dateFrom.trim() || undefined,
+      dateTo: dateTo.trim() || undefined,
       limit: EXCHANGE_PAGE_SIZE,
     })
       .then((res) => {
@@ -54,7 +58,7 @@ export function BuyAdsSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
         setLoadError(toErrorMessage(error));
       })
       .finally(() => setLoading(false));
-  }, [priceFrom, priceTo, themeSearch]);
+  }, [priceFrom, priceTo, themeSearch, viewsFrom, viewsTo, dateFrom, dateTo]);
 
   useEffect(() => {
     const t = setTimeout(() => loadFirstPage(), 0);
@@ -68,6 +72,10 @@ export function BuyAdsSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
       priceFrom: priceFrom.trim() || undefined,
       priceTo: priceTo.trim() || undefined,
       theme: themeSearch.trim() || undefined,
+      viewsFrom: viewsFrom.trim() || undefined,
+      viewsTo: viewsTo.trim() || undefined,
+      dateFrom: dateFrom.trim() || undefined,
+      dateTo: dateTo.trim() || undefined,
       cursor: nextCursor,
       limit: EXCHANGE_PAGE_SIZE,
     })
@@ -79,7 +87,7 @@ export function BuyAdsSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
       })
       .catch(() => {})
       .finally(() => setLoadMoreLoading(false));
-  }, [nextCursor, loadMoreLoading, priceFrom, priceTo, themeSearch]);
+  }, [nextCursor, loadMoreLoading, priceFrom, priceTo, themeSearch, viewsFrom, viewsTo, dateFrom, dateTo]);
 
   const { sentinelRef } = useInfiniteScroll({
     onLoadMore: loadMore,

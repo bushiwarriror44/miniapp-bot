@@ -34,6 +34,8 @@ export function OtherSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
     fetchOtherPaginated({
       dateFrom: dateFrom.trim() || undefined,
       dateTo: dateTo.trim() || undefined,
+      priceFrom: priceFrom.trim() || undefined,
+      priceTo: priceTo.trim() || undefined,
       limit: EXCHANGE_PAGE_SIZE,
     })
       .then((res) => {
@@ -51,7 +53,7 @@ export function OtherSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
         setLoadError(toErrorMessage(error));
       })
       .finally(() => setLoading(false));
-  }, [dateFrom, dateTo]);
+  }, [dateFrom, dateTo, priceFrom, priceTo]);
 
   useEffect(() => {
     const t = setTimeout(() => loadFirstPage(), 0);
@@ -64,6 +66,8 @@ export function OtherSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
     fetchOtherPaginated({
       dateFrom: dateFrom.trim() || undefined,
       dateTo: dateTo.trim() || undefined,
+      priceFrom: priceFrom.trim() || undefined,
+      priceTo: priceTo.trim() || undefined,
       cursor: nextCursor,
       limit: EXCHANGE_PAGE_SIZE,
     })
@@ -75,7 +79,7 @@ export function OtherSection({ hotItemIds }: { hotItemIds?: Set<string> }) {
       })
       .catch(() => {})
       .finally(() => setLoadMoreLoading(false));
-  }, [nextCursor, loadMoreLoading, dateFrom, dateTo]);
+  }, [nextCursor, loadMoreLoading, dateFrom, dateTo, priceFrom, priceTo]);
 
   const { sentinelRef } = useInfiniteScroll({
     onLoadMore: loadMore,

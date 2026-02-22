@@ -294,11 +294,16 @@
 
         <section id="tab-bot" class="tab-view stack" style="display:none;" data-admin-only>
           <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 8px 0;font-size:16px;">Кнопки в боте</h2>
+            <label class="muted" style="display:block;margin-bottom:6px;">URL мини-приложения (Web App)</label>
+            <input id="botWebAppUrlInput" class="input" placeholder="https://your-miniapp.example.com" />
+            <label class="muted" style="display:block;margin:10px 0 6px 0;">Поддержка (ник администратора или ссылка t.me/...)</label>
+            <input id="botSupportLinkInput" class="input" placeholder="https://t.me/support_username или @support_username" />
+          </section>
+          <section class="card" style="padding:12px;">
             <h2 style="margin:0 0 8px 0;font-size:16px;">Приветствие в боте (/start)</h2>
             <label class="muted" style="display:block;margin-bottom:6px;">Текст приветствия</label>
             <textarea id="botWelcomeMessageInput" class="textarea" style="min-height:120px;" placeholder="Приветственное сообщение для пользователя"></textarea>
-            <label class="muted" style="display:block;margin:10px 0 6px 0;">Ссылка поддержки (для заблокированных пользователей)</label>
-            <input id="botSupportLinkInput" class="input" placeholder="https://t.me/support_username" />
             <div style="margin-top:10px;">
               <label class="muted" style="display:block;margin-bottom:6px;">Фотография приветствия</label>
               <input id="botWelcomePhotoInput" type="file" accept="image/png,image/jpeg,image/webp" />

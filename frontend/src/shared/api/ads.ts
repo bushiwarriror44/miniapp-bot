@@ -39,6 +39,7 @@ export type AdsPaginatedParams = FetchDatasetPaginatedParams & {
   priceFrom?: string;
   priceTo?: string;
   theme?: string;
+  reachFrom?: string;
 };
 
 export async function fetchAdsPaginated(

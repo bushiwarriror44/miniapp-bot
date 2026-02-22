@@ -122,8 +122,8 @@ export default function PublicationDetailPage() {
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
       >
         <div className="flex items-center justify-between mb-4">
-          <h1 className="font-semibold flex items-center gap-2 text-sm" style={{ color: "var(--color-text)" }}>
-            <FontAwesomeIcon icon={faClipboard} className="w-4 h-4 shrink-0" style={{ color: "var(--color-accent)" }} />
+          <h1 className="font-semibold flex items-start gap-2 text-sm" style={{ color: "var(--color-text)" }}>
+            <FontAwesomeIcon icon={faClipboard} className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--color-accent)" }} />
             Детали публикации
           </h1>
           <span
@@ -316,6 +316,14 @@ export default function PublicationDetailPage() {
               <span style={{ color: "var(--color-text)" }}>
                 {formatPublicationDate(publication.createdAt)}
               </span>
+              {publication.expiresAt && (
+                <>
+                  <span style={{ color: "var(--color-text-muted)" }} className="col-span-2">Дата окончания (планируемая дата перехода в «Завершено»):</span>
+                  <span style={{ color: "var(--color-text)" }} className="col-span-2">
+                    {formatPublicationDate(publication.expiresAt)}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
