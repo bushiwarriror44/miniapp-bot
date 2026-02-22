@@ -107,10 +107,10 @@ export default function PublicationDetailPage() {
   const section = publication.section;
 
   return (
-    <main className="px-4 py-6">
+    <main className="px-4 py-6 min-h-[calc(100vh-8rem)] flex flex-col">
       <Link
         href="/profile/publications"
-        className="inline-flex items-center gap-2 text-sm font-medium mb-4"
+        className="inline-flex items-center gap-2 text-sm font-medium mb-4 shrink-0"
         style={{ color: "var(--color-accent)" }}
       >
         <FontAwesomeIcon icon={faChevronLeft} className="w-4 h-4" />
@@ -118,7 +118,7 @@ export default function PublicationDetailPage() {
       </Link>
 
       <section
-        className="rounded-xl p-4"
+        className="rounded-xl p-4 flex-1 flex flex-col"
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
       >
         <div className="flex items-center justify-between mb-4">
@@ -145,28 +145,6 @@ export default function PublicationDetailPage() {
             {getStatusLabel(publication.status)}
           </span>
         </div>
-
-        {publication.status === "approved" && (
-          <div className="mb-4">
-            <button
-              type="button"
-              onClick={() => { setCompleteError(null); setCompleteModalOpen(true); }}
-              className="w-full rounded-xl py-2.5 text-sm font-medium"
-              style={{
-                backgroundColor: "var(--color-surface)",
-                border: "1px solid var(--color-border)",
-                color: "var(--color-text)",
-              }}
-            >
-              Завершить объявление
-            </button>
-            {completeError && (
-              <p className="text-xs mt-2" style={{ color: "var(--color-accent)" }}>
-                {completeError}
-              </p>
-            )}
-          </div>
-        )}
 
         <div className="space-y-4">
           <div>
@@ -341,6 +319,29 @@ export default function PublicationDetailPage() {
             </div>
           </div>
         </div>
+
+        {publication.status === "approved" && (
+          <div className="mt-auto pt-6">
+            <button
+              type="button"
+              onClick={() => { setCompleteError(null); setCompleteModalOpen(true); }}
+              className="w-full rounded-xl py-3 text-sm font-medium inline-flex items-center justify-center gap-2"
+              style={{
+                backgroundColor: "#dc2626",
+                border: "none",
+                color: "white",
+              }}
+            >
+              <FontAwesomeIcon icon={faFlagCheckered} className="w-4 h-4" />
+              Завершить объявление
+            </button>
+            {completeError && (
+              <p className="text-xs mt-2" style={{ color: "#dc2626" }}>
+                {completeError}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <CompletePublicationModal

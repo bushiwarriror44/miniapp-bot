@@ -85,15 +85,15 @@ chmod +x deploy/setup-postgres.sh
 
 На сервере измени в `backend/.env` по сравнению с локальной версией:
 
-| Переменная   | Локально        | На сервере                          |
-|-------------|-----------------|-------------------------------------|
-| `NODE_ENV`  | `development`   | **`production`**                    |
-| `PORT`      | `3001`          | `3001` (или другой, если занят)    |
-| `DB_HOST`   | `localhost`     | `localhost` (если БД на том же сервере) |
-| `DB_PORT`   | `5432`          | `5432`                              |
-| `DB_USER`   | `postgres`      | `miniapp` или `postgres`            |
-| `DB_PASSWORD` | `postgres`    | **надёжный пароль** (тот же, что в шаге 5) |
-| `DB_NAME`   | `miniapp_bot`   | `miniapp_bot`                       |
+| Переменная   | Локально        | На сервере                                 |
+|------------- |-----------------|--------------------------------------------|
+| `NODE_ENV`   | `development`   | **`production`**                           |
+| `PORT`       | `3001`          | `3001` (или другой, если занят)            |
+| `DB_HOST`    | `localhost`     | `localhost` (если БД на том же сервере)    |
+| `DB_PORT`    | `5432`          | `5432`                                     |
+| `DB_USER`    | `postgres`      | `miniapp` или `postgres`                   |
+| `DB_PASSWORD`| `postgres`      | **надёжный пароль** (тот же, что в шаге 5) |
+| `DB_NAME`    | `miniapp_bot`   | `miniapp_bot`                              |
 
 **Пример `backend/.env` на сервере** (после шага 5 скрипта — пользователь и пароль уже заданы):
 

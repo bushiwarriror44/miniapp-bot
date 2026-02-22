@@ -71,9 +71,7 @@ function GuarantorBlock({ authorLink }: { authorLink: string }) {
           Проводите сделку через гаранта, чтобы обезопасить свои средства.
         </p>
       </div>
-      <p className="text-xs" style={{ color: "var(--color-text)" }}>
-        Рейтинг: {rating != null ? rating : "—"}
-      </p>
+      
       <a
         href={authorLink}
         target="_blank"
@@ -213,13 +211,7 @@ export default function ExchangeViewPage() {
 
       {!loading && !error && item && datasetName && (
         <>
-          <div
-            className="rounded-xl p-4 mb-4"
-            style={{
-              backgroundColor: "var(--color-bg-elevated)",
-              border: "1px solid var(--color-border)",
-            }}
-          >
+          
             {currentSection === "sell-ads" && <AdCard ad={item as AdItem} onOpenView={undefined} />}
             {currentSection === "buy-ads" && <BuyAdCard item={item as BuyAdItem} onOpenView={undefined} />}
             {currentSection === "jobs" && (
@@ -242,19 +234,13 @@ export default function ExchangeViewPage() {
               <BuyChannelCard item={item as BuyChannelItem} onOpenView={undefined} />
             )}
             {currentSection === "other" && <OtherCard item={item as OtherItem} onOpenView={undefined} />}
-          </div>
+          
 
           {authorLink && (
             <>
-              <div
-                className="rounded-xl p-4 mb-4"
-                style={{
-                  backgroundColor: "var(--color-bg-elevated)",
-                  border: "1px solid var(--color-border)",
-                }}
-              >
+              
                 <GuarantorBlock authorLink={authorLink} />
-              </div>
+             
               <Link
                 href={`/profile/user/${encodeURIComponent(username)}`}
                 className="block w-full rounded-xl py-2.5 px-4 text-sm font-medium text-center"

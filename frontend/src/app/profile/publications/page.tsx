@@ -129,13 +129,14 @@ function PublicationCard({
             e.stopPropagation();
             onCompleteClick(item.id);
           }}
-          className="w-full mt-2 rounded-lg py-1.5 text-xs font-medium"
+          className="w-full mt-2 rounded-lg py-1.5 text-xs font-medium inline-flex items-center justify-center gap-2"
           style={{
-            backgroundColor: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            color: "var(--color-text)",
+            backgroundColor: "#dc2626",
+            border: "none",
+            color: "white",
           }}
         >
+          <FontAwesomeIcon icon={faFlagCheckered} className="w-3 h-3" />
           Завершить объявление
         </button>
       )}
