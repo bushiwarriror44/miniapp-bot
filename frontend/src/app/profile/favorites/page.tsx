@@ -52,7 +52,7 @@ function FavoriteItemCard({ fav }: { fav: FavoriteAdItem }) {
 }
 
 export default function ProfileFavoritesPage() {
-  const [favoriteAds, setFavoriteAds] = useState<AdItem[]>([]);
+  const [favorites, setFavorites] = useState<FavoriteAdItem[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const telegramId = useMemo(() => {
     const telegram = getTelegramWebApp();
@@ -67,12 +67,12 @@ export default function ProfileFavoritesPage() {
     }
     fetchUserFavorites(telegramId)
       .then((items) => {
-        setFavoriteAds(items as AdItem[]);
+        setFavorites(items);
         setLoadError(null);
       })
       .catch((error) => {
         console.error("Failed to load favorites:", error);
-        setFavoriteAds([]);
+        setFavorites([]);
         setLoadError(error instanceof Error ? error.message : String(error));
       });
   }, [telegramId]);
