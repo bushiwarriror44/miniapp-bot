@@ -456,8 +456,15 @@ export class AppController {
   @Get('support/requests')
   @UseGuards(AdminApiKeyGuard)
   async listSupportRequests() {
-    const requests = await this.appService.listSupportRequests();
-    return { requests };
+    try {
+      const requests = await this.appService.listSupportRequests();
+      return { requests };
+    } catch (err) {
+      this.logger.warn(
+        `listSupportRequests failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return { requests: [] };
+    }
   }
 
   @Get('labels')

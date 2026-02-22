@@ -434,7 +434,13 @@ function closeDialogSafe(dialogEl, fallbackNoteEl, options = {}) {
 
 async function loadDashboard() {
   const data = await apiGet("/admin/api/dashboard/main");
-  kpiUsersCount.textContent = String(data.usersCount ?? 0);
+  if (data.usersCountError) {
+    kpiUsersCount.textContent = "—";
+    kpiUsersCount.title = "Не удалось загрузить с бэкенда. Проверьте BACKEND_API_URL и BACKEND_ADMIN_API_KEY в .env админки.";
+  } else {
+    kpiUsersCount.textContent = String(data.usersCount ?? 0);
+    kpiUsersCount.title = "";
+  }
   kpiActiveAdsTotal.textContent = String(data.activeAdsTotal ?? 0);
   kpiUpdatedAt.textContent = `Обновлено: ${new Date().toLocaleString("ru-RU")}`;
 }

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faShieldHalved, faUser, faStar } from "@fortawesome/free-solid-svg-icons";
-import { faStar as faStarRegular } from "@fortawesome/free-regular-svg-icons";
 import { fetchDatasetItem } from "@/shared/api/dataSource";
 import { fetchExchangeOptions, type ExchangeOptionsPayload } from "@/shared/api/exchangeOptions";
 import type { AdItem } from "@/shared/api/ads";
@@ -245,7 +244,7 @@ export default function ExchangeViewPage() {
             }}
             aria-label={isFavorite ? "Убрать из избранного" : "В избранное"}
           >
-            <FontAwesomeIcon icon={isFavorite ? faStar : faStarRegular} className="w-4 h-4" />
+            <FontAwesomeIcon icon={faStar} className="w-4 h-4" style={isFavorite ? {} : { opacity: 0.4 }} />
           </button>
         )}
       </div>

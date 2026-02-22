@@ -145,11 +145,17 @@ def _get_users_count():
     try:
         url = f"{BACKEND_API_URL.rstrip('/')}/stats/users-count"
         req = Request(url, headers=_backend_headers())
-        with urlopen(req, timeout=3) as response:
+        with urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode("utf-8"))
             return int(data.get("usersCount", 0))
+    except HTTPError as e:
+        if e.code == 401:
+            current_app.logger.warning(
+                "stats/users-count returned 401: set BACKEND_ADMIN_API_KEY in admin env to match backend ADMIN_API_KEY"
+            )
+        return None
     except (URLError, ValueError, TimeoutError):
-        return 0
+        return None
 
 
 def _backend_get_json(path, query_params=None):
@@ -575,9 +581,11 @@ def search_users():
 @require_login
 @require_admin
 def dashboard_main():
+    users_count = _get_users_count()
     return jsonify(
         {
-            "usersCount": _get_users_count(),
+            "usersCount": users_count if users_count is not None else 0,
+            "usersCountError": users_count is None,
             "activeAdsTotal": _get_active_ads_total(),
         }
     )
@@ -1372,7 +1380,14 @@ def admin_support_requests():
     try:
         data = _backend_get_json("/support/requests")
         return jsonify({"requests": data.get("requests", [])})
-    except (HTTPError, URLError, ValueError) as exc:
+    except HTTPError as exc:
+        try:
+            body = exc.fp.read().decode("utf-8") if getattr(exc, "fp", None) else ""
+        except Exception:
+            body = ""
+        msg = body if body else str(exc)
+        return jsonify({"error": msg}), 502
+    except (URLError, ValueError) as exc:
         return jsonify({"error": str(exc)}), 502
 
 
