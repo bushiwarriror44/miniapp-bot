@@ -5,25 +5,25 @@ export class AddQueryOptimizationIndexes1730200000000 implements MigrationInterf
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE INDEX "IDX_users_username" ON "users" ("username")`,
+      `CREATE INDEX IF NOT EXISTS "IDX_users_username" ON "users" ("username")`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_users_createdAt" ON "users" ("createdAt")`,
+      `CREATE INDEX IF NOT EXISTS "IDX_users_createdAt" ON "users" ("createdAt")`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_deals_buyerUserId" ON "deals" ("buyerUserId")`,
+      `CREATE INDEX IF NOT EXISTS "IDX_deals_buyerUserId" ON "deals" ("buyerUserId")`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_deals_sellerUserId" ON "deals" ("sellerUserId")`,
+      `CREATE INDEX IF NOT EXISTS "IDX_deals_sellerUserId" ON "deals" ("sellerUserId")`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_moderation_requests_userId" ON "moderation_requests" ("userId")`,
+      `CREATE INDEX IF NOT EXISTS "IDX_moderation_requests_userId" ON "moderation_requests" ("userId")`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_moderation_requests_telegramId" ON "moderation_requests" ("telegramId")`,
+      `CREATE INDEX IF NOT EXISTS "IDX_moderation_requests_telegramId" ON "moderation_requests" ("telegramId")`,
     );
     await queryRunner.query(
-      `CREATE INDEX "IDX_moderation_requests_telegramId_createdAt" ON "moderation_requests" ("telegramId", "createdAt")`,
+      `CREATE INDEX IF NOT EXISTS "IDX_moderation_requests_telegramId_createdAt" ON "moderation_requests" ("telegramId", "createdAt")`,
     );
   }
 

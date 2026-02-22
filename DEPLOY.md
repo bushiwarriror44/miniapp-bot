@@ -198,6 +198,30 @@ pm2 status
 pm2 logs
 ```
 
+### 7.1. Миграции базы данных
+
+При первом развёртывании на **пустой** БД выполни миграции:
+
+```bash
+cd /var/www/miniapp-bot/backend
+npm run migration:run
+```
+
+**Если таблицы уже есть** (созданы вручную или старым способом), а при запуске миграций появляется ошибка `relation "users" already exists`:
+
+1. Один раз отметь начальную миграцию как выполненную (подставь своего пользователя и базу из `backend/.env`):
+
+   ```bash
+   cd /var/www/miniapp-bot/backend
+   psql -U miniapp -d miniapp_bot -f scripts/mark-initial-schema-run.sql
+   ```
+
+2. Затем снова запусти миграции — выполнятся только недостающие (например, колонка `expiresAt`, индексы):
+
+   ```bash
+   npm run migration:run
+   ```
+
 ---
 
 ## 8. Nginx: домены и SSL
