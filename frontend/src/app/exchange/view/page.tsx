@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronLeft, faShieldHalved } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faShieldHalved, faUser } from "@fortawesome/free-solid-svg-icons";
 import { fetchDatasetItem } from "@/shared/api/dataSource";
 import { fetchExchangeOptions, type ExchangeOptionsPayload } from "@/shared/api/exchangeOptions";
 import type { AdItem } from "@/shared/api/ads";
@@ -57,17 +57,18 @@ function GuarantorBlock({ authorLink }: { authorLink: string }) {
       <div
         className="flex items-center gap-3 rounded-xl px-3 py-2.5"
         style={{
-          backgroundColor: "var(--color-accent)",
-          color: "white",
+          backgroundColor: "transparent",
+          border: "1px solid var(--color-accent)",
+          color: "var(--color-text)",
         }}
       >
         <span
           className="flex shrink-0 w-8 h-8 items-center justify-center rounded-full"
-          style={{ backgroundColor: "rgba(255,255,255,0.25)" }}
+          style={{ backgroundColor: "var(--color-surface)", color: "var(--color-accent)" }}
         >
           <FontAwesomeIcon icon={faShieldHalved} className="w-4 h-4" />
         </span>
-        <p className="text-xs leading-snug m-0" style={{ color: "white" }}>
+        <p className="text-xs leading-snug m-0" style={{ color: "var(--color-text)" }}>
           Проводите сделку через гаранта, чтобы обезопасить свои средства.
         </p>
       </div>
@@ -243,13 +244,15 @@ export default function ExchangeViewPage() {
              
               <Link
                 href={`/profile/user/${encodeURIComponent(username)}`}
-                className="block w-full rounded-xl py-2.5 px-4 text-sm font-medium text-center"
+                className="mt-4 flex items-center justify-center gap-2 w-full rounded-xl py-2.5 px-4 text-sm font-medium"
                 style={{
-                  backgroundColor: "var(--color-accent)",
-                  color: "white",
+                  backgroundColor: "var(--color-surface)",
+                  border: "1px solid var(--color-border)",
+                  color: "var(--color-text)",
                   textDecoration: "none",
                 }}
               >
+                <FontAwesomeIcon icon={faUser} className="w-4 h-4 shrink-0" />
                 Перейти на профиль пользователя
               </Link>
             </>
