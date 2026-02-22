@@ -45,8 +45,8 @@ export default function PublicationDetailPage() {
 
     setLoading(true);
     fetchMyPublications(telegramId)
-      .then((list) => {
-        const found = list.find((item) => item.id === publicationId);
+      .then((result) => {
+        const found = result.publications.find((item) => item.id === publicationId);
         if (found) {
           setPublication(found);
           setLoadError(null);

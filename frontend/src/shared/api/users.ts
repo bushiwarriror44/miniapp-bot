@@ -112,15 +112,28 @@ export type MyPublicationsPaginatedResponse = {
   nextCursor: string | null;
 };
 
+export type FetchMyPublicationsResult = {
+  publications: MyPublicationItem[];
+  /** Set when backend returned 200 but reported an error (e.g. DB failure); list is empty */
+  backendError?: string;
+};
+
 export async function fetchMyPublications(
   telegramId: string | number,
-): Promise<MyPublicationItem[]> {
+): Promise<FetchMyPublicationsResult> {
   const res = await fetch(`${API_BASE}/users/me/publications?telegramId=${encodeURIComponent(String(telegramId))}`);
+  const data = await res.json().catch(() => ({})) as { publications?: MyPublicationItem[]; _error?: string; cause?: string };
   if (!res.ok) {
-    throw new Error(`Failed to load publications: ${res.status} ${res.statusText}`);
+    const cause = typeof data.cause === "string" ? data.cause : "";
+    throw new Error(
+      cause
+        ? `Failed to load publications: ${res.status} ${res.statusText}. ${cause}`
+        : `Failed to load publications: ${res.status} ${res.statusText}`,
+    );
   }
-  const data = await res.json();
-  return Array.isArray(data.publications) ? data.publications : [];
+  const publications = Array.isArray(data.publications) ? data.publications : [];
+  const backendError = typeof data._error === "string" ? data._error : undefined;
+  return { publications, backendError };
 }
 
 export async function fetchMyPublicationsPaginated(

@@ -125,10 +125,12 @@ export class AppController {
       this.logger.error(
         `getMyPublications failed: ${message}${stack ? `\n${stack}` : ''}`,
       );
-      throw new HttpException(
-        { message: 'Failed to load publications', cause: message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // Return empty list so the app stays usable; include _error for frontend to log
+      return {
+        publications: [],
+        nextCursor: null,
+        _error: message,
+      };
     }
   }
 

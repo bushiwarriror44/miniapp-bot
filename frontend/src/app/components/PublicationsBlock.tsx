@@ -97,11 +97,14 @@ export function PublicationsBlock() {
       }
     }, 0);
     fetchMyPublications(telegramId)
-      .then((list) => {
+      .then((result) => {
         if (!cancelled) {
-          logger?.logEvent("PublicationsBlock", "publications loaded", `${list.length} items`);
-          setPublications(list);
-          setLoadError(null);
+          if (result.backendError) {
+            logger?.logEvent("PublicationsBlock", "backend error", result.backendError);
+          }
+          logger?.logEvent("PublicationsBlock", "publications loaded", `${result.publications.length} items`);
+          setPublications(result.publications);
+          setLoadError(result.backendError ?? null);
         }
       })
       .catch((err) => {
