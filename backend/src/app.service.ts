@@ -941,11 +941,11 @@ export class AppService {
       section: string;
       formData: unknown;
       createdAt: Date | string;
-      expiresAt: Date | string | null;
+      expiresAt?: Date | string | null;
     };
 
     const rows: Row[] = await this.moderationRequestsRepository.manager.query(
-      `SELECT id, status, section, "formData", "createdAt", "expiresAt"
+      `SELECT id, status, section, "formData", "createdAt"
        FROM moderation_requests
        WHERE "telegramId" = $1::bigint
        ORDER BY "createdAt" DESC
