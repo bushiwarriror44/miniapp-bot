@@ -934,13 +934,25 @@ export class AppService {
       cursor != null && cursor !== ''
         ? Math.max(0, parseInt(cursor, 10) || 0)
         : 0;
-    const rows = await this.moderationRequestsRepository
-      .createQueryBuilder('mr')
-      .where('mr.telegramId = (:tid)::bigint', { tid: normalized })
-      .orderBy('mr.createdAt', 'DESC')
-      .skip(offset)
-      .take(limitNum + 1)
-      .getMany();
+
+    type Row = {
+      id: string;
+      status: string;
+      section: string;
+      formData: unknown;
+      createdAt: Date | string;
+      expiresAt: Date | string | null;
+    };
+
+    const rows: Row[] = await this.moderationRequestsRepository.manager.query(
+      `SELECT id, status, section, "formData", "createdAt", "expiresAt"
+       FROM moderation_requests
+       WHERE "telegramId" = $1::bigint
+       ORDER BY "createdAt" DESC
+       LIMIT $2 OFFSET $3`,
+      [normalized, limitNum + 1, offset],
+    );
+
     const hasMore = rows.length > limitNum;
     const slice = hasMore ? rows.slice(0, limitNum) : rows;
     const toIso = (d: Date | string | null | undefined): string =>
@@ -948,15 +960,23 @@ export class AppService {
     const now = new Date();
     const publications = slice.map((r) => {
       let status = r.status;
-      const expiresAt = r.expiresAt == null ? null : (r.expiresAt instanceof Date ? r.expiresAt : new Date(r.expiresAt));
-      if (r.status === 'approved' && expiresAt != null && now > expiresAt) {
+      const expiresAt =
+        r.expiresAt == null
+          ? null
+          : r.expiresAt instanceof Date
+            ? r.expiresAt
+            : new Date(r.expiresAt);
+      if (status === 'approved' && expiresAt != null && now > expiresAt) {
         status = 'completed';
       }
       return {
         id: r.id,
         status,
         section: r.section,
-        formData: r.formData ?? {},
+        formData:
+          typeof r.formData === 'object' && r.formData !== null
+            ? r.formData
+            : {},
         createdAt: toIso(r.createdAt) || new Date().toISOString(),
         ...(r.expiresAt != null && { expiresAt: toIso(r.expiresAt) }),
       };
