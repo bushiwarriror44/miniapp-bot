@@ -934,12 +934,13 @@ export class AppService {
       cursor != null && cursor !== ''
         ? Math.max(0, parseInt(cursor, 10) || 0)
         : 0;
-    const rows = await this.moderationRequestsRepository.find({
-      where: { telegramId: normalized },
-      order: { createdAt: 'DESC' },
-      skip: offset,
-      take: limitNum + 1,
-    });
+    const rows = await this.moderationRequestsRepository
+      .createQueryBuilder('mr')
+      .where('mr.telegramId = (:tid)::bigint', { tid: normalized })
+      .orderBy('mr.createdAt', 'DESC')
+      .skip(offset)
+      .take(limitNum + 1)
+      .getMany();
     const hasMore = rows.length > limitNum;
     const slice = hasMore ? rows.slice(0, limitNum) : rows;
     const toIso = (d: Date | string | null | undefined): string =>

@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpException,
   HttpStatus,
+  Logger,
   Param,
   Patch,
   Post,
@@ -40,6 +41,8 @@ import {
 
 @Controller()
 export class AppController {
+  private readonly logger = new Logger(AppController.name);
+
   constructor(private readonly appService: AppService) {}
 
   @Get()
@@ -109,12 +112,24 @@ export class AppController {
   @Get('users/me/publications')
   async getMyPublications(@Query() query: PublicationsQueryDto) {
     const limit = query.limit ?? 20;
-    const result = await this.appService.getMyModerationRequests(
-      query.telegramId,
-      limit,
-      query.cursor,
-    );
-    return result;
+    try {
+      const result = await this.appService.getMyModerationRequests(
+        query.telegramId,
+        limit,
+        query.cursor,
+      );
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const stack = err instanceof Error ? err.stack : undefined;
+      this.logger.error(
+        `getMyPublications failed: ${message}${stack ? `\n${stack}` : ''}`,
+      );
+      throw new HttpException(
+        { message: 'Failed to load publications', cause: message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   @Patch('users/me/publications/:id/complete')
