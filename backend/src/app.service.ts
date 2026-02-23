@@ -561,6 +561,16 @@ export class AppService {
     const ratingTotal =
       Math.round((ratingAuto + (user.ratingManualDelta || 0)) * 10) / 10;
     const userLabels = await this.getUserLabels(user.id);
+    let phoneNumber: string | undefined;
+    try {
+      const rows = await this.usersRepository.manager.query<{ phoneNumber: string | null }[]>(
+        `SELECT "phoneNumber" FROM users WHERE id = $1`,
+        [user.id],
+      );
+      phoneNumber = rows?.[0]?.phoneNumber ?? undefined;
+    } catch {
+      phoneNumber = undefined;
+    }
 
     return {
       id: user.id,
@@ -571,7 +581,7 @@ export class AppService {
       verified: user.verified,
       isScam: user.isScam,
       isBlocked: user.isBlocked,
-      phoneNumber: user.phoneNumber ?? undefined,
+      ...(phoneNumber != null && { phoneNumber }),
       rating: {
         auto: ratingAuto,
         manualDelta: user.ratingManualDelta || 0,
@@ -797,8 +807,10 @@ export class AppService {
       where: { telegramId: normalized },
     });
     if (!user) throw new Error('user not found');
-    user.phoneNumber = phone;
-    await this.usersRepository.save(user);
+    await this.usersRepository.manager.query(
+      `UPDATE users SET "phoneNumber" = $1 WHERE "telegramId" = $2`,
+      [phone, normalized],
+    );
     return { ok: true };
   }
 

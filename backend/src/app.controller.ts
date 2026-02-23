@@ -81,13 +81,19 @@ export class AppController {
 
   @Get('users/me/profile')
   async getMyProfile(@Query() query: TelegramIdQueryDto) {
-    const profile = await this.appService.getUserProfileByTelegramId(
-      query.telegramId,
-    );
-    if (!profile) {
-      return { profile: null };
+    try {
+      const profile = await this.appService.getUserProfileByTelegramId(
+        query.telegramId,
+      );
+      if (!profile) {
+        return { profile: null };
+      }
+      return { profile };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`getMyProfile failed: ${message}`);
+      return { profile: null, error: message };
     }
-    return { profile };
   }
 
   @Get('users/me/statistics')

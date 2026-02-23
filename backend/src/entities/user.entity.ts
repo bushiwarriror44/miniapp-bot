@@ -47,7 +47,8 @@ export class UserEntity {
   @Column({ type: 'boolean', default: false })
   isBlocked: boolean;
 
-  @Column({ type: 'varchar', length: 40, nullable: true })
+  /** Loaded only when needed; column may not exist until migration AddPhoneNumberToUsers is run */
+  @Column({ type: 'varchar', length: 40, nullable: true, select: false })
   phoneNumber: string | null;
 
   @Column({ type: 'float', default: 0 })

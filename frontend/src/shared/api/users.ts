@@ -82,10 +82,13 @@ export type MyPublicationItem = {
 
 export async function fetchUserProfile(telegramId: string | number): Promise<UserProfileResponse | null> {
   const res = await fetch(`${API_BASE}/users/me/profile?telegramId=${encodeURIComponent(String(telegramId))}`);
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(`Failed to load profile: ${res.status} ${res.statusText}`);
+    throw new Error((data && typeof data.error === "string") ? data.error : `Failed to load profile: ${res.status} ${res.statusText}`);
   }
-  const data = await res.json();
+  if (data && typeof data.error === "string") {
+    throw new Error(data.error);
+  }
   return data.profile ?? null;
 }
 
