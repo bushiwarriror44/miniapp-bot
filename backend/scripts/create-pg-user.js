@@ -1,11 +1,3 @@
-/**
- * Создаёт пользователя PostgreSQL с правами CREATEDB.
- * Параметры берутся из backend/.env (DB_USER, DB_PASSWORD). Без внешних зависимостей.
- *
- * Запуск из папки backend:
- *   sudo -u postgres node scripts/create-pg-user.js
- */
-
 const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');

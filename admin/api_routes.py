@@ -19,7 +19,6 @@ EXCHANGE_DATASETS = [
     "other",
 ]
 
-# Frontend section id for URLs
 DATASET_TO_SECTION = {
     "ads": "sell-ads",
     "buyAds": "buy-ads",
@@ -33,14 +32,12 @@ DATASET_TO_SECTION = {
 
 
 def _get_list_from_payload(payload, dataset_name):
-    """Extract list of items from payload. Payload is e.g. { 'ads': [...] }."""
     if not isinstance(payload, dict):
         return []
     return payload.get(dataset_name, payload.get("items", [])) if isinstance(payload.get(dataset_name), list) else []
 
 
 def _listing_snippet(dataset_name, item):
-    """Build a unified listing record for user listings response."""
     section = DATASET_TO_SECTION.get(dataset_name, dataset_name)
     item_id = item.get("id")
     published_at = item.get("publishedAt") or item.get("createdAt") or ""
@@ -71,7 +68,6 @@ def _listing_snippet(dataset_name, item):
 
 
 def _item_username_match(item, username_arg):
-    """Check if item's username/usernameLink matches the given username (normalized, case-insensitive)."""
     if not username_arg or not isinstance(item, dict):
         return True
     q = str(username_arg).strip().lstrip("@").lower()
@@ -88,7 +84,6 @@ def _item_username_match(item, username_arg):
 
 
 def _filter_exchange_items(dataset_name, items, args):
-    """Filter items by query params. Returns filtered list."""
     if not items:
         return items
     result = []
@@ -192,20 +187,13 @@ def _filter_exchange_items(dataset_name, items, args):
 
 
 def _sort_key_date(item):
-    """Return (publishedAt or createdAt) for sorting; empty string sorts last when reverse=True."""
     return (item.get("publishedAt") or item.get("createdAt") or "") if isinstance(item, dict) else ""
 
 
 def _sort_exchange_items(dataset_name, items):
-    """
-    Sort exchange list: pinned first (by date desc), then verified (by date desc), then rest (by date desc).
-    Stable secondary sort by id. Datasets without pinned/verified sort by date desc only.
-    """
     if not items:
         return items
-    # Datasets that have both pinned and verified (ads only for now)
     pinned_verified_datasets = ("ads",)
-    # Datasets that have verified but no pinned
     verified_only_datasets = ("buyAds", "other", "services", "currency", "sellChannels", "buyChannels")
     has_pinned = dataset_name in pinned_verified_datasets
     has_verified = dataset_name in pinned_verified_datasets or dataset_name in verified_only_datasets
@@ -217,7 +205,6 @@ def _sort_exchange_items(dataset_name, items):
         verified = bool(it.get("verified")) if has_verified else False
         date_str = _sort_key_date(it)
         item_id = str(it.get("id") or "")
-        # Order: pinned desc, verified desc, date desc (newer first), then id for stability
         return (pinned, verified, date_str, item_id)
 
     return sorted(items, key=key_func, reverse=True)

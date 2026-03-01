@@ -222,15 +222,8 @@ def migrate_datasets_from_frontend(project_root, overwrite_existing=False):
 
 
 def seed_datasets_once(project_root):
-    """
-    One-time bootstrap seed:
-    - Runs only once per DB lifetime.
-    - Never re-seeds after marker is set, so admins can freely edit/delete data.
-    """
     marker_key = "json_seed_v1_done"
     if _has_state(marker_key):
-        # Still run a non-destructive migration for any newly added datasets
-        # (it will skip existing ones and only create missing datasets).
         result = migrate_datasets_from_frontend(project_root, overwrite_existing=False)
         return {"status": "already-seeded", **result}
 

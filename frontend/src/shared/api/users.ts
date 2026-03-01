@@ -76,7 +76,6 @@ export type MyPublicationItem = {
   section: string;
   formData: Record<string, unknown>;
   createdAt: string;
-  /** ISO date string when the listing is planned to move to "completed" (if approved) */
   expiresAt?: string;
 };
 
@@ -171,7 +170,6 @@ export type MyPublicationsPaginatedResponse = {
 
 export type FetchMyPublicationsResult = {
   publications: MyPublicationItem[];
-  /** Set when backend returned 200 but reported an error (e.g. DB failure); list is empty */
   backendError?: string;
 };
 

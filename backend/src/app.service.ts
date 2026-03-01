@@ -563,10 +563,9 @@ export class AppService {
     const userLabels = await this.getUserLabels(user.id);
     let phoneNumber: string | undefined;
     try {
-      const rows = await this.usersRepository.manager.query<{ phoneNumber: string | null }[]>(
-        `SELECT "phoneNumber" FROM users WHERE id = $1`,
-        [user.id],
-      );
+      const rows = await this.usersRepository.manager.query<
+        { phoneNumber: string | null }[]
+      >(`SELECT "phoneNumber" FROM users WHERE id = $1`, [user.id]);
       phoneNumber = rows?.[0]?.phoneNumber ?? undefined;
     } catch {
       phoneNumber = undefined;
@@ -887,7 +886,8 @@ export class AppService {
     return links.map((link) => {
       const adId = String(link.adId);
       const colonIdx = adId.indexOf(':');
-      const section = colonIdx >= 0 ? adId.slice(0, colonIdx) : (link.category || 'sell-ads');
+      const section =
+        colonIdx >= 0 ? adId.slice(0, colonIdx) : link.category || 'sell-ads';
       const itemId = colonIdx >= 0 ? adId.slice(colonIdx + 1) : adId;
       return {
         id: itemId,
@@ -923,7 +923,9 @@ export class AppService {
     const sec = String(section || '').trim();
     const id = String(itemId || '').trim();
     if (!sec || !id) throw new Error('section and itemId are required');
-    const user = await this.usersRepository.findOne({ where: { telegramId: normalized } });
+    const user = await this.usersRepository.findOne({
+      where: { telegramId: normalized },
+    });
     if (!user) throw new Error('user not found');
     const compositeId = `${sec}:${id}`;
     const existing = await this.userAdLinksRepository.findOne({
@@ -958,10 +960,15 @@ export class AppService {
     const sec = String(section || '').trim();
     const id = String(itemId || '').trim();
     if (!sec || !id) throw new Error('section and itemId are required');
-    const user = await this.usersRepository.findOne({ where: { telegramId: normalized } });
+    const user = await this.usersRepository.findOne({
+      where: { telegramId: normalized },
+    });
     if (!user) throw new Error('user not found');
     const compositeId = `${sec}:${id}`;
-    await this.userAdLinksRepository.delete({ userId: user.id, adId: compositeId });
+    await this.userAdLinksRepository.delete({
+      userId: user.id,
+      adId: compositeId,
+    });
     return { ok: true };
   }
 

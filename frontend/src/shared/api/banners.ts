@@ -4,7 +4,6 @@ export type BannerItem = {
   id: string;
   imageUrl: string;
   order: number;
-  /** Optional URL to open when the banner is clicked */
   linkUrl?: string;
 };
 

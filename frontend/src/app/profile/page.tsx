@@ -59,7 +59,6 @@ export default function ProfilePage() {
           return;
         }
       } catch {
-        // User cancelled or error — fallback to manual modal
       }
     }
     setShowVerifyModal(true);

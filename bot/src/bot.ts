@@ -2,7 +2,6 @@ import path from 'path';
 import { Bot, Keyboard } from 'grammy';
 import * as dotenv from 'dotenv';
 
-// Загружаем .env из папки bot (важно при запуске через PM2 из корня проекта)
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const token = process.env.BOT_TOKEN;
@@ -132,7 +131,6 @@ bot.on('message:text', async (ctx) => {
   await ctx.reply(`Вы написали: ${ctx.message.text}`);
 });
 
-// Обработчик ошибок, чтобы бот не падал
 bot.catch((err) => {
   const { ctx, error: e } = err;
   console.error(`Ошибка при обработке обновления ${ctx.update.update_id}:`);

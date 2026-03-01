@@ -44,7 +44,6 @@ export function NewsBlock() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount; logger ref would retrigger loop on error
   }, []);
 
   return (

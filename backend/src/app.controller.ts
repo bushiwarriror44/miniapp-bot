@@ -172,7 +172,6 @@ export class AppController {
       this.logger.error(
         `getMyPublications failed: ${message}${stack ? `\n${stack}` : ''}`,
       );
-      // Return empty list so the app stays usable; include _error for frontend to log
       return {
         publications: [],
         nextCursor: null,

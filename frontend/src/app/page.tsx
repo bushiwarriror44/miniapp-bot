@@ -100,8 +100,6 @@ export default function Home() {
 			});
 	}, []);
 
-	// Render same shell on server and client to avoid hydration mismatch (React #418).
-	// Only inner content is gated by isMounted so the initial DOM tree matches.
 	return (
 		<main className="px-4 py-6">
 			{isMounted ? (

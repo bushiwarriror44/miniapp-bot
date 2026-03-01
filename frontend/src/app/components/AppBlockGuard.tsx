@@ -15,7 +15,8 @@ function isValidUrl(url: string | null | undefined): url is string {
 export function AppBlockGuard({ children }: { children: React.ReactNode }) {
   const [isMounted, setIsMounted] = useState(false);
   useLayoutEffect(() => {
-    setIsMounted(true);
+    const id = requestAnimationFrame(() => setIsMounted(true));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const telegramId = useMemo(() => {

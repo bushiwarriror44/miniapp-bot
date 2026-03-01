@@ -183,7 +183,6 @@ export default function ExchangeViewPage() {
         setIsFavorite(true);
       }
     } catch {
-      // keep previous state on error
     } finally {
       setFavoriteLoading(false);
     }

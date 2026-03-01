@@ -27,7 +27,6 @@ from models import Dataset, Moderator, ModeratorActionLog, db
 
 
 def _ensure_moderator_tables():
-    """Create moderator-related tables if they do not exist (e.g. after deploy without restart)."""
     try:
         db.create_all()
     except Exception:
@@ -37,7 +36,6 @@ admin_bp = Blueprint("admin", __name__)
 
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://127.0.0.1:3001")
-# Ключ для доступа к админским эндпоинтам бэкенда (то же значение, что ADMIN_API_KEY в backend/.env).
 BACKEND_ADMIN_API_KEY = os.getenv("BACKEND_ADMIN_API_KEY", os.getenv("ADMIN_API_KEY", ""))
 EXCHANGE_CATEGORIES = [
     "ads",
@@ -201,7 +199,6 @@ def _upsert_dataset(name, payload):
 
 def _uploads_dir():
     db_path = current_app.config.get("SQLALCHEMY_DATABASE_URI", "")
-    # sqlite:////app/admin/data/app.db -> /app/admin/data
     if db_path.startswith("sqlite:///"):
         abs_db = db_path.replace("sqlite:///", "", 1)
         base_dir = Path(abs_db).resolve().parent
@@ -241,7 +238,6 @@ def _to_number(value, default=0):
 
 
 def _parse_range(value, default_min=0, default_max=0):
-    """Parse range string like '1000-2000' or '15000' into (min, max) tuple."""
     if not value or not isinstance(value, str):
         return (default_min, default_max)
     
@@ -249,7 +245,6 @@ def _parse_range(value, default_min=0, default_max=0):
     if not value:
         return (default_min, default_max)
     
-    # Handle single value (e.g., "15000" or "~15000")
     if value.startswith("~"):
         value = value[1:].strip()
     
@@ -257,7 +252,6 @@ def _parse_range(value, default_min=0, default_max=0):
         num = _to_number(value, 0)
         return (num, num)
     
-    # Handle range (e.g., "1000-2000")
     parts = value.split("-", 1)
     if len(parts) == 2:
         min_val = _to_number(parts[0].strip(), default_min)
@@ -493,12 +487,8 @@ def create_item(category):
     items.append(item)
     _save_dataset_items(row, list_key, items)
     
-    # Update user username if provided in item (for buy-ads and other sections with username)
     username_from_item = item.get("username")
     if username_from_item and category == "buyAds":
-        # Try to find telegramId from moderation request if available
-        # For direct creation, we can't update username without telegramId
-        # This is handled in the approve flow
         pass
     
     return jsonify({"ok": True, "item": item}), 201
@@ -647,26 +637,20 @@ def put_banners_config():
 @require_login
 @require_admin
 def banner_preview():
-    """Прокси превью баннера с мини-апа (для относительных URL вроде /1.png)."""
     path = (request.args.get("url") or "").strip()
     if not path.startswith("/") or path.startswith("//"):
         return "", 404
     
-    # Получаем базовый URL мини-апа
     base = os.environ.get("MINIAPP_BASE_URL", "").strip().rstrip("/")
     
-    # Fallback: если не задан, пытаемся вывести из ADMIN_PUBLIC_BASE_URL
     if not base:
         admin_base = os.environ.get("ADMIN_PUBLIC_BASE_URL", "").strip().rstrip("/")
         if admin_base:
-            # Пробуем заменить admin. на miniapp. или убрать поддомен
             parsed = urlparse(admin_base)
             hostname = parsed.netloc or parsed.path
             if hostname.startswith("admin."):
-                # admin.144.172.116.22.nip.io -> miniapp.144.172.116.22.nip.io
                 base = f"{parsed.scheme}://miniapp.{hostname[6:]}"
             else:
-                # Если нет поддомена admin, используем как есть
                 base = admin_base
     
     if not base:
@@ -924,7 +908,7 @@ def send_bot_message():
         try:
             users_data = _backend_get_json("/users")
             targets = [str(user.get("telegramId")) for user in users_data.get("users", []) if user.get("telegramId")]
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return jsonify({"error": f"Failed to load users list from backend: {exc}"}), 502
     elif telegram_id:
         targets = [telegram_id]
@@ -970,7 +954,7 @@ def send_bot_message():
                     sent += 1
                 else:
                     failed.append({"telegramId": chat_id, "error": response_data})
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             failed.append({"telegramId": chat_id, "error": str(exc)})
 
     return jsonify({"ok": True, "sent": sent, "failed": failed, "total": len(set(targets))})
@@ -1508,7 +1492,6 @@ def admin_moderation_approve(request_id):
     items.append(new_item)
     _save_dataset_items(row, list_key, items)
 
-    # Update user username if provided in formData
     telegram_id = current.get("telegramId")
     form_data = current.get("formData", {})
     username_from_form = form_data.get("username")
@@ -1524,7 +1507,6 @@ def admin_moderation_approve(request_id):
                 )
                 print(f"[Admin] Successfully updated username for telegramId={telegram_id}")
         except Exception as e:
-            # Log error but don't fail the approval
             print(f"[Admin] Failed to update username for telegramId={telegram_id}: {e}")
             pass
 

@@ -35,7 +35,6 @@ const CATEGORY_LABELS = {
   other: "Прочее",
 };
 
-/** Backend category name -> frontend exchange section id (for hot offer deep link) */
 const BACKEND_TO_FRONTEND_SECTION = {
   ads: "sell-ads",
   buyAds: "buy-ads",
@@ -319,7 +318,6 @@ function openDialogSafe(dialogEl, fallbackNoteEl, options = {}) {
 
   if (isDialogSupported(dialogEl)) {
     try {
-      // Reset any stale inline styles from previous fallback opens.
       dialogEl.style.display = "";
       dialogEl.style.visibility = "";
       dialogEl.style.opacity = "";
@@ -332,8 +330,6 @@ function openDialogSafe(dialogEl, fallbackNoteEl, options = {}) {
         currentlyOpen: Boolean(dialogEl.open),
       });
 
-      // In some embedded/webview environments dialog reports "open"
-      // but is not actually painted. Force fallback visibility if needed.
       if (!isDialogActuallyVisible(dialogEl)) {
         const rect = dialogEl.getBoundingClientRect();
         const styles = window.getComputedStyle(dialogEl);
@@ -371,7 +367,6 @@ function openDialogSafe(dialogEl, fallbackNoteEl, options = {}) {
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : null,
       });
-      // Continue to fallback mode below.
     }
   }
 
@@ -409,7 +404,6 @@ function closeDialogSafe(dialogEl, fallbackNoteEl, options = {}) {
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : null,
       });
-      // Continue to fallback mode below.
     }
   }
 
@@ -654,7 +648,6 @@ function deleteHotOffer(index) {
   renderHotOffersTable();
 }
 
-/** Build title, price, subtitle for a hot offer from an exchange item (by backend category). */
 function buildHotOfferFieldsFromItem(item, backendCategory) {
   const o = item || {};
   const title = o.theme || o.title || o.name || o.work || o.username || String(o.id || "");

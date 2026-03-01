@@ -33,7 +33,6 @@ export default function ProfileFaqPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
     fetchFaqItems()
       .then((items) => {
         setFaqItems(items);
