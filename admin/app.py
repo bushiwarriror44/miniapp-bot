@@ -12,7 +12,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
 
 env_path = os.path.join(PROJECT_ROOT, '.env')
+admin_env_path = os.path.join(BASE_DIR, '.env')
 load_dotenv(env_path)
+load_dotenv(admin_env_path)
 
 app = Flask(__name__, template_folder="views")
 

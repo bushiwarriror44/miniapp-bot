@@ -5,16 +5,14 @@ services:
       dockerfile: admin/Dockerfile
     container_name: miniapp-admin-api
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - FLASK_DEBUG=False
       - ALLOWED_ORIGINS=*
-      # Backend runs on host (pm2), so container must use host-gateway.
       - BACKEND_API_URL=http://host.docker.internal:3001
-      # For /admin/api/bot/send-message endpoint.
       - BOT_TOKEN=${BOT_TOKEN}
-      # Optional explicit public base URL for uploaded bot images.
       - ADMIN_PUBLIC_BASE_URL=${ADMIN_PUBLIC_BASE_URL}
-      # Если задан, потребуется заголовок X-Admin-Token для PUT /api/datasets/<name>
       - ADMIN_API_TOKEN=
     extra_hosts:
       - "host.docker.internal:host-gateway"
