@@ -1,12 +1,9 @@
+import './load-env';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { Client } from 'pg';
-import * as path from 'path';
 import helmet from 'helmet';
-import { config } from 'dotenv';
 import { AppModule } from './app.module';
-
-config({ path: path.join(__dirname, '..', '.env') });
 
 const logger = new Logger('Bootstrap');
 
