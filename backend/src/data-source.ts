@@ -1,7 +1,8 @@
 import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
+import * as path from 'path';
 
-config();
+config({ path: path.join(__dirname, '..', '.env') });
 
 const isCompiled = __dirname.endsWith('dist');
 const ext = isCompiled ? '.js' : '.ts';
