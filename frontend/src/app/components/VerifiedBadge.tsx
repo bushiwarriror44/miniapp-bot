@@ -50,10 +50,7 @@ export default function VerifiedBadge() {
       role="img"
       aria-label="Верифицирован"
       className="relative inline-flex shrink-0 w-5 h-5 items-center justify-center"
-      style={{
-        backgroundColor: "var(--color-accent)",
-        borderRadius: "9999px",
-      }}
+      
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}

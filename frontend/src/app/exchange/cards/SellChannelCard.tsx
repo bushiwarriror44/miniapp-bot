@@ -30,20 +30,7 @@ export function SellChannelCard({
         </span>
       )}
       <div className="flex gap-3">
-        {channel.imageUrl ? (
-          <img
-            src={channel.imageUrl}
-            alt=""
-            className="w-14 h-14 rounded-lg object-cover shrink-0"
-          />
-        ) : (
-          <div
-            className="w-14 h-14 rounded-lg shrink-0 flex items-center justify-center text-xs"
-            style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text-muted)" }}
-          >
-            Нет фото
-          </div>
-        )}
+        
         <div className="min-w-0 flex-1">
           <p className="font-medium text-sm" style={{ color: "var(--color-text)" }}>
             {channel.name}

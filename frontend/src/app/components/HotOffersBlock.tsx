@@ -20,7 +20,7 @@ function OfferSlide({ offer }: { offer: HotOffer }) {
         {offer.title}
       </p>
       <p className="text-lg font-bold mb-1" style={{ color: "var(--color-accent)" }}>
-        {offer.price} USDT
+        {offer.price}
       </p>
       <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
         {offer.subtitle}
