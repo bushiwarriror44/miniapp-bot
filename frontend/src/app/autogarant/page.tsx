@@ -105,11 +105,6 @@ export default async function AutogarantPage() {
 								src={tgAvatarUrl}
 								alt={tgDisplayName ? `Аватар ${tgDisplayName}` : "Аватар гаранта"}
 								className="w-full h-full object-cover"
-								onError={(e) => {
-									const target = e.currentTarget;
-									target.onerror = null;
-									target.src = "/assets/telegram-ico.svg";
-								}}
 							/>
 						) : (
 							<span className="w-full h-full flex items-center justify-center">
