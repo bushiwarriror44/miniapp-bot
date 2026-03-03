@@ -4,6 +4,10 @@ const CONTENT_API_BASE = RAW_CONTENT_API_BASE
   : null;
 let hasLoggedMissingContentApiUrl = false;
 
+export function getContentApiBase(): string | null {
+  return CONTENT_API_BASE;
+}
+
 export async function fetchDatasetFromApi<T>(
   datasetName: string
 ): Promise<T | null> {

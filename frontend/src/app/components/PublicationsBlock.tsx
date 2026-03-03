@@ -22,6 +22,21 @@ function formatPublicationDate(iso: string): string {
   }
 }
 
+function formatPublicationDateTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString("ru-RU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
 function publicationTitle(item: MyPublicationItem): string {
   const fd = item.formData;
   const theme = typeof fd?.theme === "string" ? fd.theme.trim() : "";
@@ -222,33 +237,54 @@ export function PublicationsBlock() {
                   {formatPublicationDate(item.createdAt)}
                 </p>
                 {item.status === "pending" && (
-                  <span
-                    className="inline-block rounded-lg px-2 py-0.5 text-xs font-medium"
-                    style={{
-                      backgroundColor: "var(--color-surface)",
-                      color: "var(--color-accent)",
-                    }}
-                  >
-                    на модерации
-                  </span>
+                  <div className="space-y-1">
+                    <span
+                      className="inline-block rounded-lg px-2 py-0.5 text-xs font-medium"
+                      style={{
+                        backgroundColor: "var(--color-surface)",
+                        color: "var(--color-accent)",
+                      }}
+                    >
+                      на модерации
+                    </span>
+                    {item.moderationDeadline && (
+                      <p className="text-[11px] m-0" style={{ color: "var(--color-text-muted)" }}>
+                        Дедлайн модерации: {formatPublicationDateTime(item.moderationDeadline)}
+                      </p>
+                    )}
+                  </div>
                 )}
                 {item.status === "approved" && (
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
-                    style={{ color: "#16a34a" }}
-                  >
-                    <FontAwesomeIcon icon={faCheckCircle} className="w-3 h-3" style={{ color: "#16a34a" }} />
-                    Опубликовано
-                  </span>
+                  <div className="space-y-1">
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
+                      style={{ color: "#16a34a" }}
+                    >
+                      <FontAwesomeIcon icon={faCheckCircle} className="w-3 h-3" style={{ color: "#16a34a" }} />
+                      Опубликовано
+                    </span>
+                    {item.expiresAt && (
+                      <p className="text-[11px] m-0" style={{ color: "var(--color-text-muted)" }}>
+                        Объявление активно до: {formatPublicationDateTime(item.expiresAt)}
+                      </p>
+                    )}
+                  </div>
                 )}
                 {item.status === "rejected" && (
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
-                    style={{ color: "#dc2626" }}
-                  >
-                    <FontAwesomeIcon icon={faXmarkCircle} className="w-3 h-3" style={{ color: "#dc2626" }} />
-                    Отклонено
-                  </span>
+                  <div className="space-y-1">
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium"
+                      style={{ color: "#dc2626" }}
+                    >
+                      <FontAwesomeIcon icon={faXmarkCircle} className="w-3 h-3" style={{ color: "#dc2626" }} />
+                      Отклонено
+                    </span>
+                    {item.rejectedAt && (
+                      <p className="text-[11px] m-0" style={{ color: "var(--color-text-muted)" }}>
+                        Отклонено: {formatPublicationDateTime(item.rejectedAt)}
+                      </p>
+                    )}
+                  </div>
                 )}
                 {item.status === "completed" && (
                   <span

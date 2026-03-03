@@ -261,10 +261,12 @@ def _parse_range(value, default_min=0, default_max=0):
     return (default_min, default_max)
 
 
-def _normalize_item_for_dataset(section, form_data):
+def _normalize_item_for_dataset(section, form_data, user_verified=False):
     today = datetime.utcnow().strftime("%Y-%m-%d")
     duration_hours = int(form_data.get("listingDuration") or 168)
     expires_at = (datetime.utcnow() + timedelta(hours=duration_hours)).isoformat() + "Z"
+    is_verified = bool(user_verified)
+
     if section == "buy-ads":
         username = str(form_data.get("username") or "").lstrip("@")
         price_min, price_max = _parse_range(form_data.get("priceRange"))
@@ -274,7 +276,7 @@ def _normalize_item_for_dataset(section, form_data):
             "id": str(uuid4()),
             "username": username,
             "usernameLink": f"https://t.me/{username}" if username else "",
-            "verified": False,
+            "verified": is_verified,
             "priceMin": int(price_min),
             "priceMax": int(price_max),
             "viewsMin": int(views_min),
@@ -289,8 +291,8 @@ def _normalize_item_for_dataset(section, form_data):
             "id": str(uuid4()),
             "adType": str(form_data.get("adType") or "post_in_channel"),
             "channelOrChatLink": str(form_data.get("channelOrChatLink") or ""),
-            "imageUrl": None,
-            "verified": _to_bool(form_data.get("verified"), False),
+            "imageUrl": form_data.get("imageUrl") or None,
+            "verified": is_verified or _to_bool(form_data.get("verified"), False),
             "username": str(form_data.get("username") or "").lstrip("@"),
             "price": _to_number(form_data.get("price"), 0),
             "pinned": _to_bool(form_data.get("pinned"), False),
@@ -315,6 +317,7 @@ def _normalize_item_for_dataset(section, form_data):
             "paymentAmount": str(form_data.get("paymentAmount") or ""),
             "theme": str(form_data.get("theme") or ""),
             "description": str(form_data.get("description") or ""),
+            "verified": is_verified,
             "expiresAt": expires_at,
         }
     if section == "designers":
@@ -334,12 +337,14 @@ def _normalize_item_for_dataset(section, form_data):
             "name": str(form_data.get("name") or ""),
             "username": str(form_data.get("username") or "").lstrip("@"),
             "usernameLink": str(form_data.get("usernameLink") or ""),
+            "imageUrl": form_data.get("imageUrl") or None,
             "subscribers": int(_to_number(form_data.get("subscribers"), 0)),
             "reach": int(_to_number(form_data.get("reach"), 0)),
             "price": _to_number(form_data.get("price"), 0),
             "viaGuarantor": _to_bool(form_data.get("viaGuarantor"), False),
             "theme": str(form_data.get("theme") or ""),
             "description": str(form_data.get("description") or ""),
+            "verified": is_verified,
             "expiresAt": expires_at,
         }
     if section == "buy-channel":
@@ -356,6 +361,7 @@ def _normalize_item_for_dataset(section, form_data):
             "viaGuarantor": _to_bool(form_data.get("viaGuarantor"), False),
             "theme": str(form_data.get("theme") or ""),
             "description": str(form_data.get("description") or ""),
+            "verified": is_verified,
             "expiresAt": expires_at,
         }
     if section == "other":
@@ -363,7 +369,7 @@ def _normalize_item_for_dataset(section, form_data):
             "id": str(uuid4()),
             "username": str(form_data.get("username") or "").lstrip("@"),
             "usernameLink": str(form_data.get("usernameLink") or ""),
-            "verified": _to_bool(form_data.get("verified"), False),
+            "verified": is_verified or _to_bool(form_data.get("verified"), False),
             "price": _to_number(form_data.get("price"), 0),
             "description": str(form_data.get("description") or ""),
             "expiresAt": expires_at,
@@ -1488,7 +1494,23 @@ def admin_moderation_approve(request_id):
         return jsonify({"error": f"Dataset '{dataset_name}' not found"}), 404
     payload = _dataset_payload(row)
     list_key, items = _extract_items(payload)
-    new_item = _normalize_item_for_dataset(section, current.get("formData"))
+
+    user_verified = False
+    user_id = current.get("userId")
+    telegram_id = current.get("telegramId")
+    try:
+        if user_id:
+            user_resp = _backend_get_json(f"/users/{user_id}")
+            user_data = user_resp.get("user") or {}
+            user_verified = bool(user_data.get("verified"))
+        elif telegram_id:
+            profile_resp = _backend_get_json(f"/users/me/profile?telegramId={telegram_id}")
+            profile = profile_resp.get("profile") or {}
+            user_verified = bool(profile.get("verified"))
+    except (HTTPError, URLError, ValueError):
+        user_verified = False
+
+    new_item = _normalize_item_for_dataset(section, current.get("formData"), user_verified)
     items.append(new_item)
     _save_dataset_items(row, list_key, items)
 

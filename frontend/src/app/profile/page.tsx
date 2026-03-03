@@ -14,6 +14,7 @@ import {
   ProfileRatingBlock,
   ProfileMenuRow,
   SupportModal,
+  SupportSuccessModal,
   VerifyModal,
   VerifyConsentDialog,
   ProfileNotice,
@@ -31,6 +32,7 @@ export default function ProfilePage() {
   const [verifyPhone, setVerifyPhone] = useState("");
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportText, setSupportText] = useState("");
+  const [showSupportSuccess, setShowSupportSuccess] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -100,9 +102,7 @@ export default function ProfilePage() {
       });
       setShowSupportModal(false);
       setSupportText("");
-      showNotice(
-        "Ваше обращение отправлено. Мы рассмотрим его и постараемся решить проблему как можно быстрее."
-      );
+      setShowSupportSuccess(true);
     } catch (err) {
       showNotice(
         err instanceof Error ? err.message : "Не удалось отправить обращение. Попробуйте позже."
@@ -190,7 +190,7 @@ export default function ProfilePage() {
             className="w-full rounded-xl py-2.5 text-sm font-medium text-center"
             style={{ backgroundColor: "var(--color-accent)", color: "white" }}
           >
-            Телеграмм администратора
+            Телеграм администратора
           </a>
           <button
             type="button"
@@ -222,6 +222,7 @@ export default function ProfilePage() {
         onClose={() => setShowSupportModal(false)}
         onSubmit={handleSupportSubmit}
       />
+      <SupportSuccessModal open={showSupportSuccess} onClose={() => setShowSupportSuccess(false)} />
       <ProfileNotice text={notice} />
     </main>
   );

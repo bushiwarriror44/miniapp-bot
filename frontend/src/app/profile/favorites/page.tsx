@@ -31,7 +31,7 @@ function FavoriteItemCard({ fav }: { fav: FavoriteAdItem }) {
       >
         <FontAwesomeIcon icon={faStar} className="w-3.5 h-3.5" />
       </span>
-      <div className="min-w-0">
+      <div className="min-w-0 pl-9">
         <p className="text-xs mb-0.5" style={{ color: "var(--color-text-muted)" }}>
           {sectionLabel}
         </p>

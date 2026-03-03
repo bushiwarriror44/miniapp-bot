@@ -73,6 +73,9 @@
             <h2 style="margin:0 0 10px 0;font-size:16px;">Баннеры главной страницы</h2>
             <p class="muted" style="margin:0 0 10px 0;font-size:13px;">Порядок в списке соответствует порядку показа на главной. Можно удалять и менять порядок кнопками «Вверх» / «Вниз».</p>
             <div id="bannersListWrap" style="margin-top:10px;"></div>
+            <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+              <button id="saveBannersConfigBtn" class="btn btn-primary" type="button">Сохранить баннеры</button>
+            </div>
             <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color,#eee);">
               <label class="muted" style="font-size:13px;">Добавить баннер (изображение)</label>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
@@ -129,9 +132,10 @@
 
         <section id="tab-users" class="tab-view stack" style="display:none;" data-admin-only>
           <section class="card" style="padding:12px;">
-            <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;">
               <input id="adminUsersSearchInput" class="input" placeholder="Поиск по username или telegramId" />
               <button id="adminUsersSearchBtn" class="btn">Найти пользователей</button>
+              <button id="adminUsersRefreshBtn" class="btn" type="button">Обновить список</button>
             </div>
             <div id="adminUsersTableWrap" style="margin-top:10px;"></div>
           </section>
@@ -178,6 +182,7 @@
                   <option value="pending">pending</option>
                   <option value="approved">approved</option>
                   <option value="rejected">rejected</option>
+                  <option value="completed">completed</option>
                 </select>
               </div>
               <div style="display:flex;align-items:end;">

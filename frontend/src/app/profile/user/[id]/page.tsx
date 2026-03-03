@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faExternalLink } from "@fortawesome/free-solid-svg-icons";
+import { getTelegramWebApp } from "@/shared/api/client";
 import {
   fetchPublicUserProfileByUsername,
   type UserProfileResponse,
   type UserStatisticsResponse,
+  trackProfileView,
 } from "@/shared/api/users";
 import { fetchUserListingsPaginated, type UserListingItem } from "@/shared/api/user-listings";
 import {
@@ -86,6 +88,17 @@ export default function PublicUserProfilePage() {
     void load();
     return () => { cancelled = true; };
   }, [idFromUrl]);
+
+  useEffect(() => {
+    if (!profile?.telegramId) return;
+    const telegram = getTelegramWebApp();
+    const viewer = telegram?.initDataUnsafe?.user;
+    const viewerId =
+      viewer != null && "id" in viewer ? (viewer as { id: number }).id : undefined;
+    if (!viewerId) return;
+    if (String(viewerId) === String(profile.telegramId)) return;
+    void trackProfileView(profile.telegramId, viewerId);
+  }, [profile?.telegramId]);
 
   const profileUsername = profile?.username ?? idFromUrl;
   const cleanedUsername =

@@ -810,6 +810,11 @@ export class AppService {
       `UPDATE users SET "phoneNumber" = $1 WHERE "telegramId" = $2`,
       [phone, normalized],
     );
+    await this.createSupportRequest({
+      telegramId: normalized,
+      username: user.username ?? null,
+      message: `Заявка на верификацию телефона. Телефон: ${phone}`,
+    });
     return { ok: true };
   }
 
@@ -1041,10 +1046,11 @@ export class AppService {
       formData: unknown;
       createdAt: Date | string;
       expiresAt?: Date | string | null;
+      processedAt?: Date | string | null;
     };
 
     const rows: Row[] = await this.moderationRequestsRepository.manager.query(
-      `SELECT id, status, section, "formData", "createdAt", "expiresAt"
+      `SELECT id, status, section, "formData", "createdAt", "expiresAt", "processedAt"
        FROM moderation_requests
        WHERE "telegramId" = $1::bigint
        ORDER BY "createdAt" DESC
@@ -1068,6 +1074,17 @@ export class AppService {
       if (status === 'approved' && expiresAt != null && now > expiresAt) {
         status = 'completed';
       }
+      const createdIso = toIso(r.createdAt) || new Date().toISOString();
+      const moderationDeadline =
+        status === 'pending'
+          ? new Date(
+              new Date(createdIso).getTime() + 24 * 3600 * 1000,
+            ).toISOString()
+          : undefined;
+      const rejectedAt =
+        status === 'rejected' && r.processedAt != null
+          ? toIso(r.processedAt)
+          : undefined;
       return {
         id: r.id,
         status,
@@ -1076,8 +1093,10 @@ export class AppService {
           typeof r.formData === 'object' && r.formData !== null
             ? r.formData
             : {},
-        createdAt: toIso(r.createdAt) || new Date().toISOString(),
+        createdAt: createdIso,
         ...(r.expiresAt != null && { expiresAt: toIso(r.expiresAt) }),
+        ...(moderationDeadline && { moderationDeadline }),
+        ...(rejectedAt && { rejectedAt }),
       };
     });
     const nextCursor = hasMore ? String(offset + limitNum) : null;

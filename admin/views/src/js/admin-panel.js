@@ -121,6 +121,7 @@ const saveGuarantBtn = document.getElementById("saveGuarantBtn");
 
 const adminUsersSearchInput = document.getElementById("adminUsersSearchInput");
 const adminUsersSearchBtn = document.getElementById("adminUsersSearchBtn");
+const adminUsersRefreshBtn = document.getElementById("adminUsersRefreshBtn");
 const adminUsersTableWrap = document.getElementById("adminUsersTableWrap");
 const adminUserDetailsWrap = document.getElementById("adminUserDetailsWrap");
 
@@ -1719,7 +1720,21 @@ async function approveModerationRequest() {
   const result = document.getElementById("moderationActionResult");
   if (result) result.textContent = "Заявка принята и опубликована.";
   await loadModerationRequests();
-  await openModerationRequest(selectedModerationRequestId);
+  const status = moderationStatusFilter?.value || "pending";
+  if (status === "pending") {
+    selectedModerationRequestId = null;
+    moderationRequestDetailsWrap.innerHTML =
+      '<p class="muted" style="margin:0;">Выберите заявку в таблице выше.</p>';
+  } else {
+    const stillExists = moderationRequests.some((x) => x.id === selectedModerationRequestId);
+    if (stillExists) {
+      await openModerationRequest(selectedModerationRequestId);
+    } else {
+      selectedModerationRequestId = null;
+      moderationRequestDetailsWrap.innerHTML =
+        '<p class="muted" style="margin:0;">Выберите заявку в таблице выше.</p>';
+    }
+  }
 }
 
 async function loadModerators() {
@@ -2067,15 +2082,28 @@ function renderCurrenciesTable() {
 }
 
 document.addEventListener("input", (e) => {
-  const el = e.target.closest("[data-extra-input]");
-  if (!el) return;
-  const kind = el.dataset.extraInput;
-  const i = parseInt(el.dataset.extraIndex, 10);
-  if (Number.isNaN(i) || i < 0) return;
-  if (kind === "jobType-value" && exchangeOptions.jobTypes[i]) exchangeOptions.jobTypes[i].value = el.value || "";
-  if (kind === "jobType-label" && exchangeOptions.jobTypes[i]) exchangeOptions.jobTypes[i].label = el.value || "";
-  if (kind === "currency-value" && exchangeOptions.currencies[i]) exchangeOptions.currencies[i].value = el.value || "";
-  if (kind === "currency-label" && exchangeOptions.currencies[i]) exchangeOptions.currencies[i].label = el.value || "";
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+
+  const extraEl = target.closest("[data-extra-input]");
+  if (extraEl) {
+    const kind = extraEl.dataset.extraInput;
+    const i = parseInt(extraEl.dataset.extraIndex || "", 10);
+    if (!Number.isNaN(i) && i >= 0) {
+      if (kind === "jobType-value" && exchangeOptions.jobTypes[i]) exchangeOptions.jobTypes[i].value = extraEl.value || "";
+      if (kind === "jobType-label" && exchangeOptions.jobTypes[i]) exchangeOptions.jobTypes[i].label = extraEl.value || "";
+      if (kind === "currency-value" && exchangeOptions.currencies[i]) exchangeOptions.currencies[i].value = extraEl.value || "";
+      if (kind === "currency-label" && exchangeOptions.currencies[i]) exchangeOptions.currencies[i].label = extraEl.value || "";
+    }
+  }
+
+  if (target.matches && target.matches("input[data-banner-link]")) {
+    const id = target.getAttribute("data-banner-id");
+    const banner = (bannersConfig.banners || []).find((b) => String(b.id) === String(id));
+    if (banner) {
+      banner.linkUrl = (target.value || "").trim() || undefined;
+    }
+  }
 });
 
 async function saveExchangeOptions() {
@@ -2164,15 +2192,6 @@ document.addEventListener("click", async (e) => {
     if (bannerActionBtn.dataset.bannerAction === "up") bannerMoveUp(index);
     else if (bannerActionBtn.dataset.bannerAction === "down") bannerMoveDown(index);
     else if (bannerActionBtn.dataset.bannerAction === "delete") bannerDelete(index);
-  }
-  const bannerLinkInput = e.target.closest && e.target.matches("input[data-banner-link]") ? e.target : null;
-  if (bannerLinkInput && e.type === "change") {
-    const id = bannerLinkInput.getAttribute("data-banner-id");
-    const banner = (bannersConfig.banners || []).find((b) => String(b.id) === String(id));
-    if (banner) {
-      banner.linkUrl = (bannerLinkInput.value || "").trim() || undefined;
-      saveBannersConfig();
-    }
   }
 
   const userSelectBtn = e.target.closest("[data-user-select-id]");
@@ -2314,6 +2333,9 @@ userSearchInput.addEventListener("keydown", (e) => {
 refreshKpiBtn.addEventListener("click", loadDashboard);
 saveMainPageBtn.addEventListener("click", saveMainPageConfig);
 document.getElementById("bannerUploadBtn")?.addEventListener("click", () => uploadBanner().catch((err) => notify("Ошибка загрузки: " + (err.message || err))));
+document.getElementById("saveBannersConfigBtn")?.addEventListener("click", () => {
+  saveBannersConfig().catch((err) => notify("Ошибка сохранения баннеров: " + (err && err.message ? err.message : err)));
+});
 addHotOfferBtn.addEventListener("click", () => {
   editingHotOfferIndex = null;
   openHotOfferModal(null);
@@ -2338,6 +2360,7 @@ adminUsersSearchBtn?.addEventListener("click", loadAdminUsers);
 adminUsersSearchInput?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") loadAdminUsers();
 });
+adminUsersRefreshBtn?.addEventListener("click", loadAdminUsers);
 ratingUsersRefreshBtn?.addEventListener("click", loadRatingUsers);
 ratingUsersSearchInput?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") loadRatingUsers();

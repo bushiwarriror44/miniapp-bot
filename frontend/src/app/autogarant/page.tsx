@@ -1,9 +1,7 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faShieldHalved, faCoins, faChartColumn } from "@fortawesome/free-solid-svg-icons";
+import { faShieldHalved, faCoins } from "@fortawesome/free-solid-svg-icons";
 import { fetchGuarantConfig, type GuarantConfig } from "@/shared/api/guarant-config";
+import { getContentApiBase } from "@/shared/api/dataSource";
 
 function AutogarantSkeleton() {
   return (
@@ -46,30 +44,30 @@ function AutogarantSkeleton() {
   );
 }
 
-export default function AutogarantPage() {
-  const [config, setConfig] = useState<GuarantConfig | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+export default async function AutogarantPage() {
+  let config: GuarantConfig | null = null;
+  let loadError: string | null = null;
 
-  useEffect(() => {
-    fetchGuarantConfig()
-      .then((data) => {
-        setConfig(data);
-        setLoadError(null);
-      })
-      .catch((error) => {
-        console.error("[ui] Failed to load guarantConfig", error);
-        setLoadError(error instanceof Error ? error.message : "Ошибка загрузки guarantConfig");
-      });
-  }, []);
+  try {
+    config = await fetchGuarantConfig();
+  } catch (error) {
+    console.error("[ui] Failed to load guarantConfig", error);
+    loadError =
+      error instanceof Error ? error.message : "Ошибка загрузки guarantConfig";
+  }
 
-  const loading = config === null && !loadError;
   const tgUsername = (config?.guarantor?.username || "").replace(/^@/, "");
   const tgDisplayName = config?.guarantor?.displayName || "";
   const tgProfileLink = config?.guarantor?.profileLink || "#";
-  const tgAvatarUrl = useMemo(
-    () => (tgUsername ? `https://t.me/i/userpic/320/${tgUsername}.jpg` : ""),
-    [tgUsername],
-  );
+
+  const contentApiBase = getContentApiBase();
+  const tgAvatarUrl =
+    tgUsername && contentApiBase
+      ? `${contentApiBase}/public/guarantor-avatar/${encodeURIComponent(
+          tgUsername,
+        )}`
+      : "";
+
   const commissionTiers = config?.commissionTiers || [];
 
   return (
@@ -80,13 +78,13 @@ export default function AutogarantPage() {
 			<p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>
 				Защита сделок и гарант исполнения.
 			</p>
-      {loadError && (
+      {loadError && !config && (
         <p className="text-xs mb-6" style={{ color: "#ef4444" }}>
           Ошибка загрузки: {loadError}
         </p>
       )}
 
-      {loading ? (
+      {!config ? (
         <AutogarantSkeleton />
       ) : (
         <>
@@ -180,50 +178,6 @@ export default function AutogarantPage() {
             Условия не загружены.
           </p>
         )}
-			</section>
-
-			<section
-				className="rounded-xl p-4"
-				style={{
-					backgroundColor: 'var(--color-bg-elevated)',
-					border: '1px solid var(--color-border)',
-				}}>
-				<h2
-					className="font-semibold mb-4 flex items-center gap-2"
-					style={{ color: 'var(--color-text)' }}>
-					<FontAwesomeIcon
-						icon={faChartColumn}
-						className="w-4 h-4 shrink-0"
-						style={{ color: 'var(--color-accent)' }}
-					/>
-					Наша статистика
-				</h2>
-				<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-					<div className="flex flex-col">
-						<span className="text-xl font-bold mb-1" style={{ color: 'var(--color-accent)' }}>
-							2023
-						</span>
-						<span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-							гарантируем сделки уже на протяжении длительного времени
-						</span>
-					</div>
-					<div className="flex flex-col">
-						<span className="text-xl font-bold mb-1" style={{ color: 'var(--color-accent)' }}>
-							50+ сделок
-						</span>
-						<span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-							количество сделок, которое было проведено через гаранта
-						</span>
-					</div>
-					<div className="flex flex-col">
-						<span className="text-xl font-bold mb-1" style={{ color: 'var(--color-accent)' }}>
-							10 000 USD
-						</span>
-						<span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-							максимальная сумма сделки, которая проходила через нашу площадку
-						</span>
-					</div>
-				</div>
 			</section>
         </>
       )}

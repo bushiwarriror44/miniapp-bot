@@ -49,7 +49,11 @@ export default function VerifiedBadge() {
     <span
       role="img"
       aria-label="Верифицирован"
-      className="relative inline-flex shrink-0 w-7 h-7 items-center justify-center"
+      className="relative inline-flex shrink-0 w-5 h-5 items-center justify-center"
+      style={{
+        backgroundColor: "var(--color-accent)",
+        borderRadius: "9999px",
+      }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
@@ -57,7 +61,7 @@ export default function VerifiedBadge() {
       <img
         src={svgSrc(verifiedIcon)}
         alt=""
-        className="w-5 h-5 shrink-0"
+        className="w-3.5 h-3.5 shrink-0"
         aria-hidden
       />
       {showTooltip && (

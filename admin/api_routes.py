@@ -1,8 +1,11 @@
 import json
 import os
 from datetime import datetime, timezone
+import time
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from flask import Blueprint, jsonify, request
+import requests
+from flask import Blueprint, jsonify, request, Response
 
 from models import DATASET_FILES, DEFAULT_DATASETS, Dataset, db
 
@@ -29,6 +32,29 @@ DATASET_TO_SECTION = {
     "buyChannels": "buy-channel",
     "other": "other",
 }
+
+_GUARANTOR_AVATAR_CACHE: Dict[str, Dict[str, Any]] = {}
+_GUARANTOR_AVATAR_TTL_SECONDS = 3600
+
+
+def _get_cached_guarantor_avatar(username_key: str):
+    entry = _GUARANTOR_AVATAR_CACHE.get(username_key)
+    if not entry:
+        return None
+    ts = entry.get("ts")
+    if not isinstance(ts, (int, float)):
+        return None
+    if time.time() - ts > _GUARANTOR_AVATAR_TTL_SECONDS:
+        return None
+    return entry
+
+
+def _set_cached_guarantor_avatar(username_key: str, content: bytes, mimetype: str):
+    _GUARANTOR_AVATAR_CACHE[username_key] = {
+        "content": content,
+        "mimetype": mimetype,
+        "ts": time.time(),
+    }
 
 
 def _get_list_from_payload(payload, dataset_name):
@@ -210,9 +236,112 @@ def _sort_exchange_items(dataset_name, items):
     return sorted(items, key=key_func, reverse=True)
 
 
+def _extract_username_from_item(it: Dict[str, Any]) -> str:
+    username = str(it.get("username") or "").strip()
+    if username.startswith("@"):
+        username = username[1:]
+    if username:
+        return username
+    link = str(it.get("usernameLink") or "").strip()
+    if link and "t.me/" in link:
+        tail = link.rstrip("/").split("t.me/")[-1]
+        username = tail.split("/")[0].split("?")[0].strip()
+    return username.lstrip("@")
+
+
+def _get_verified_from_backend(username: str) -> Optional[bool]:
+    username_clean = (username or "").strip().lstrip("@")
+    if not username_clean:
+        return None
+    base_url = os.getenv("BACKEND_API_URL", "http://127.0.0.1:3001").rstrip("/")
+    url = f"{base_url}/users/by-username?username={username_clean}"
+    headers = {"User-Agent": "TeleDoska-ContentAPI/1.0"}
+    admin_key = os.getenv("BACKEND_ADMIN_API_KEY") or os.getenv("ADMIN_API_KEY") or ""
+    if admin_key:
+        headers["X-Admin-Key"] = admin_key
+    try:
+        resp = requests.get(url, headers=headers, timeout=3)
+    except requests.RequestException:
+        return None
+    if not resp.ok:
+        return None
+    try:
+        data = resp.json()
+    except ValueError:
+        return None
+    profile = data.get("profile") or {}
+    if not isinstance(profile, dict):
+        return None
+    if "verified" not in profile:
+        return None
+    return bool(profile.get("verified"))
+
+
+def _refresh_verified_from_backend(dataset_name: str, items: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if dataset_name not in ("ads", "buyAds", "other", "services", "currency", "sellChannels", "buyChannels"):
+        return list(items)
+    username_cache: Dict[str, Optional[bool]] = {}
+    result: List[Dict[str, Any]] = []
+    for raw in items:
+        if not isinstance(raw, dict):
+            result.append(raw)
+            continue
+        it = dict(raw)
+        username = _extract_username_from_item(it).lower()
+        if username:
+            if username not in username_cache:
+                username_cache[username] = _get_verified_from_backend(username)
+            verified = username_cache[username]
+            if verified is not None:
+                it["verified"] = bool(verified)
+        result.append(it)
+    return result
+
+
 @api_bp.route('/health', methods=['GET'])
 def healthcheck():
     return jsonify({'ok': True})
+
+
+@api_bp.route('/public/guarantor-avatar/<username>', methods=['GET'])
+def guarantor_avatar(username):
+    username_clean = (username or "").strip().lstrip("@")
+    if not username_clean:
+        return jsonify({"error": "username is required"}), 400
+
+    key = username_clean.lower()
+    cached = _get_cached_guarantor_avatar(key)
+    if cached:
+        content = cached.get("content")
+        mimetype = cached.get("mimetype") or "image/jpeg"
+        if isinstance(content, (bytes, bytearray)):
+            return Response(
+                content,
+                mimetype=str(mimetype),
+                headers={"Cache-Control": f"public, max-age={_GUARANTOR_AVATAR_TTL_SECONDS}"},
+            )
+
+    tg_url = f"https://t.me/i/userpic/320/{username_clean}.jpg"
+    try:
+        resp = requests.get(tg_url, timeout=3)
+    except requests.RequestException:
+        return jsonify({"error": "avatar_unavailable"}), 404
+
+    if not resp.ok:
+        return jsonify({"error": "avatar_unavailable"}), 404
+
+    content_type = resp.headers.get("Content-Type", "")
+    if not content_type.startswith("image/"):
+        return jsonify({"error": "avatar_unavailable"}), 404
+
+    content_bytes = resp.content
+    _set_cached_guarantor_avatar(key, content_bytes, content_type)
+
+    return Response(
+        content_bytes,
+        mimetype=content_type,
+        headers={"Cache-Control": f"public, max-age={_GUARANTOR_AVATAR_TTL_SECONDS}"},
+    )
 
 
 @api_bp.route('/datasets', methods=['GET'])
@@ -252,6 +381,7 @@ def get_dataset(dataset_name):
     if use_pagination:
         raw_list = _get_list_from_payload(payload, dataset_name)
         filtered = _filter_exchange_items(dataset_name, raw_list, request.args)
+        filtered = _refresh_verified_from_backend(dataset_name, filtered)
         filtered = _sort_exchange_items(dataset_name, filtered)
         try:
             offset = int(request.args.get('cursor') or 0)
@@ -293,7 +423,9 @@ def get_dataset_item(dataset_name, item_id):
     item_id_str = str(item_id).strip()
     for it in raw_list:
         if isinstance(it, dict) and str(it.get("id", "")).strip() == item_id_str:
-            return jsonify({'item': it, 'name': dataset_name})
+            items_with_single = _refresh_verified_from_backend(dataset_name, [it])
+            item_out = items_with_single[0] if items_with_single else it
+            return jsonify({'item': item_out, 'name': dataset_name})
     return jsonify({'error': 'Item not found'}), 404
 
 

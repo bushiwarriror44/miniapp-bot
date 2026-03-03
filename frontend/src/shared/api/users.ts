@@ -77,6 +77,8 @@ export type MyPublicationItem = {
   formData: Record<string, unknown>;
   createdAt: string;
   expiresAt?: string;
+  moderationDeadline?: string;
+  rejectedAt?: string;
 };
 
 export async function fetchUserProfile(telegramId: string | number): Promise<UserProfileResponse | null> {
@@ -294,10 +296,45 @@ export async function fetchPublicUserStatisticsById(
   if (!trimmed) {
     throw new Error("id is required");
   }
-  const res = await fetch(`${API_BASE}/users/${encodeURIComponent(trimmed)}/statistics`);
+  const res = await fetch(
+    `${API_BASE}/users/${encodeURIComponent(trimmed)}/statistics`,
+  );
   if (!res.ok) {
-    throw new Error(`Failed to load public statistics by id: ${res.status} ${res.statusText}`);
+    throw new Error(
+      `Failed to load public statistics by id: ${res.status} ${res.statusText}`,
+    );
   }
   const data = await res.json();
   return data.statistics ?? null;
+}
+
+export async function trackProfileView(
+  profileTelegramId: string | number,
+  viewerTelegramId?: string | number,
+): Promise<void> {
+  const url = `${API_BASE}/users/${encodeURIComponent(
+    String(profileTelegramId),
+  )}/profile-view`;
+  const body =
+    viewerTelegramId !== undefined && viewerTelegramId !== null
+      ? { viewerTelegramId }
+      : {};
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[API] Failed to track profile view:",
+        res.status,
+        res.statusText,
+      );
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[API] Error while tracking profile view:", err);
+  }
 }

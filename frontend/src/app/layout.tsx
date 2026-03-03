@@ -34,6 +34,12 @@ export default function RootLayout({
 			suppressHydrationWarning
 			data-theme="dark"
 			className={`${GeistSans.variable} ${GeistMono.variable}`}>
+			<head>
+				<meta
+					name="viewport"
+					content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+				/>
+			</head>
 			<body
 				className="min-h-screen antialiased font-sans"
 				style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import logoImg from "@/app/assets/logo.png";
+import logoIcon from "@/app/assets/logo.svg";
 
 const MIN_LOADING_MS = 400;
 
@@ -22,7 +22,7 @@ export function AppLoader() {
       style={{ backgroundColor: "var(--color-bg)" }}
     >
       <Image
-        src={logoImg}
+        src={logoIcon}
         alt="TeleDoska"
         width={120}
         height={120}

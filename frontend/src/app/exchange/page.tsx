@@ -124,7 +124,6 @@ function ExchangePageContent() {
       setShowSubmitModal(false);
       setShowSuccessNotice(true);
       setFormData({});
-      setTimeout(() => setShowSuccessNotice(false), 6000);
     } catch (error) {
       console.error("Failed to submit moderation request:", error);
       setSubmitError(error instanceof Error ? error.message : String(error));
@@ -154,13 +153,27 @@ function ExchangePageContent() {
 
       {showSuccessNotice && (
         <div
-          className="fixed left-4 right-4 bottom-6 z-100 rounded-xl p-4 shadow-lg animate-fade-in"
-          style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
-          role="alert"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+          onClick={(e) => e.target === e.currentTarget && setShowSuccessNotice(false)}
         >
-          <p className="text-sm" style={{ color: "var(--color-text)" }}>
-            Ваша заявка направлена модераторам проекта, подождите, если все в порядке, то мы скоро ее опубликуем.
-          </p>
+          <div
+            className="w-full max-w-md rounded-xl p-4"
+            style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm mb-4" style={{ color: "var(--color-text)" }}>
+              Ваша заявка направлена модераторам проекта. Если всё в порядке, мы скоро её опубликуем.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowSuccessNotice(false)}
+              className="w-full rounded-xl py-2.5 text-sm font-medium"
+              style={{ backgroundColor: "var(--color-accent)", color: "white" }}
+            >
+              Понятно
+            </button>
+          </div>
         </div>
       )}
 
