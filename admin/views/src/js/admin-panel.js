@@ -64,6 +64,7 @@ const hotOfferModalTitle = document.getElementById("hotOfferModalTitle");
 const hotOfferTitleInput = document.getElementById("hotOfferTitleInput");
 const hotOfferPriceInput = document.getElementById("hotOfferPriceInput");
 const hotOfferSubtitleInput = document.getElementById("hotOfferSubtitleInput");
+const hotOfferLinkInput = document.getElementById("hotOfferLinkInput");
 const hotOfferCancelBtn = document.getElementById("hotOfferCancelBtn");
 const hotOfferSaveBtn = document.getElementById("hotOfferSaveBtn");
 
@@ -606,6 +607,7 @@ function openHotOfferModal(offer) {
   hotOfferTitleInput.value = offer?.title || "";
   hotOfferPriceInput.value = offer?.price || "";
   hotOfferSubtitleInput.value = offer?.subtitle || "";
+  if (hotOfferLinkInput) hotOfferLinkInput.value = offer?.linkUrl || "";
   openDialogSafe(hotOfferModal);
 }
 
@@ -613,6 +615,7 @@ function saveHotOfferFromModal() {
   const title = hotOfferTitleInput.value.trim();
   const price = hotOfferPriceInput.value.trim();
   const subtitle = hotOfferSubtitleInput.value.trim();
+  const linkUrl = hotOfferLinkInput ? hotOfferLinkInput.value.trim() : "";
   if (!title || !price) {
     alert("Заполните минимум заголовок и цену");
     return;
@@ -626,6 +629,9 @@ function saveHotOfferFromModal() {
     price,
     subtitle,
   };
+  if (linkUrl) {
+    record.linkUrl = linkUrl;
+  }
   if (existing?.type === "ad") {
     record.type = "ad";
     record.category = existing.category;
@@ -638,6 +644,7 @@ function saveHotOfferFromModal() {
   mainPageConfig.hotOffers = { offers };
   closeDialogSafe(hotOfferModal);
   editingHotOfferIndex = null;
+  if (hotOfferLinkInput) hotOfferLinkInput.value = "";
   renderHotOffersTable();
 }
 

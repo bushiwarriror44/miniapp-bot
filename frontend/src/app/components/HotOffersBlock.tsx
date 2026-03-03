@@ -45,6 +45,12 @@ function OfferSlideSkeleton() {
   );
 }
 
+function isInternalHref(href: string): boolean {
+  const v = (href || "").trim();
+  if (!v) return false;
+  return v.startsWith("/") || v.startsWith("?");
+}
+
 export function HotOffersBlock() {
   const [offers, setOffers] = useState<HotOffer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +89,7 @@ export function HotOffersBlock() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [logger]);
 
   if (!loading && offers.length === 0 && !loadError) return null;
 
@@ -127,16 +133,41 @@ export function HotOffersBlock() {
               >
                 {offers.map((offer) => (
                   <div key={offer.id} className="shrink-0" style={{ width: `${100 / offers.length}%` }}>
-                    {offer.type === "ad" && offer.category && offer.itemId ? (
-                      <Link
-                        href={`/exchange?section=${encodeURIComponent(offer.category)}&openItem=${encodeURIComponent(offer.itemId)}`}
-                        style={{ display: "block", height: "100%", textDecoration: "none", color: "inherit" }}
-                      >
-                        <OfferSlide offer={offer} />
-                      </Link>
-                    ) : (
-                      <OfferSlide offer={offer} />
-                    )}
+                    {(() => {
+                      const card = <OfferSlide offer={offer} />;
+                      if (offer.type === "ad" && offer.category && offer.itemId) {
+                        return (
+                          <Link
+                            href={`/exchange?section=${encodeURIComponent(offer.category)}&openItem=${encodeURIComponent(offer.itemId)}`}
+                            style={{ display: "block", height: "100%", textDecoration: "none", color: "inherit" }}
+                          >
+                            {card}
+                          </Link>
+                        );
+                      }
+                      const linkUrl = (offer.linkUrl || "").trim();
+                      if (!linkUrl) return card;
+                      if (isInternalHref(linkUrl)) {
+                        return (
+                          <Link
+                            href={linkUrl}
+                            style={{ display: "block", height: "100%", textDecoration: "none", color: "inherit" }}
+                          >
+                            {card}
+                          </Link>
+                        );
+                      }
+                      return (
+                        <a
+                          href={linkUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ display: "block", height: "100%", textDecoration: "none", color: "inherit" }}
+                        >
+                          {card}
+                        </a>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

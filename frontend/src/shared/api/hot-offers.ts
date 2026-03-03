@@ -8,6 +8,7 @@ export type HotOffer = {
   type?: "ad";
   category?: string;
   itemId?: string;
+  linkUrl?: string;
 };
 
 export type HotOffersResponse = {
