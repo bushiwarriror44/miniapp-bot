@@ -29,7 +29,6 @@ export function TelegramWebAppSetup() {
     // Дополнительная блокировка масштабирования на iOS внутри Telegram WebApp
     const isIOS =
       /iPad|iPhone|iPod/i.test(window.navigator.userAgent) &&
-      // @ts-expect-error: msStream существует только в старых IE/Edge
       !(window as any).MSStream;
 
     let lastTouchEnd = 0;
