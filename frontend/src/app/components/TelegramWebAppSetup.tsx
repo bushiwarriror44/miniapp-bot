@@ -39,7 +39,8 @@ export function TelegramWebAppSetup() {
       };
 
       const handleTouchMove = (event: TouchEvent) => {
-        if (event.scale && event.scale !== 1) {
+        // Блокируем масштабирование при мультитач-жестах (pinch)
+        if (event.touches.length > 1) {
           event.preventDefault();
         }
       };
