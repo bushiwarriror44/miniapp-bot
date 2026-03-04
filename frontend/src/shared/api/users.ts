@@ -79,6 +79,7 @@ export type MyPublicationItem = {
   expiresAt?: string;
   moderationDeadline?: string;
   rejectedAt?: string;
+  adminNote?: string | null;
 };
 
 export async function fetchUserProfile(telegramId: string | number): Promise<UserProfileResponse | null> {

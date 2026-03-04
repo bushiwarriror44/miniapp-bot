@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, MoreThanOrEqual, Repository } from 'typeorm';
 import { DealEntity } from './entities/deal.entity';
@@ -14,6 +14,8 @@ import { UserActivityEntity } from './entities/user-activity.entity';
 import { UserAdLinkEntity } from './entities/user-ad-link.entity';
 import { UserLabelEntity } from './entities/user-label.entity';
 import { UserUserLabelEntity } from './entities/user-user-label.entity';
+import * as http from 'http';
+import * as https from 'https';
 
 type TrackUserPayload = {
   telegramId: string | number;
@@ -85,6 +87,8 @@ const ALLOWED_MODERATION_SECTIONS: ModerationSection[] = [
 
 @Injectable()
 export class AppService {
+  private readonly logger = new Logger(AppService.name);
+
   constructor(
     @InjectRepository(UserEntity)
     private readonly usersRepository: Repository<UserEntity>,
@@ -1003,11 +1007,27 @@ export class AppService {
     }
 
     const user = await this.usersRepository.findOne({ where: { telegramId } });
+    const formData: Record<string, unknown> = { ...payload.formData };
+
+    if (user?.username) {
+      const normalizedUsername = String(user.username || '')
+        .replace(/^@/, '')
+        .trim();
+      if (normalizedUsername) {
+        if (Object.prototype.hasOwnProperty.call(formData, 'username')) {
+          formData.username = normalizedUsername;
+        }
+        if (Object.prototype.hasOwnProperty.call(formData, 'usernameLink')) {
+          formData.usernameLink = `https://t.me/${normalizedUsername}`;
+        }
+      }
+    }
+
     const entity = this.moderationRequestsRepository.create({
       telegramId,
       userId: user?.id ?? null,
       section: payload.section,
-      formData: payload.formData,
+      formData,
       status: 'pending',
       adminNote: null,
       publishedItemId: null,
@@ -1047,10 +1067,11 @@ export class AppService {
       createdAt: Date | string;
       expiresAt?: Date | string | null;
       processedAt?: Date | string | null;
+      adminNote?: string | null;
     };
 
     const rows: Row[] = await this.moderationRequestsRepository.manager.query(
-      `SELECT id, status, section, "formData", "createdAt", "expiresAt", "processedAt"
+      `SELECT id, status, section, "formData", "createdAt", "expiresAt", "processedAt", "adminNote"
        FROM moderation_requests
        WHERE "telegramId" = $1::bigint
        ORDER BY "createdAt" DESC
@@ -1097,6 +1118,10 @@ export class AppService {
         ...(r.expiresAt != null && { expiresAt: toIso(r.expiresAt) }),
         ...(moderationDeadline && { moderationDeadline }),
         ...(rejectedAt && { rejectedAt }),
+        ...(r.adminNote != null &&
+          r.adminNote !== '' && {
+            adminNote: r.adminNote,
+          }),
       };
     });
     const nextCursor = hasMore ? String(offset + limitNum) : null;
@@ -1191,7 +1216,9 @@ export class AppService {
     if (entity.telegramId !== normalized) return null;
     if (entity.status !== 'approved') return null;
     entity.status = 'completed';
-    return this.moderationRequestsRepository.save(entity);
+    const saved = await this.moderationRequestsRepository.save(entity);
+    await this.hideExchangeListingForModeration(saved);
+    return saved;
   }
 
   async completeModerationRequestByAdmin(id: string) {
@@ -1201,7 +1228,9 @@ export class AppService {
     if (!entity) return null;
     if (entity.status !== 'approved') return null;
     entity.status = 'completed';
-    return this.moderationRequestsRepository.save(entity);
+    const saved = await this.moderationRequestsRepository.save(entity);
+    await this.hideExchangeListingForModeration(saved);
+    return saved;
   }
 
   async createSupportRequest(payload: {
@@ -1237,6 +1266,95 @@ export class AppService {
       order: { createdAt: 'DESC' },
       take: 500,
     });
+  }
+
+  private async hideExchangeListingForModeration(
+    entity: ModerationRequestEntity,
+  ): Promise<void> {
+    try {
+      const section = (entity.section || '').trim();
+      const itemId = (entity.publishedItemId || '').trim();
+      if (!section || !itemId) {
+        return;
+      }
+
+      const rawBase = (process.env.CONTENT_API_URL || '').trim();
+      if (!rawBase) {
+        this.logger.warn(
+          `CONTENT_API_URL is not configured; skip hiding listing for moderation id=${entity.id}`,
+        );
+        return;
+      }
+      const base =
+        rawBase.endsWith('/') && rawBase !== '/'
+          ? rawBase.slice(0, -1)
+          : rawBase;
+      const url = `${base}/exchange/hide-item`;
+
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch {
+        this.logger.warn(
+          `Invalid CONTENT_API_URL or path when building hide endpoint: "${url}"`,
+        );
+        return;
+      }
+
+      const payload = JSON.stringify({ section, itemId });
+      const isHttps = parsed.protocol === 'https:';
+      const port =
+        parsed.port !== '' ? Number(parsed.port) : isHttps ? 443 : 80;
+
+      const adminToken =
+        (process.env.CONTENT_API_ADMIN_TOKEN || '').trim() ||
+        (process.env.ADMIN_API_KEY || '').trim();
+
+      const options: https.RequestOptions = {
+        method: 'POST',
+        hostname: parsed.hostname,
+        port,
+        path: parsed.pathname + parsed.search,
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload),
+        },
+      };
+
+      if (adminToken) {
+        (options.headers as Record<string, string>)['X-Admin-Token'] =
+          adminToken;
+      }
+
+      await new Promise<void>((resolve) => {
+        const client = isHttps ? https : http;
+        const req = client.request(options, (res) => {
+          if (res.statusCode && res.statusCode >= 400) {
+            this.logger.warn(
+              `hideExchangeListingForModeration failed for moderationRequest=${entity.id}, status=${res.statusCode}`,
+            );
+          }
+          res.on('data', () => {});
+          res.on('end', () => resolve());
+        });
+        req.on('error', (err) => {
+          this.logger.warn(
+            `hideExchangeListingForModeration error for moderationRequest=${entity.id}: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+          resolve();
+        });
+        req.write(payload);
+        req.end();
+      });
+    } catch (err) {
+      this.logger.warn(
+        `hideExchangeListingForModeration unexpected error for moderationRequest=${entity.id}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   private getDefaultColorForLabelName(name: string): string {

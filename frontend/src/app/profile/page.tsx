@@ -7,7 +7,7 @@ import { useTheme } from "@/shared/theme/ThemeContext";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { submitSupportRequest } from "@/shared/api/support";
 import { fetchUserProfile, type UserProfileResponse } from "@/shared/api/users";
-import { getInitialTelegramProfile } from "./utils";
+import { getInitialTelegramProfile, normalizePhoneNumber, requestTelegramPhoneWithFallback } from "./utils";
 import {
   ProfileHeader,
   ProfileVerifiedBlock,
@@ -47,27 +47,22 @@ export default function ProfilePage() {
 
   const handleVerifyConsentConfirm = async () => {
     setShowVerifyConsent(false);
-    const telegram = getTelegramWebApp();
-    const requestContact = telegram?.requestContact;
-    if (typeof requestContact === "function") {
-      try {
-        const result = await requestContact();
-        const phone = result?.contact?.phone_number?.trim();
-        if (phone && tgUserId && tgUserId !== "-") {
-          await submitVerifyPhone(tgUserId, phone);
-          showNotice(
-            "Номер телефона передан для верификации. Модераторы свяжутся с вами при необходимости."
-          );
-          return;
-        }
-      } catch {
-      }
+    const phone = await requestTelegramPhoneWithFallback();
+    const normalized = normalizePhoneNumber(phone);
+
+    if (normalized && tgUserId && tgUserId !== "-") {
+      setVerifyPhone(normalized);
+      setShowVerifyModal(true);
+      return;
     }
-    setShowVerifyModal(true);
+
+    showNotice(
+      "Telegram не передал ваш номер телефона. Верификация доступна только для аккаунтов с раскрытым номером. Свяжитесь с поддержкой, если это ошибка.",
+    );
   };
 
   const handleVerifySubmit = async () => {
-    const phone = verifyPhone.trim();
+    const phone = normalizePhoneNumber(verifyPhone);
     if (!phone) return;
     if (!tgUserId || tgUserId === "-") {
       showNotice("Не удалось определить пользователя.");
@@ -78,7 +73,7 @@ export default function ProfilePage() {
       setShowVerifyModal(false);
       setVerifyPhone("");
       showNotice(
-        "Заявка на верификацию отправлена. Модераторы свяжутся с вами по указанному номеру телефона."
+        "Заявка на верификацию отправлена. Модераторы свяжутся с вами по вашему Telegram‑номеру телефона."
       );
     } catch (err) {
       showNotice(err instanceof Error ? err.message : "Не удалось отправить номер. Попробуйте позже.");
@@ -211,7 +206,6 @@ export default function ProfilePage() {
       <VerifyModal
         open={showVerifyModal}
         phone={verifyPhone}
-        onPhoneChange={setVerifyPhone}
         onClose={() => setShowVerifyModal(false)}
         onSubmit={handleVerifySubmit}
       />

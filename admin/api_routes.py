@@ -33,6 +33,10 @@ DATASET_TO_SECTION = {
     "other": "other",
 }
 
+SECTION_TO_DATASET = {
+    v: k for (k, v) in DATASET_TO_SECTION.items()
+}
+
 _GUARANTOR_AVATAR_CACHE: Dict[str, Dict[str, Any]] = {}
 _GUARANTOR_AVATAR_TTL_SECONDS = 3600
 
@@ -450,6 +454,7 @@ def get_user_listings(username):
             continue
         raw_list = _get_list_from_payload(payload, dataset_name)
         filtered = _filter_exchange_items(dataset_name, raw_list, args_username)
+        filtered = _refresh_verified_from_backend(dataset_name, filtered)
         for it in filtered:
             if isinstance(it, dict):
                 merged.append(_listing_snippet(dataset_name, it))
@@ -498,6 +503,87 @@ def upsert_dataset(dataset_name):
         'ok': True,
         'name': item.name,
         'updatedAt': item.updated_at.isoformat() if item.updated_at else None,
+    })
+
+
+@api_bp.route('/exchange/hide-item', methods=['POST'])
+def hide_exchange_item():
+    admin_token = os.getenv('ADMIN_API_TOKEN', '')
+    if admin_token:
+        incoming_token = request.headers.get('X-Admin-Token', '')
+        if incoming_token != admin_token:
+            return jsonify({'error': 'Forbidden'}), 403
+
+    body = request.get_json(silent=True) or {}
+    section = str(body.get('section') or '').strip()
+    item_id = str(body.get('itemId') or '').strip()
+
+    if not section:
+        return jsonify({'error': 'section is required'}), 400
+    if not item_id:
+        return jsonify({'error': 'itemId is required'}), 400
+
+    dataset_name = SECTION_TO_DATASET.get(section)
+    if not dataset_name or dataset_name not in EXCHANGE_DATASETS:
+        return jsonify({'error': f'Unsupported section "{section}"'}), 400
+
+    removed_from_dataset = False
+    removed_from_hot_offers = False
+
+    row = Dataset.query.filter_by(name=dataset_name).first()
+    if row:
+        try:
+            payload = json.loads(row.payload)
+        except json.JSONDecodeError:
+            return jsonify({'error': f'Dataset "{dataset_name}" has invalid JSON in DB'}), 500
+        raw_list = _get_list_from_payload(payload, dataset_name)
+        if isinstance(raw_list, list):
+            filtered = []
+            for it in raw_list:
+                if isinstance(it, dict):
+                    current_id = str(it.get('id', '')).strip()
+                    if current_id == item_id:
+                        removed_from_dataset = True
+                        continue
+                filtered.append(it)
+
+            if removed_from_dataset:
+                if isinstance(payload.get(dataset_name), list):
+                    payload[dataset_name] = filtered
+                elif isinstance(payload.get('items'), list):
+                    payload['items'] = filtered
+                row.payload = json.dumps(payload, ensure_ascii=False)
+                db.session.commit()
+
+    main_row = Dataset.query.filter_by(name='mainPage').first()
+    if main_row:
+        try:
+            main_payload = json.loads(main_row.payload)
+        except json.JSONDecodeError:
+            main_payload = {}
+        hot = main_payload.get('hotOffers')
+        if isinstance(hot, dict):
+            offers = hot.get('offers')
+            if isinstance(offers, list):
+                new_offers = []
+                for offer in offers:
+                    if isinstance(offer, dict) and offer.get('type') == 'ad':
+                        offer_category = str(offer.get('category') or '').strip()
+                        offer_item_id = str(offer.get('itemId') or '').strip()
+                        if offer_category == section and offer_item_id == item_id:
+                            removed_from_hot_offers = True
+                            continue
+                    new_offers.append(offer)
+                if removed_from_hot_offers:
+                    hot['offers'] = new_offers
+                    main_payload['hotOffers'] = hot
+                    main_row.payload = json.dumps(main_payload, ensure_ascii=False)
+                    db.session.commit()
+
+    return jsonify({
+        'ok': True,
+        'removedFromDataset': removed_from_dataset,
+        'removedFromHotOffers': removed_from_hot_offers,
     })
 
 

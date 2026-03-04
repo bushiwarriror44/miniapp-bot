@@ -47,6 +47,16 @@ EXCHANGE_CATEGORIES = [
     "buyChannels",
     "other",
 ]
+BACKEND_TO_FRONTEND_SECTION = {
+    "ads": "sell-ads",
+    "buyAds": "buy-ads",
+    "jobs": "jobs",
+    "services": "designers",
+    "currency": "currency",
+    "sellChannels": "sell-channel",
+    "buyChannels": "buy-channel",
+    "other": "other",
+}
 MODERATION_SECTION_TO_DATASET = {
     "buy-ads": "buyAds",
     "sell-ads": "ads",
@@ -539,6 +549,36 @@ def delete_item(category, item_id):
         return jsonify({"error": "Item not found"}), 404
 
     _save_dataset_items(row, list_key, filtered)
+
+    frontend_section = BACKEND_TO_FRONTEND_SECTION.get(category)
+    if frontend_section:
+        main_row = Dataset.query.filter_by(name="mainPage").first()
+        if main_row:
+            try:
+                main_payload = _dataset_payload(main_row)
+            except ValueError:
+                main_payload = {}
+            hot = main_payload.get("hotOffers")
+            if isinstance(hot, dict):
+                offers = hot.get("offers")
+                if isinstance(offers, list):
+                    item_id_str = str(item_id).strip()
+                    new_offers = []
+                    for offer in offers:
+                        if (
+                            isinstance(offer, dict)
+                            and offer.get("type") == "ad"
+                            and str(offer.get("category") or "").strip() == frontend_section
+                            and str(offer.get("itemId") or "").strip() == item_id_str
+                        ):
+                            continue
+                        new_offers.append(offer)
+                    if len(new_offers) != len(offers):
+                        hot["offers"] = new_offers
+                        main_payload["hotOffers"] = hot
+                        main_row.payload = json.dumps(main_payload, ensure_ascii=False)
+                        db.session.commit()
+
     return jsonify({"ok": True})
 
 

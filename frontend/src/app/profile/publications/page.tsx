@@ -145,6 +145,16 @@ function PublicationCard({
                 Отклонено: {formatPublicationDateTime(item.rejectedAt)}
               </p>
             )}
+            {item.adminNote && (
+              <div className="mt-1 rounded-lg px-2 py-1 text-[11px]" style={{ backgroundColor: "var(--color-surface)" }}>
+                <p className="m-0 mb-0.5 font-medium" style={{ color: "var(--color-text-muted)" }}>
+                  Комментарий администратора
+                </p>
+                <p className="m-0" style={{ color: "var(--color-text)" }}>
+                  {item.adminNote}
+                </p>
+              </div>
+            )}
           </div>
         )}
         {item.status === "completed" && (

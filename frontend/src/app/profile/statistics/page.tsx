@@ -109,7 +109,7 @@ export default function ProfileStatisticsPage() {
                 className="rounded-lg px-3 py-1.5"
                 style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
               >
-                скрытые: <strong>{stats.ads.hidden}</strong>
+                отменённые: <strong>{stats.ads.hidden}</strong>
               </span>
             </div>
           </div>

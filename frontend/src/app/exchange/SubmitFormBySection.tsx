@@ -38,16 +38,33 @@ export function SubmitFormBySection({
       {text}{optional ? " (необязательно)" : ""}
     </label>
   );
-  const input = (key: string, placeholder?: string, type: string = "text") => (
-    <input
-      type={type}
-      placeholder={placeholder}
-      value={formData[key] ?? ""}
-      onChange={(e) => setFormField(key, e.target.value)}
-      className={`w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border${errorClass(key)}`}
-      style={styleFor(key)}
-    />
-  );
+  const input = (
+    key: string,
+    placeholder?: string,
+    type: string = "text",
+    options?: { readOnly?: boolean },
+  ) => {
+    const rawValue = formData[key] ?? "";
+    const value =
+      key === "username" && rawValue
+        ? `@${String(rawValue).replace(/^@/, "").trim()}`
+        : rawValue;
+
+    return (
+      <input
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        readOnly={options?.readOnly}
+        onChange={(e) => {
+          if (options?.readOnly) return;
+          setFormField(key, e.target.value);
+        }}
+        className={`w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none box-border${errorClass(key)}`}
+        style={styleFor(key)}
+      />
+    );
+  };
   const textarea = (key: string, placeholder?: string) => (
     <textarea
       placeholder={placeholder}
@@ -90,7 +107,12 @@ export function SubmitFormBySection({
       <div className="space-y-3">
         <div>
           {label("Юзернейм пользователя")}
-          {input("username", "@username")}
+          {input("username", "@username", "text", { readOnly: true })}
+          {!formData.username && (
+            <p className="mt-1 text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              У вас не указан @username в Telegram. Пожалуйста, добавьте его в настройках Telegram и заново откройте мини‑приложение.
+            </p>
+          )}
         </div>
         <div>
           {label("Сумма (₽)")}
@@ -126,7 +148,12 @@ export function SubmitFormBySection({
         </div>
         <div>
           {label("Юзернейм")}
-          {input("username", "@username")}
+          {input("username", "@username", "text", { readOnly: true })}
+          {!formData.username && (
+            <p className="mt-1 text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              У вас не указан @username в Telegram. Пожалуйста, добавьте его в настройках Telegram и заново откройте мини‑приложение.
+            </p>
+          )}
         </div>
         <div>
           {label("Цена, ₽", true)}
@@ -231,7 +258,12 @@ export function SubmitFormBySection({
         </div>
         <div>
           {label("Юзернейм")}
-          {input("username", "@username")}
+          {input("username", "@username", "text", { readOnly: true })}
+          {!formData.username && (
+            <p className="mt-1 text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              У вас не указан @username в Telegram. Пожалуйста, добавьте его в настройках Telegram и заново откройте мини‑приложение.
+            </p>
+          )}
         </div>
         <div>
           {label("Цена, ₽", true)}
@@ -259,7 +291,12 @@ export function SubmitFormBySection({
         </div>
         <div>
           {label("Юзернейм")}
-          {input("username", "@username")}
+          {input("username", "@username", "text", { readOnly: true })}
+          {!formData.username && (
+            <p className="mt-1 text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              У вас не указан @username в Telegram. Пожалуйста, добавьте его в настройках Telegram и заново откройте мини‑приложение.
+            </p>
+          )}
         </div>
         <div>
           {label("Количество подписчиков", true)}
@@ -295,7 +332,12 @@ export function SubmitFormBySection({
       <div className="space-y-3">
         <div>
           {label("Юзернейм")}
-          {input("username", "@username")}
+          {input("username", "@username", "text", { readOnly: true })}
+          {!formData.username && (
+            <p className="mt-1 text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              У вас не указан @username в Telegram. Пожалуйста, добавьте его в настройках Telegram и заново откройте мини‑приложение.
+            </p>
+          )}
         </div>
         <div>
           {label("Тематика канала")}
@@ -343,7 +385,12 @@ export function SubmitFormBySection({
       <div className="space-y-3">
         <div>
           {label("Юзернейм пользователя")}
-          {input("username", "@username")}
+          {input("username", "@username", "text", { readOnly: true })}
+          {!formData.username && (
+            <p className="mt-1 text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              У вас не указан @username в Telegram. Пожалуйста, добавьте его в настройках Telegram и заново откройте мини‑приложение.
+            </p>
+          )}
         </div>
         <div>
           {label("Цена (₽)", true)}

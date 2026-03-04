@@ -147,6 +147,17 @@ export default function PublicationDetailPage() {
         </div>
 
         <div className="space-y-4">
+          {publication.status === "rejected" && publication.adminNote && (
+            <div className="rounded-lg p-3" style={{ backgroundColor: "var(--color-surface)" }}>
+              <p className="text-xs mb-1 font-medium" style={{ color: "var(--color-text-muted)" }}>
+                Комментарий администратора
+              </p>
+              <p className="text-sm m-0 whitespace-pre-wrap" style={{ color: "var(--color-text)" }}>
+                {publication.adminNote}
+              </p>
+            </div>
+          )}
+
           <div>
             <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>
               Раздел

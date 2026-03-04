@@ -3,13 +3,11 @@
 export function VerifyModal({
   open,
   phone,
-  onPhoneChange,
   onClose,
   onSubmit,
 }: {
   open: boolean;
   phone: string;
-  onPhoneChange: (value: string) => void;
   onClose: () => void;
   onSubmit: () => void;
 }) {
@@ -49,12 +47,18 @@ export function VerifyModal({
         </label>
         <input
           type="tel"
-          placeholder="+7 900 000-00-00"
           value={phone}
-          onChange={(e) => onPhoneChange(e.target.value)}
+          readOnly
           className="w-full rounded-lg px-3 py-2 text-sm outline-none mb-4"
-          style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}
+          style={{
+            backgroundColor: "var(--color-surface)",
+            border: "1px solid var(--color-border)",
+            color: "var(--color-text)",
+          }}
         />
+        <p className="text-[11px] mb-4" style={{ color: "var(--color-text-muted)" }}>
+          Номер получен из Telegram и не может быть изменён вручную.
+        </p>
         <button
           type="button"
           onClick={onSubmit}

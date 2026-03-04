@@ -23,7 +23,7 @@ export function ProfileUserStats({
         <span style={{ color: "var(--color-text)" }}>{adsStats ? adsStats.active : "-"}</span>
         <span style={{ color: "var(--color-text-muted)" }}>Завершённые объявления:</span>
         <span style={{ color: "var(--color-text)" }}>{adsStats ? adsStats.completed : "-"}</span>
-        <span style={{ color: "var(--color-text-muted)" }}>Скрытые объявления:</span>
+        <span style={{ color: "var(--color-text-muted)" }}>Отменённые объявления:</span>
         <span style={{ color: "var(--color-text)" }}>{adsStats ? adsStats.hidden : "-"}</span>
         <span style={{ color: "var(--color-text-muted)" }}>На модерации:</span>
         <span style={{ color: "var(--color-text)" }}>
