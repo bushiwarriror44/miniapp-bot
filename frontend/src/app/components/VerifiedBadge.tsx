@@ -49,16 +49,17 @@ export default function VerifiedBadge() {
     <span
       role="img"
       aria-label="Верифицированный пользователь"
-      className="relative inline-flex shrink-0 w-5 h-5 items-center justify-center"
+      className="relative inline-flex shrink-0 w-5 h-5 items-center justify-center mx-6"
       title="Верифицированный пользователь"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
+      style={{ marginTop: "-3px" }}
     >
       <img
         src={svgSrc(verifiedIcon)}
         alt=""
-        className="w-3.5 h-3.5 shrink-0"
+        className="w-4 h-4 shrink-0"
         aria-hidden
       />
       {showTooltip && (
