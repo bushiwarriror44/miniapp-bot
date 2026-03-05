@@ -30,6 +30,7 @@ export default function ProfilePage() {
   const [showVerifyConsent, setShowVerifyConsent] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyPhone, setVerifyPhone] = useState("");
+  const [verifyPhoneReadonly, setVerifyPhoneReadonly] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportText, setSupportText] = useState("");
   const [showSupportSuccess, setShowSupportSuccess] = useState(false);
@@ -67,9 +68,10 @@ export default function ProfilePage() {
       return;
     }
 
-    // Если Telegram передал номер — подставляем его.
-    // Если нет — всё равно открываем модалку, но просим ввести номер вручную.
+    // Если Telegram передал номер — подставляем его и блокируем редактирование.
+    // Если нет — открываем модалку с пустым редактируемым полем.
     setVerifyPhone(normalized ?? "");
+    setVerifyPhoneReadonly(Boolean(normalized));
     setShowVerifyModal(true);
 
     if (!normalized) {
@@ -262,6 +264,8 @@ export default function ProfilePage() {
       <VerifyModal
         open={showVerifyModal}
         phone={verifyPhone}
+        isPhoneReadOnly={verifyPhoneReadonly}
+        onPhoneChange={setVerifyPhone}
         onClose={() => setShowVerifyModal(false)}
         onSubmit={handleVerifySubmit}
       />

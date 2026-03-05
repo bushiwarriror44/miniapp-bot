@@ -3,15 +3,21 @@
 export function VerifyModal({
   open,
   phone,
+  isPhoneReadOnly = false,
+  onPhoneChange,
   onClose,
   onSubmit,
 }: {
   open: boolean;
   phone: string;
+  isPhoneReadOnly?: boolean;
+  onPhoneChange: (value: string) => void;
   onClose: () => void;
   onSubmit: () => void;
 }) {
   if (!open) return null;
+
+  const readOnly = Boolean(isPhoneReadOnly);
 
   return (
     <div
@@ -48,7 +54,14 @@ export function VerifyModal({
         <input
           type="tel"
           value={phone}
-          readOnly
+          readOnly={readOnly}
+          onChange={
+            readOnly
+              ? undefined
+              : (e) => {
+                  onPhoneChange(e.target.value);
+                }
+          }
           className="w-full rounded-lg px-3 py-2 text-sm outline-none mb-4"
           style={{
             backgroundColor: "var(--color-surface)",
@@ -56,9 +69,15 @@ export function VerifyModal({
             color: "var(--color-text)",
           }}
         />
-        <p className="text-[11px] mb-4" style={{ color: "var(--color-text-muted)" }}>
-          Номер получен из Telegram и не может быть изменён вручную.
-        </p>
+        {readOnly ? (
+          <p className="text-[11px] mb-4" style={{ color: "var(--color-text-muted)" }}>
+            Номер получен из Telegram и не может быть изменён вручную.
+          </p>
+        ) : (
+          <p className="text-[11px] mb-4" style={{ color: "var(--color-text-muted)" }}>
+            Введите номер телефона вручную. Он должен совпадать с номером, привязанным к вашему Telegram‑аккаунту.
+          </p>
+        )}
         <button
           type="button"
           onClick={onSubmit}
