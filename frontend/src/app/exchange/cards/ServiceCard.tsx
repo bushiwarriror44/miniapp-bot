@@ -25,11 +25,17 @@ export function ServiceCard({
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpenView?.(service.id))}
     >
       {isHot && (
-        <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
-          <FontAwesomeIcon icon={faFire} className="w-4 h-4" />
+        <span
+          className="absolute top-3 right-3"
+          style={{ color: "var(--color-accent)" }}
+          role="img"
+          aria-label="Горячее объявление"
+          title="Горячее объявление"
+        >
+          <FontAwesomeIcon icon={faFire} className="w-4 h-4" aria-hidden />
         </span>
       )}
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-3">
         <p className="font-medium text-sm flex-1 min-w-0" style={{ color: "var(--color-text)" }}>
           {service.title}
         </p>

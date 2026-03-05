@@ -25,8 +25,8 @@ const ADMIN_TG_LINK = "https://t.me/miniapp_admin_example";
 
 export default function ProfilePage() {
   const { theme, setTheme } = useTheme();
-  const [{ username: tgUsername, userId: tgUserId, avatarUrl: tgAvatarUrl }] =
-    useState(getInitialTelegramProfile);
+  const [telegramProfile, setTelegramProfile] = useState(getInitialTelegramProfile);
+  const { username: tgUsername, userId: tgUserId, avatarUrl: tgAvatarUrl } = telegramProfile;
   const [showVerifyConsent, setShowVerifyConsent] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyPhone, setVerifyPhone] = useState("");
@@ -45,20 +45,50 @@ export default function ProfilePage() {
     setTimeout(() => setNotice(null), 6000);
   };
 
+  const refreshTelegramProfile = () => {
+    const next = getInitialTelegramProfile();
+    setTelegramProfile(next);
+    if (!next.userId || next.userId === "-") {
+      showNotice(
+        "Telegram не передал данные пользователя. Попробуйте перезапустить мини‑приложение или обновить Telegram до актуальной версии.",
+      );
+    } else {
+      showNotice("Данные профиля Telegram обновлены. Если профиль не загрузился, попробуйте снова.");
+    }
+  };
+
   const handleVerifyConsentConfirm = async () => {
     setShowVerifyConsent(false);
     const phone = await requestTelegramPhoneWithFallback();
     const normalized = normalizePhoneNumber(phone);
 
-    if (normalized && tgUserId && tgUserId !== "-") {
-      setVerifyPhone(normalized);
-      setShowVerifyModal(true);
+    if (!tgUserId || tgUserId === "-") {
+      showNotice("Не удалось определить пользователя.");
       return;
     }
 
-    showNotice(
-      "Telegram не передал ваш номер телефона. Верификация доступна только для аккаунтов с раскрытым номером. Свяжитесь с поддержкой, если это ошибка.",
-    );
+    // Если Telegram передал номер — подставляем его.
+    // Если нет — всё равно открываем модалку, но просим ввести номер вручную.
+    setVerifyPhone(normalized ?? "");
+    setShowVerifyModal(true);
+
+    if (!normalized) {
+      showNotice(
+        [
+          "Telegram не передал ваш номер телефона.",
+          "Верификация доступна только для аккаунтов с раскрытым номером.",
+          "",
+          "Как включить показ номера в Telegram:",
+          "1) Откройте Telegram → «Настройки».",
+          "2) Перейдите в раздел «Конфиденциальность» / «Privacy».",
+          "3) Откройте пункт «Номер телефона».",
+          "4) Выберите вариант, при котором ваш номер может быть передан ботам/мини‑приложениям (например, «Мои контакты» или менее строгий вариант).",
+          "5) Перезапустите мини‑приложение и повторите попытку.",
+          "",
+          "Либо введите номер вручную и убедитесь, что он совпадает с номером в вашем аккаунте Telegram.",
+        ].join("\n"),
+      );
+    }
   };
 
   const handleVerifySubmit = async () => {
@@ -107,7 +137,17 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!tgUserId || tgUserId === "-") {
-      queueMicrotask(() => setProfileLoading(false));
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[profile] Skip profile load: invalid tgUserId", {
+          tgUserId,
+        });
+      }
+      queueMicrotask(() => {
+        setProfileLoading(false);
+        showNotice(
+          "Не удалось определить ваш Telegram‑профиль. Откройте мини‑приложение из Telegram ещё раз или обновите клиент.",
+        );
+      });
       return;
     }
     fetchUserProfile(tgUserId)
@@ -141,6 +181,22 @@ export default function ProfilePage() {
       <h1 className="text-2xl font-bold mb-4 pr-12" style={{ color: "var(--color-text)" }}>
         Профиль
       </h1>
+
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={refreshTelegramProfile}
+          className="rounded-lg px-3 py-1.5 text-xs font-medium"
+          style={{
+            backgroundColor: "var(--color-bg-elevated)",
+            border: "1px solid var(--color-border)",
+            color: "var(--color-text-muted)",
+          }}
+        >
+          Обновить данные Telegram
+        </button>
+      </div>
 
       <ProfileHeader
         username={tgUsername}

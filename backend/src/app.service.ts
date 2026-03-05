@@ -121,6 +121,11 @@ export class AppService {
   async upsertTelegramUser(payload: TrackUserPayload): Promise<UserEntity> {
     const telegramId = String(payload.telegramId || '').trim();
     if (!telegramId) {
+      this.logger.warn(
+        `upsertTelegramUser: empty telegramId in payload ${JSON.stringify(
+          payload,
+        )}`,
+      );
       throw new Error('telegramId is required');
     }
 
@@ -605,6 +610,9 @@ export class AppService {
   async getUserProfileByTelegramId(telegramId: string | number) {
     const normalized = String(telegramId || '').trim();
     if (!normalized) {
+      this.logger.warn(
+        `getUserProfileByTelegramId: empty telegramId value "${telegramId}"`,
+      );
       throw new Error('telegramId is required');
     }
     const user = await this.usersRepository.findOne({
@@ -636,6 +644,9 @@ export class AppService {
   ): Promise<UserStatistics | null> {
     const normalized = String(telegramId || '').trim();
     if (!normalized) {
+      this.logger.warn(
+        `getUserStatisticsByTelegramId: empty telegramId value "${telegramId}"`,
+      );
       throw new Error('telegramId is required');
     }
     const user = await this.usersRepository.findOne({
@@ -803,7 +814,12 @@ export class AppService {
     phoneNumber: string,
   ): Promise<{ ok: boolean }> {
     const normalized = String(telegramId || '').trim();
-    if (!normalized) throw new Error('telegramId is required');
+    if (!normalized) {
+      this.logger.warn(
+        `setUserPhoneNumberByTelegramId: empty telegramId value "${telegramId}"`,
+      );
+      throw new Error('telegramId is required');
+    }
     const phone = String(phoneNumber || '').trim();
     if (!phone) throw new Error('phoneNumber is required');
     const user = await this.usersRepository.findOne({

@@ -34,11 +34,17 @@ export function BuyChannelCard({
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpenView?.(item.id))}
     >
       {isHot && (
-        <span className="absolute top-3 right-3" style={{ color: "var(--color-accent)" }} aria-hidden>
-          <FontAwesomeIcon icon={faFire} className="w-4 h-4" />
+        <span
+          className="absolute top-3 right-3"
+          style={{ color: "var(--color-accent)" }}
+          role="img"
+          aria-label="Горячее объявление"
+          title="Горячее объявление"
+        >
+          <FontAwesomeIcon icon={faFire} className="w-4 h-4" aria-hidden />
         </span>
       )}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-3">
         <Link
           href={`/profile/user/${encodeURIComponent(item.username)}`}
           className="inline-flex items-center gap-1.5 text-sm font-medium min-w-0"

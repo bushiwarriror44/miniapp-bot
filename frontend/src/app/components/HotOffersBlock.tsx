@@ -10,7 +10,7 @@ import { useRenderLoggerContext } from "../contexts/RenderLoggerContext";
 function OfferSlide({ offer }: { offer: HotOffer }) {
   return (
     <article
-      className="rounded-xl p-4 w-full h-full min-h-[100px] flex flex-col justify-center"
+      className="rounded-xl p-4 w-full h-full min-h-[100px] flex flex-col justify-center mx-6"
       style={{
         backgroundColor: "var(--color-bg-elevated)",
         border: "1px solid var(--color-border)",

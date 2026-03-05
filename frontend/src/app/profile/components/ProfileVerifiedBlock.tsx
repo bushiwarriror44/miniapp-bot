@@ -15,7 +15,8 @@ export function ProfileVerifiedBlock({
       >
         <FontAwesomeIcon icon={faCheck} className="w-4 h-4 shrink-0" style={{ color: "var(--color-accent)" }} />
         <p className="text-sm" style={{ color: "var(--color-text)" }}>
-          Аккаунт верифицирован. Ваши объявления отображаются приоритетно.
+          Аккаунт верифицирован. Ваши объявления отображаются приоритетно. Значок рядом с ником показывает
+          верификацию аккаунта, а огонёк на карточке — статус «горячего» объявления.
         </p>
       </div>
     );
