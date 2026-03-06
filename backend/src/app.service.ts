@@ -1158,22 +1158,26 @@ export class AppService {
     if (!entity) {
       return null;
     }
-    if (entity.status !== 'pending') {
-      throw new Error('only pending requests can be edited');
-    }
-    if (payload.formData != null) {
-      if (
-        !this.ensureObject(payload.formData) ||
-        Object.keys(payload.formData).length === 0
-      ) {
-        throw new Error('formData must be non-empty object');
+    if (entity.status === 'pending') {
+      if (payload.formData != null) {
+        if (
+          !this.ensureObject(payload.formData) ||
+          Object.keys(payload.formData).length === 0
+        ) {
+          throw new Error('formData must be non-empty object');
+        }
+        entity.formData = payload.formData;
       }
-      entity.formData = payload.formData;
+      if (payload.adminNote !== undefined) {
+        entity.adminNote = payload.adminNote;
+      }
+      return this.moderationRequestsRepository.save(entity);
     }
     if (payload.adminNote !== undefined) {
       entity.adminNote = payload.adminNote;
+      return this.moderationRequestsRepository.save(entity);
     }
-    return this.moderationRequestsRepository.save(entity);
+    throw new Error('only pending requests can change formData');
   }
 
   async approveModerationRequest(

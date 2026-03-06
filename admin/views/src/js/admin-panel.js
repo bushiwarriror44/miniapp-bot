@@ -22,6 +22,7 @@ let selectedRatingUserId = null;
 let botConfig = { welcomeMessage: "", welcomePhotoUrl: null, supportLink: "", webAppUrl: "" };
 let moderationRequests = [];
 let selectedModerationRequestId = null;
+const handledModerationRequestIds = new Set();
 const DEBUG_MODAL = true;
 
 const CATEGORY_LABELS = {
@@ -1610,6 +1611,7 @@ async function saveRatingEdit() {
 
 function renderModerationRequestsTable() {
   const rows = moderationRequests
+    .filter((req) => !handledModerationRequestIds.has(req.id))
     .map(
       (req) => `
       <tr>
@@ -1674,9 +1676,16 @@ function renderModerationRequestDetails(requestItem) {
         ${fieldsHtml || '<p class="muted" style="margin:0;">Нет полей для редактирования</p>'}
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px;">
+        ${requestItem.status === "pending"
+          ? `
         <button id="moderationSaveBtn" class="btn">Сохранить изменения</button>
         <button id="moderationRejectBtn" class="btn">Отклонить</button>
         <button id="moderationApproveBtn" class="btn btn-primary">Принять и опубликовать</button>
+        `
+          : `
+        <button id="moderationSaveBtn" class="btn">Сохранить изменения</button>
+        <button id="moderationCompleteBtn" class="btn">Удалить объявление с биржи</button>
+        `}
       </div>
       <div id="moderationActionResult" class="muted"></div>
     </div>
@@ -1710,12 +1719,17 @@ async function openModerationRequest(requestId) {
 async function saveModerationRequest() {
   if (!selectedModerationRequestId) return;
   const selected = moderationRequests.find((x) => x.id === selectedModerationRequestId);
-  const formData = collectModerationFormData(selected?.formData || {});
   const adminNote = document.getElementById("moderationAdminNoteInput")?.value || "";
-  await apiJson(`/admin/api/moderation/requests/${encodeURIComponent(selectedModerationRequestId)}`, "PATCH", {
-    formData,
-    adminNote,
-  });
+  const isPending = (selected?.status || "") === "pending";
+  const payload = { adminNote };
+  if (isPending) {
+    payload.formData = collectModerationFormData(selected?.formData || {});
+  }
+  await apiJson(
+    `/admin/api/moderation/requests/${encodeURIComponent(selectedModerationRequestId)}`,
+    "PATCH",
+    payload,
+  );
   const result = document.getElementById("moderationActionResult");
   if (result) result.textContent = "Изменения сохранены.";
   await loadModerationRequests();
@@ -1730,8 +1744,11 @@ async function rejectModerationRequest() {
   });
   const result = document.getElementById("moderationActionResult");
   if (result) result.textContent = "Заявка отклонена.";
+  handledModerationRequestIds.add(selectedModerationRequestId);
   await loadModerationRequests();
-  await openModerationRequest(selectedModerationRequestId);
+  selectedModerationRequestId = null;
+  moderationRequestDetailsWrap.innerHTML =
+    '<p class="muted" style="margin:0;">Выберите заявку в таблице выше.</p>';
 }
 
 async function approveModerationRequest() {
@@ -1745,22 +1762,33 @@ async function approveModerationRequest() {
   });
   const result = document.getElementById("moderationActionResult");
   if (result) result.textContent = "Заявка принята и опубликована.";
+  handledModerationRequestIds.add(selectedModerationRequestId);
   await loadModerationRequests();
-  const status = moderationStatusFilter?.value || "pending";
-  if (status === "pending") {
-    selectedModerationRequestId = null;
-    moderationRequestDetailsWrap.innerHTML =
-      '<p class="muted" style="margin:0;">Выберите заявку в таблице выше.</p>';
-  } else {
-    const stillExists = moderationRequests.some((x) => x.id === selectedModerationRequestId);
-    if (stillExists) {
-      await openModerationRequest(selectedModerationRequestId);
-    } else {
-      selectedModerationRequestId = null;
-      moderationRequestDetailsWrap.innerHTML =
-        '<p class="muted" style="margin:0;">Выберите заявку в таблице выше.</p>';
-    }
+  selectedModerationRequestId = null;
+  moderationRequestDetailsWrap.innerHTML =
+    '<p class="muted" style="margin:0;">Выберите заявку в таблице выше.</p>';
+}
+
+async function completeModerationRequestByAdmin() {
+  if (!selectedModerationRequestId) return;
+  const selected = moderationRequests.find((x) => x.id === selectedModerationRequestId);
+  if (!selected || selected.status !== "approved") {
+    const result = document.getElementById("moderationActionResult");
+    if (result) result.textContent = "Удаление доступно только для одобренных заявок.";
+    return;
   }
+  await apiJson(
+    `/admin/api/moderation/requests/${encodeURIComponent(selectedModerationRequestId)}/complete`,
+    "PATCH",
+    {},
+  );
+  const result = document.getElementById("moderationActionResult");
+  if (result) result.textContent = "Объявление снято с биржи.";
+  handledModerationRequestIds.add(selectedModerationRequestId);
+  await loadModerationRequests();
+  selectedModerationRequestId = null;
+  moderationRequestDetailsWrap.innerHTML =
+    '<p class="muted" style="margin:0;">Выберите заявку в таблице выше.</p>';
 }
 
 async function loadModerators() {
