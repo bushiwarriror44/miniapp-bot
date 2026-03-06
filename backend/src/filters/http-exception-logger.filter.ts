@@ -7,10 +7,13 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { SystemLogService } from '../system-log.service';
 
 @Catch()
 export class HttpExceptionLoggerFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionLoggerFilter.name);
+
+  constructor(private readonly systemLogService: SystemLogService) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -29,15 +32,36 @@ export class HttpExceptionLoggerFilter implements ExceptionFilter {
           ? exception.message
           : 'Internal server error';
 
-    this.logger.warn(
-      `${request.method} ${request.url} ${status} - ${JSON.stringify(message)}`,
-    );
+    const baseMessage = `${request.method} ${request.url} ${status} - ${JSON.stringify(message)}`;
+    this.logger.warn(baseMessage);
     if (
       status === Number(HttpStatus.INTERNAL_SERVER_ERROR) &&
       exception instanceof Error
     ) {
       this.logger.error(exception.stack);
     }
+
+    const level =
+      status >= HttpStatus.INTERNAL_SERVER_ERROR ? 'error' : 'warn';
+    void this.systemLogService
+      .write({
+        level,
+        source: 'exception',
+        message: baseMessage,
+        meta: {
+          method: request.method,
+          url: request.url,
+          status,
+          message,
+          stack:
+            exception instanceof Error && status >= 500
+              ? exception.stack
+              : undefined,
+        },
+      })
+      .catch(() => {
+        // ignore logging errors
+      });
 
     const body =
       exception instanceof HttpException

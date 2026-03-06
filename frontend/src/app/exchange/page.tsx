@@ -58,7 +58,13 @@ function ExchangePageContent() {
       setActiveSection(sectionParam as ExchangeSection);
     }
     if (searchParams.get("openSubmit") === "1") {
+      // Открытие модалки через параметр URL должно работать так же,
+      // как клик по кнопке «Разместите свое объявление».
       setShowSubmitModal(true);
+      setSubmitSection("buy-ads");
+      setInvalidFields([]);
+      setFormData(getDefaultFormDataForSection("buy-ads"));
+
       const url = new URL(window.location.href);
       url.searchParams.delete("openSubmit");
       window.history.replaceState({}, "", url.pathname + url.search);

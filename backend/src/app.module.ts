@@ -14,6 +14,8 @@ import { UserActivityEntity } from './entities/user-activity.entity';
 import { UserAdLinkEntity } from './entities/user-ad-link.entity';
 import { UserLabelEntity } from './entities/user-label.entity';
 import { UserUserLabelEntity } from './entities/user-user-label.entity';
+import { SystemLogEntity } from './entities/system-log.entity';
+import { SystemLogService } from './system-log.service';
 
 @Module({
   imports: [
@@ -39,11 +41,14 @@ import { UserUserLabelEntity } from './entities/user-user-label.entity';
       SupportRequestEntity,
       UserLabelEntity,
       UserUserLabelEntity,
+      SystemLogEntity,
     ]),
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    SystemLogService,
+    RequestLoggerMiddleware,
     { provide: APP_FILTER, useClass: HttpExceptionLoggerFilter },
   ],
 })

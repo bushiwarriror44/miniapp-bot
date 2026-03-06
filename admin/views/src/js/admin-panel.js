@@ -176,9 +176,14 @@ const editModeratorLabelInput = document.getElementById("editModeratorLabelInput
 const saveModeratorBtn = document.getElementById("saveModeratorBtn");
 const cancelEditModeratorBtn = document.getElementById("cancelEditModeratorBtn");
 const logTableWrap = document.getElementById("logTableWrap");
+const systemLogTableWrap = document.getElementById("systemLogTableWrap");
 const supportRequestsTableWrap = document.getElementById("supportRequestsTableWrap");
 const refreshSupportBtn = document.getElementById("refreshSupportBtn");
 const refreshLogBtn = document.getElementById("refreshLogBtn");
+const refreshSystemLogBtn = document.getElementById("refreshSystemLogBtn");
+const systemLogLevelSelect = document.getElementById("systemLogLevelSelect");
+const systemLogSourceSelect = document.getElementById("systemLogSourceSelect");
+const systemLogSearchInput = document.getElementById("systemLogSearchInput");
 const jobTypesTableWrap = document.getElementById("jobTypesTableWrap");
 const currenciesTableWrap = document.getElementById("currenciesTableWrap");
 const addJobTypeBtn = document.getElementById("addJobTypeBtn");
@@ -1844,6 +1849,67 @@ async function loadSupportRequests() {
   }
 }
 
+async function loadSystemLog() {
+  if (!systemLogTableWrap) return;
+  try {
+    const params = new URLSearchParams();
+    const level = systemLogLevelSelect?.value || "";
+    const source = systemLogSourceSelect?.value || "";
+    const search = systemLogSearchInput?.value || "";
+    if (level) params.set("level", level);
+    if (source) params.set("source", source);
+    if (search.trim()) params.set("search", search.trim());
+    const url =
+      "/admin/api/system-logs" +
+      (params.toString() ? `?${params.toString()}` : "");
+    const data = await apiGet(url);
+    const entries = data.entries || [];
+    const rows = entries
+      .map((e) => {
+        const dateStr = e.createdAt
+          ? new Date(e.createdAt).toLocaleString()
+          : "";
+        const levelLabel = escapeHtml(e.level || "");
+        const sourceLabel = escapeHtml(e.source || "");
+        const message = escapeHtml(e.message || "");
+        const metaShort = escapeHtml(
+          e.meta ? JSON.stringify(e.meta).slice(0, 200) : "",
+        );
+        return `
+      <tr>
+        <td class="muted" style="font-size:13px;">${dateStr}</td>
+        <td style="font-family:monospace;">${levelLabel}</td>
+        <td style="font-family:monospace;">${sourceLabel}</td>
+        <td style="font-size:13px;max-width:320px;word-break:break-word;">${message}</td>
+        <td class="muted" style="font-size:11px;max-width:260px;word-break:break-word;">${metaShort}</td>
+      </tr>
+    `;
+      })
+      .join("");
+    systemLogTableWrap.innerHTML = `
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Уровень</th>
+            <th>Источник</th>
+            <th>Сообщение</th>
+            <th>Meta</th>
+          </tr>
+        </thead>
+        <tbody>${
+          rows ||
+          '<tr><td colspan="5" class="muted">Записей системного лога нет</td></tr>'
+        }</tbody>
+      </table>
+    `;
+  } catch (err) {
+    systemLogTableWrap.innerHTML = `<p class="muted">Ошибка загрузки: ${escapeHtml(
+      err instanceof Error ? err.message : String(err),
+    )}</p>`;
+  }
+}
+
 function resetFaqEditor() {
   editingFaqId = null;
   faqIdInput.value = "";
@@ -2500,6 +2566,7 @@ cancelEditModeratorBtn?.addEventListener("click", () => {
 
 refreshLogBtn?.addEventListener("click", loadLog);
 refreshSupportBtn?.addEventListener("click", loadSupportRequests);
+refreshSystemLogBtn?.addEventListener("click", loadSystemLog);
 
 document.addEventListener("DOMContentLoaded", async () => {
   debugLog("DOMContentLoaded:init", {
@@ -2611,5 +2678,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await switchTab("moderation");
   } else {
     await switchTab("home");
+    await loadSystemLog();
   }
 });

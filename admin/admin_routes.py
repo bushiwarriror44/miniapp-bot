@@ -1421,6 +1421,27 @@ def admin_support_requests():
         return jsonify({"error": str(exc)}), 502
 
 
+@admin_bp.route("/admin/api/system-logs", methods=["GET"])
+@require_login
+@require_admin
+def admin_system_logs():
+    try:
+        data = _backend_get_json(
+            "/admin/system-logs",
+            request.args.to_dict(flat=True) or None,
+        )
+        return jsonify(data)
+    except HTTPError as exc:
+        try:
+            body = exc.fp.read().decode("utf-8") if getattr(exc, "fp", None) else ""
+        except Exception:
+            body = ""
+        msg = body if body else str(exc)
+        return jsonify({"error": msg}), 502
+    except (URLError, ValueError) as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
 @admin_bp.route("/admin/api/moderation/requests", methods=["GET"])
 @require_login
 def admin_moderation_list():

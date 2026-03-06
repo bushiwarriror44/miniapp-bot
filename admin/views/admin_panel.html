@@ -23,7 +23,8 @@
         <button class="btn tab-btn" data-tab-btn="rating" data-admin-only>Рейтинг</button>
         <button class="btn tab-btn" data-tab-btn="moderation">Модерация</button>
         <button class="btn tab-btn" data-tab-btn="moderators" data-admin-only>Модераторы</button>
-        <button class="btn tab-btn" data-tab-btn="log" data-admin-only>Лог</button>
+        <button class="btn tab-btn" data-tab-btn="log" data-admin-only>Лог модераторов</button>
+        <button class="btn tab-btn" data-tab-btn="system-log" data-admin-only>Системный лог</button>
         <button class="btn tab-btn" data-tab-btn="support" data-admin-only>Обращения в поддержку</button>
         <button class="btn tab-btn" data-tab-btn="faq" data-admin-only>FAQ</button>
         <button class="btn tab-btn" data-tab-btn="extra" data-admin-only>Дополнительное</button>
@@ -244,6 +245,41 @@
               <button id="refreshLogBtn" class="btn">Обновить</button>
             </div>
             <div id="logTableWrap" style="overflow:auto;"></div>
+          </section>
+        </section>
+
+        <section id="tab-system-log" class="tab-view stack" style="display:none;" data-admin-only>
+          <section class="card" style="padding:12px;">
+            <h2 style="margin:0 0 8px 0;font-size:16px;">Системный лог backend-приложения</h2>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;align-items:flex-end;">
+              <div>
+                <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Уровень</label>
+                <select id="systemLogLevelSelect" class="select">
+                  <option value="">Любой</option>
+                  <option value="error">error</option>
+                  <option value="warn">warn</option>
+                  <option value="log">log</option>
+                </select>
+              </div>
+              <div>
+                <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Источник</label>
+                <select id="systemLogSourceSelect" class="select">
+                  <option value="">Любой</option>
+                  <option value="request">request</option>
+                  <option value="exception">exception</option>
+                  <option value="bootstrap">bootstrap</option>
+                  <option value="custom">custom</option>
+                </select>
+              </div>
+              <div style="flex:1;min-width:160px;">
+                <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Поиск по сообщению</label>
+                <input id="systemLogSearchInput" class="input" placeholder="Часть текста или URL" />
+              </div>
+              <div>
+                <button id="refreshSystemLogBtn" class="btn" type="button">Обновить</button>
+              </div>
+            </div>
+            <div id="systemLogTableWrap" style="overflow:auto;"></div>
           </section>
         </section>
 

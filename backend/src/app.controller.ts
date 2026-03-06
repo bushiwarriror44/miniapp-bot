@@ -16,6 +16,7 @@ import {
 import { AppService } from './app.service';
 import { AdminApiKeyGuard } from './guards/admin-api-key.guard';
 import type { ModerationStatus } from './entities/moderation-request.entity';
+import { SystemLogService } from './system-log.service';
 import {
   TrackUserDto,
   UpdateRatingDto,
@@ -46,7 +47,10 @@ import {
 export class AppController {
   private readonly logger = new Logger(AppController.name);
 
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+    private readonly systemLogService: SystemLogService,
+  ) {}
 
   @Get()
   getHello(): string {
@@ -565,5 +569,37 @@ export class AppController {
       throw new HttpException('User label not found', HttpStatus.NOT_FOUND);
     }
     return { ok: true, userLabel };
+  }
+
+  @Get('admin/system-logs')
+  @UseGuards(AdminApiKeyGuard)
+  async getSystemLogs(
+    @Query('level') level?: 'log' | 'warn' | 'error',
+    @Query('source') source?: string,
+    @Query('search') search?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const parsedLimit = Number.isFinite(Number(limit))
+      ? Number(limit)
+      : undefined;
+    const parsedOffset = Number.isFinite(Number(offset))
+      ? Number(offset)
+      : undefined;
+    const fromDate = from ? new Date(from) : undefined;
+    const toDate = to ? new Date(to) : undefined;
+
+    const { entries } = await this.systemLogService.list({
+      level,
+      source,
+      search,
+      from: fromDate && !Number.isNaN(fromDate.getTime()) ? fromDate : undefined,
+      to: toDate && !Number.isNaN(toDate.getTime()) ? toDate : undefined,
+      limit: parsedLimit,
+      offset: parsedOffset,
+    });
+    return { entries };
   }
 }
