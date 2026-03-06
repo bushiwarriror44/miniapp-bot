@@ -1,4 +1,5 @@
 import { fetchDatasetFromApi, fetchDatasetPaginated, type FetchDatasetPaginatedParams } from "./dataSource";
+import { filterNotExpired } from "./expiry";
 
 export type WorkType =
   | "editor"
@@ -25,6 +26,7 @@ export type JobItem = {
   theme: string;
   description: string;
   publishedAt: string;
+  expiresAt?: string;
 };
 
 export const JOB_OFFER_TYPE_LABELS: Record<JobOfferType, string> = {
@@ -41,7 +43,7 @@ export async function fetchJobs(): Promise<JobsResponse> {
   if (!payload) {
     throw new Error('Failed to load "jobs" from content API');
   }
-  return payload;
+  return { jobs: filterNotExpired(payload.jobs ?? []) };
 }
 
 export type JobsPaginatedParams = FetchDatasetPaginatedParams & {
@@ -62,7 +64,7 @@ export async function fetchJobsPaginated(
     limit: params.limit ?? 20,
   });
   if (!res) return null;
-  return { jobs: res.payload.jobs ?? [], nextCursor: res.nextCursor };
+  return { jobs: filterNotExpired(res.payload.jobs ?? []), nextCursor: res.nextCursor };
 }
 
 export const WORK_LABELS: Record<WorkType, string> = {

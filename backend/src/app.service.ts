@@ -830,10 +830,14 @@ export class AppService {
       `UPDATE users SET "phoneNumber" = $1 WHERE "telegramId" = $2`,
       [phone, normalized],
     );
+    if (!user.verified) {
+      user.verified = true;
+      await this.usersRepository.save(user);
+    }
     await this.createSupportRequest({
       telegramId: normalized,
       username: user.username ?? null,
-      message: `Заявка на верификацию телефона. Телефон: ${phone}`,
+      message: `Пользователь прошёл верификацию (бот). Телефон: ${phone}`,
     });
     return { ok: true };
   }

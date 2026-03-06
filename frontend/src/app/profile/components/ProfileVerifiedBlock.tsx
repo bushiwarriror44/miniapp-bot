@@ -10,10 +10,10 @@ export function ProfileVerifiedBlock({
   if (verified) {
     return (
       <div
-        className="rounded-xl px-4 py-3 flex items-center gap-2"
+        className="rounded-xl px-4 py-3 flex items-start gap-2"
         style={{ backgroundColor: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
       >
-        <FontAwesomeIcon icon={faCheck} className="w-4 h-4 shrink-0" style={{ color: "var(--color-accent)" }} />
+        <FontAwesomeIcon icon={faCheck} className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--color-accent)" }} />
         <p className="text-sm" style={{ color: "var(--color-text)" }}>
           Аккаунт верифицирован. Ваши объявления отображаются приоритетно. Значок рядом с ником показывает
           верификацию аккаунта, а огонёк на карточке — статус «горячего» объявления.

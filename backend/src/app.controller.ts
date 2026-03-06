@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { AppService } from './app.service';
 import { AdminApiKeyGuard } from './guards/admin-api-key.guard';
+import { BotApiKeyGuard } from './guards/bot-api-key.guard';
 import type { ModerationStatus } from './entities/moderation-request.entity';
 import { SystemLogService } from './system-log.service';
 import {
@@ -149,6 +150,7 @@ export class AppController {
 
   @Post('users/me/verify-phone')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(BotApiKeyGuard)
   async verifyPhone(
     @Query() query: TelegramIdQueryDto,
     @Body() body: VerifyPhoneBodyDto,

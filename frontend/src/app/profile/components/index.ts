@@ -4,6 +4,5 @@ export { ProfileRatingBlock } from "./ProfileRatingBlock";
 export { ProfileMenuRow } from "./ProfileMenuRow";
 export { SupportModal } from "./SupportModal";
 export { SupportSuccessModal } from "./SupportSuccessModal";
-export { VerifyModal } from "./VerifyModal";
-export { VerifyConsentDialog } from "./VerifyConsentDialog";
+export { VerifyViaBotModal } from "./VerifyViaBotModal";
 export { ProfileNotice } from "./ProfileNotice";

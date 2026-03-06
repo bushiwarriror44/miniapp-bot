@@ -8,6 +8,9 @@ const token = process.env.BOT_TOKEN;
 const defaultWebAppUrl = process.env.WEBAPP_URL || 'http://localhost:3000';
 const botConfigApiUrl =
   process.env.BOT_CONFIG_API_URL || 'http://127.0.0.1:5000/api/datasets/botConfig';
+const backendApiUrl =
+  (process.env.BACKEND_API_URL || 'http://127.0.0.1:3001').replace(/\/$/, '');
+const botApiKey = (process.env.BOT_API_KEY || '').trim();
 
 if (!token) {
   console.error('BOT_TOKEN не задан. Создайте файл .env и укажите BOT_TOKEN=...');
@@ -31,16 +34,26 @@ function createStartKeyboard(config: BotConfigPayload) {
 
   if (isHttps(webAppUrl)) {
     const kb = new Keyboard().webApp('Открыть приложение', webAppUrl);
+    kb.row().text('Верификация');
     if (hasSupport) {
       kb.row().text('Поддержка');
     }
     return kb.resized();
   }
   const kb = new Keyboard().text('Открыть приложение (локально)');
+  kb.row().text('Верификация');
   if (hasSupport) {
     kb.row().text('Поддержка');
   }
   return kb.resized();
+}
+
+function createShareContactKeyboard() {
+  return new Keyboard()
+    .requestContact('Поделиться номером')
+    .row()
+    .text('Отмена')
+    .resized();
 }
 
 type BotConfigPayload = {
@@ -77,7 +90,71 @@ async function loadBotConfig(): Promise<BotConfigPayload> {
   }
 }
 
+async function backendTrackUser(ctx: any) {
+  const from = ctx?.from;
+  if (!from?.id) return;
+  try {
+    await fetch(`${backendApiUrl}/users/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telegramId: String(from.id),
+        username: from.username ?? null,
+        firstName: from.first_name ?? null,
+        lastName: from.last_name ?? null,
+        languageCode: from.language_code ?? null,
+        isPremium: Boolean(from.is_premium),
+      }),
+    });
+  } catch {
+    // ignore
+  }
+}
+
+async function backendGetProfile(telegramId: string) {
+  const res = await fetch(
+    `${backendApiUrl}/users/me/profile?telegramId=${encodeURIComponent(telegramId)}`,
+    { method: 'GET', headers: { Accept: 'application/json' } },
+  );
+  const data = (await res.json().catch(() => ({}))) as any;
+  if (!res.ok) {
+    const msg =
+      data && typeof data.error === 'string'
+        ? data.error
+        : `backend http ${res.status}`;
+    throw new Error(msg);
+  }
+  return data?.profile ?? null;
+}
+
+async function backendVerifyPhone(telegramId: string, phoneNumber: string) {
+  if (!botApiKey) {
+    throw new Error('BOT_API_KEY is not configured');
+  }
+  const res = await fetch(
+    `${backendApiUrl}/users/me/verify-phone?telegramId=${encodeURIComponent(telegramId)}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Bot-Key': botApiKey,
+      },
+      body: JSON.stringify({ phoneNumber }),
+    },
+  );
+  const data = (await res.json().catch(() => ({}))) as any;
+  if (!res.ok) {
+    const msg =
+      data && typeof data.message === 'string'
+        ? data.message
+        : `verify http ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
 bot.command('start', async (ctx) => {
+  await backendTrackUser(ctx);
   const config = await loadBotConfig();
   const webAppUrl = getWebAppUrl(config);
   const defaultMessage = isHttps(webAppUrl)
@@ -105,6 +182,7 @@ bot.command('start', async (ctx) => {
 });
 
 bot.on('message:text', async (ctx) => {
+  await backendTrackUser(ctx);
   const config = await loadBotConfig();
   const webAppUrl = getWebAppUrl(config);
 
@@ -112,6 +190,38 @@ bot.on('message:text', async (ctx) => {
     await ctx.reply(
       `Для локальной разработки открой в браузере:\n${webAppUrl}\n\nНа сервере с HTTPS кнопка будет работать автоматически.`,
     );
+    return;
+  }
+  if (ctx.message.text === 'Отмена') {
+    await ctx.reply('Ок. Возвращаю в меню.', {
+      reply_markup: createStartKeyboard(config),
+    });
+    return;
+  }
+  if (ctx.message.text === 'Верификация') {
+    const telegramId = String(ctx.from?.id || '').trim();
+    if (!telegramId) {
+      await ctx.reply('Не удалось определить пользователя.');
+      return;
+    }
+    try {
+      const profile = await backendGetProfile(telegramId);
+      if (profile?.verified) {
+        await ctx.reply('Ваш аккаунт уже верифицирован.', {
+          reply_markup: createStartKeyboard(config),
+        });
+        return;
+      }
+      await ctx.reply(
+        'Чтобы пройти верификацию, поделитесь номером телефона, привязанным к вашему Telegram-аккаунту.',
+        { reply_markup: createShareContactKeyboard() },
+      );
+    } catch (error) {
+      await ctx.reply(
+        `Не удалось проверить статус верификации. Попробуйте позже.`,
+        { reply_markup: createStartKeyboard(config) },
+      );
+    }
     return;
   }
   if (ctx.message.text === 'Поддержка') {
@@ -129,6 +239,39 @@ bot.on('message:text', async (ctx) => {
     return;
   }
   await ctx.reply(`Вы написали: ${ctx.message.text}`);
+});
+
+bot.on('message:contact', async (ctx) => {
+  await backendTrackUser(ctx);
+  if (ctx.message?.contact?.user_id && ctx.from?.id) {
+    if (ctx.message.contact.user_id !== ctx.from.id) {
+      await ctx.reply('Пожалуйста, отправьте номер телефона именно вашего аккаунта.', {
+        reply_markup: createStartKeyboard(await loadBotConfig()),
+      });
+      return;
+    }
+  }
+
+  const telegramId = String(ctx.from?.id || '').trim();
+  const phone = String(ctx.message?.contact?.phone_number || '').trim();
+  if (!telegramId || !phone) {
+    await ctx.reply('Не удалось получить номер телефона. Попробуйте снова.', {
+      reply_markup: createStartKeyboard(await loadBotConfig()),
+    });
+    return;
+  }
+
+  try {
+    await backendVerifyPhone(telegramId, phone);
+    await ctx.reply('Верификация успешно пройдена. Теперь ваш аккаунт отмечен как верифицированный.', {
+      reply_markup: createStartKeyboard(await loadBotConfig()),
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Не удалось выполнить верификацию.';
+    await ctx.reply(`Ошибка верификации: ${msg}`, {
+      reply_markup: createStartKeyboard(await loadBotConfig()),
+    });
+  }
 });
 
 bot.catch((err) => {

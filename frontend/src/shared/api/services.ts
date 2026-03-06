@@ -1,4 +1,5 @@
 import { fetchDatasetFromApi, fetchDatasetPaginated, type FetchDatasetPaginatedParams } from "./dataSource";
+import { filterNotExpired } from "./expiry";
 
 export type ServiceItem = {
   id: string;
@@ -9,6 +10,7 @@ export type ServiceItem = {
   theme: string;
   description: string;
   publishedAt: string;
+  expiresAt?: string;
 };
 
 export type ServicesResponse = {
@@ -20,7 +22,7 @@ export async function fetchServices(): Promise<ServicesResponse> {
   if (!payload) {
     throw new Error('Failed to load "services" from content API');
   }
-  return payload;
+  return { services: filterNotExpired(payload.services ?? []) };
 }
 
 export type ServicesPaginatedParams = FetchDatasetPaginatedParams & {
@@ -39,7 +41,7 @@ export async function fetchServicesPaginated(
     limit: params.limit ?? 20,
   });
   if (!res) return null;
-  return { services: res.payload.services ?? [], nextCursor: res.nextCursor };
+  return { services: filterNotExpired(res.payload.services ?? []), nextCursor: res.nextCursor };
 }
 
 export function formatServiceDate(isoDate: string | undefined | null): string {

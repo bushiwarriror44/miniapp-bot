@@ -9,7 +9,7 @@ function svgSrc(value: string | { default?: string; src?: string }): string {
   return value.default ?? value.src ?? "";
 }
 
-const TOOLTIP_TEXT = "Этот \n пользователь \n верифицирован.\n.";
+const TOOLTIP_TEXT = "Верификация";
 const TOOLTIP_HIDE_MS = 2500;
 
 export default function VerifiedBadge() {

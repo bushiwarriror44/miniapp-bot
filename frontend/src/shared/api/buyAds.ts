@@ -1,4 +1,5 @@
 import { fetchDatasetFromApi, fetchDatasetPaginated, type FetchDatasetPaginatedParams } from "./dataSource";
+import { filterNotExpired } from "./expiry";
 
 export type BuyAdItem = {
   id: string;
@@ -12,6 +13,7 @@ export type BuyAdItem = {
   theme: string;
   description: string;
   publishedAt: string;
+  expiresAt?: string;
 };
 
 export type BuyAdsResponse = {
@@ -23,7 +25,7 @@ export async function fetchBuyAds(): Promise<BuyAdsResponse> {
   if (!payload) {
     throw new Error('Failed to load "buyAds" from content API');
   }
-  return payload;
+  return { buyAds: filterNotExpired(payload.buyAds ?? []) };
 }
 
 export type BuyAdsPaginatedParams = FetchDatasetPaginatedParams & {
@@ -44,5 +46,5 @@ export async function fetchBuyAdsPaginated(
     limit: params.limit ?? 20,
   });
   if (!res) return null;
-  return { buyAds: res.payload.buyAds ?? [], nextCursor: res.nextCursor };
+  return { buyAds: filterNotExpired(res.payload.buyAds ?? []), nextCursor: res.nextCursor };
 }

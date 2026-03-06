@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -101,6 +101,8 @@ export default function ExchangeViewPage() {
   const [error, setError] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [favoriteToast, setFavoriteToast] = useState<string | null>(null);
+  const favoriteToastTimerRef = useRef<number | null>(null);
 
   const telegramId = useMemo(() => {
     const telegram = getTelegramWebApp();
@@ -181,12 +183,28 @@ export default function ExchangeViewPage() {
       } else {
         await addToFavorites(telegramId, currentSection, id.trim());
         setIsFavorite(true);
+        setFavoriteToast("Вы добавили объявление в избранное");
+        if (favoriteToastTimerRef.current != null) {
+          window.clearTimeout(favoriteToastTimerRef.current);
+        }
+        favoriteToastTimerRef.current = window.setTimeout(() => {
+          setFavoriteToast(null);
+          favoriteToastTimerRef.current = null;
+        }, 2200);
       }
     } catch {
     } finally {
       setFavoriteLoading(false);
     }
   }, [telegramId, currentSection, id, isFavorite, favoriteLoading]);
+
+  useEffect(() => {
+    return () => {
+      if (favoriteToastTimerRef.current != null) {
+        window.clearTimeout(favoriteToastTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -316,6 +334,26 @@ export default function ExchangeViewPage() {
             </>
           )}
         </>
+      )}
+
+      {favoriteToast && (
+        <div
+          className="fixed left-1/2 -translate-x-1/2 bottom-6 z-50 px-4"
+          style={{ width: "min(520px, calc(100% - 32px))" }}
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <div
+            className="rounded-xl px-4 py-3 text-sm text-center shadow-md"
+            style={{
+              backgroundColor: "var(--color-bg-elevated)",
+              border: "1px solid var(--color-border)",
+              color: "var(--color-text)",
+            }}
+          >
+            {favoriteToast}
+          </div>
+        </div>
       )}
     </main>
   );

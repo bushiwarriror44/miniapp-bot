@@ -70,8 +70,15 @@ export function SubmitFormBySection({
       placeholder={placeholder}
       value={formData[key] ?? ""}
       onChange={(e) => setFormField(key, e.target.value)}
-      rows={2}
-      className={`w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none resize-none box-border${errorClass(key)}`}
+      onBlur={(e) => {
+        // Убираем только пробелы по краям, не трогая пробелы/переносы внутри текста.
+        const trimmed = e.target.value.trim();
+        if (trimmed !== e.target.value) {
+          setFormField(key, trimmed);
+        }
+      }}
+      rows={3}
+      className={`w-full min-w-0 rounded-lg px-3 py-2 text-sm outline-none resize-none box-border overflow-y-auto scrollbar-accent${errorClass(key)}`}
       style={styleFor(key)}
     />
   );

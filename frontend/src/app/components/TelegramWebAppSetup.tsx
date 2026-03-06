@@ -29,7 +29,7 @@ export function TelegramWebAppSetup() {
     // Дополнительная блокировка масштабирования на iOS внутри Telegram WebApp
     const isIOS =
       /iPad|iPhone|iPod/i.test(window.navigator.userAgent) &&
-      !(window as any).MSStream;
+      typeof (window as unknown as { MSStream?: unknown }).MSStream === "undefined";
 
     let lastTouchEnd = 0;
 

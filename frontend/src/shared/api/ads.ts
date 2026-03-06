@@ -1,4 +1,5 @@
 import { fetchDatasetFromApi, fetchDatasetPaginated, type FetchDatasetPaginatedParams } from "./dataSource";
+import { filterNotExpired } from "./expiry";
 
 export type AdType = "post_in_channel" | "post_in_chat";
 
@@ -21,6 +22,7 @@ export type AdItem = {
   theme: string;
   description: string;
   publishedAt: string;
+  expiresAt?: string;
 };
 
 export type AdsResponse = {
@@ -32,7 +34,7 @@ export async function fetchAds(): Promise<AdsResponse> {
   if (!payload) {
     throw new Error('Failed to load "ads" from content API');
   }
-  return payload;
+  return { ads: filterNotExpired(payload.ads ?? []) };
 }
 
 export type AdsPaginatedParams = FetchDatasetPaginatedParams & {
@@ -50,7 +52,7 @@ export async function fetchAdsPaginated(
     limit: params.limit ?? 20,
   });
   if (!res) return null;
-  return { ads: res.payload.ads ?? [], nextCursor: res.nextCursor };
+  return { ads: filterNotExpired(res.payload.ads ?? []), nextCursor: res.nextCursor };
 }
 
 export const AD_TYPE_LABELS: Record<AdType, string> = {

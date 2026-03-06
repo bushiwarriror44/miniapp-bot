@@ -5,7 +5,36 @@ import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronLeft, faChevronRight, faFire } from "@fortawesome/free-solid-svg-icons";
 import { fetchHotOffers, type HotOffer } from "@/shared/api/hot-offers";
+import { fetchDatasetItem } from "@/shared/api/dataSource";
+import { isExpired } from "@/shared/api/expiry";
 import { useRenderLoggerContext } from "../contexts/RenderLoggerContext";
+
+type ListingWithExpiresAt = {
+  expiresAt?: string | null;
+};
+
+function sectionToDatasetName(section: string): string | null {
+  switch (section) {
+    case "sell-ads":
+      return "ads";
+    case "buy-ads":
+      return "buyAds";
+    case "jobs":
+      return "jobs";
+    case "designers":
+      return "services";
+    case "currency":
+      return "currency";
+    case "sell-channel":
+      return "sellChannels";
+    case "buy-channel":
+      return "buyChannels";
+    case "other":
+      return "other";
+    default:
+      return null;
+  }
+}
 
 function OfferSlide({ offer }: { offer: HotOffer }) {
   return (
@@ -70,15 +99,30 @@ export function HotOffersBlock() {
     let cancelled = false;
     logger?.logEvent("HotOffersBlock", "fetching hot offers");
     fetchHotOffers()
-      .then((res) => {
+      .then(async (res) => {
         if (!cancelled) {
           logger?.logEvent("HotOffersBlock", "hot offers loaded", `${res.offers?.length ?? 0} offers`);
-          const cleaned = (res.offers ?? []).filter((offer) => {
+          const baseCleaned = (res.offers ?? []).filter((offer) => {
             if (!offer) return false;
             const title = (offer.title || "").trim();
             const price = (offer.price || "").trim();
             return Boolean(title && price);
           });
+          const validated = await Promise.all(
+            baseCleaned.map(async (offer) => {
+              if (!(offer.type === "ad" && offer.category && offer.itemId)) {
+                return offer;
+              }
+              const dataset = sectionToDatasetName(offer.category);
+              if (!dataset) return null;
+              const item = await fetchDatasetItem<Record<string, unknown>>(dataset, String(offer.itemId));
+              if (!item?.item) return null;
+              const expiresAt = (item.item as Partial<ListingWithExpiresAt>)?.expiresAt ?? null;
+              if (isExpired(expiresAt)) return null;
+              return offer;
+            }),
+          );
+          const cleaned = validated.filter(Boolean) as HotOffer[];
           setOffers(cleaned);
           setLoadError(null);
           setLoading(false);

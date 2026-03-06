@@ -7,7 +7,8 @@ import { useTheme } from "@/shared/theme/ThemeContext";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { submitSupportRequest } from "@/shared/api/support";
 import { fetchUserProfile, type UserProfileResponse } from "@/shared/api/users";
-import { getInitialTelegramProfile, normalizePhoneNumber, requestTelegramPhoneWithFallback } from "./utils";
+import { fetchBotConfig } from "@/shared/api/bot-config";
+import { getInitialTelegramProfile } from "./utils";
 import {
   ProfileHeader,
   ProfileVerifiedBlock,
@@ -15,23 +16,22 @@ import {
   ProfileMenuRow,
   SupportModal,
   SupportSuccessModal,
-  VerifyModal,
-  VerifyConsentDialog,
   ProfileNotice,
 } from "./components";
-import { submitVerifyPhone } from "@/shared/api/users";
+import { VerifyViaBotModal } from "./components/VerifyViaBotModal";
 
-const ADMIN_TG_LINK = "https://t.me/miniapp_admin_example";
+const DEFAULT_SUPPORT_LINK = "https://t.me/miniapp_admin_example";
+
+function isValidUrl(url: string | null | undefined): url is string {
+  if (!url) return false;
+  return /^https?:\/\//i.test(url);
+}
 
 export default function ProfilePage() {
   const { theme, setTheme } = useTheme();
   const [telegramProfile, setTelegramProfile] = useState(getInitialTelegramProfile);
   const { username: tgUsername, userId: tgUserId, avatarUrl: tgAvatarUrl } = telegramProfile;
-  const [showVerifyConsent, setShowVerifyConsent] = useState(false);
-  const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [verifyPhone, setVerifyPhone] = useState("");
-  const [verifyPhoneReadonly, setVerifyPhoneReadonly] = useState(false);
-  const [showNoTelegramPhoneHint, setShowNoTelegramPhoneHint] = useState(false);
+  const [showVerifyViaBotModal, setShowVerifyViaBotModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportText, setSupportText] = useState("");
   const [showSupportSuccess, setShowSupportSuccess] = useState(false);
@@ -39,6 +39,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
+  const [supportLink, setSupportLink] = useState<string>(DEFAULT_SUPPORT_LINK);
 
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
@@ -56,42 +57,6 @@ export default function ProfilePage() {
       );
     } else {
       showNotice("Данные профиля Telegram обновлены. Если профиль не загрузился, попробуйте снова.");
-    }
-  };
-
-  const handleVerifyConsentConfirm = async () => {
-    setShowVerifyConsent(false);
-    const phone = await requestTelegramPhoneWithFallback();
-    const normalized = normalizePhoneNumber(phone);
-
-    if (!tgUserId || tgUserId === "-") {
-      showNotice("Не удалось определить пользователя.");
-      return;
-    }
-
-    setVerifyPhone(normalized ?? "");
-    setVerifyPhoneReadonly(Boolean(normalized));
-    setShowNoTelegramPhoneHint(!normalized);
-    setShowVerifyModal(true);
-  };
-
-  const handleVerifySubmit = async () => {
-    const phone = normalizePhoneNumber(verifyPhone);
-    if (!phone) return;
-    if (!tgUserId || tgUserId === "-") {
-      showNotice("Не удалось определить пользователя.");
-      return;
-    }
-    try {
-      await submitVerifyPhone(tgUserId, phone);
-      setShowVerifyModal(false);
-      setVerifyPhone("");
-      setShowNoTelegramPhoneHint(false);
-      showNotice(
-        "Заявка на верификацию отправлена. Модераторы свяжутся с вами по вашему Telegram‑номеру телефона."
-      );
-    } catch (err) {
-      showNotice(err instanceof Error ? err.message : "Не удалось отправить номер. Попробуйте позже.");
     }
   };
 
@@ -147,6 +112,19 @@ export default function ProfilePage() {
       });
   }, [tgUserId]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    fetchBotConfig()
+      .then((cfg) => {
+        if (isValidUrl(cfg?.supportLink)) {
+          setSupportLink(cfg.supportLink);
+        }
+      })
+      .catch(() => {
+        // keep default
+      });
+  }, []);
+
   return (
     <main className="px-4 py-6 relative">
       <button
@@ -194,7 +172,7 @@ export default function ProfilePage() {
       <section className="mb-4">
         <ProfileVerifiedBlock
           verified={!!profile?.verified}
-          onVerifyClick={() => setShowVerifyConsent(true)}
+          onVerifyClick={() => setShowVerifyViaBotModal(true)}
         />
       </section>
 
@@ -220,7 +198,7 @@ export default function ProfilePage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <a
-            href={ADMIN_TG_LINK}
+            href={supportLink}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full rounded-xl py-2.5 text-sm font-medium text-center"
@@ -239,23 +217,9 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <VerifyConsentDialog
-        open={showVerifyConsent}
-        onConfirm={handleVerifyConsentConfirm}
-        onCancel={() => setShowVerifyConsent(false)}
-      />
-      <VerifyModal
-        open={showVerifyModal}
-        phone={verifyPhone}
-        isPhoneReadOnly={verifyPhoneReadonly}
-        onPhoneChange={setVerifyPhone}
-        showNoPhoneHint={showNoTelegramPhoneHint}
-        onHideNoPhoneHint={() => setShowNoTelegramPhoneHint(false)}
-        onClose={() => {
-          setShowVerifyModal(false);
-          setShowNoTelegramPhoneHint(false);
-        }}
-        onSubmit={handleVerifySubmit}
+      <VerifyViaBotModal
+        open={showVerifyViaBotModal && !profile?.verified}
+        onClose={() => setShowVerifyViaBotModal(false)}
       />
       <SupportModal
         open={showSupportModal}

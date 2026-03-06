@@ -56,6 +56,12 @@ function ExchangePageContent() {
     }
     if (sectionParam && EXCHANGE_SECTIONS_WITH_ITEMS.includes(sectionParam as ExchangeSection)) {
       setActiveSection(sectionParam as ExchangeSection);
+    } else {
+      // Если section не указан, фиксируем текущий tab в URL,
+      // чтобы возврат со страницы просмотра сохранял выбранный tab.
+      const nextParams = new URLSearchParams(searchParams.toString());
+      nextParams.set("section", activeSection);
+      router.replace(`/exchange?${nextParams.toString()}`);
     }
     if (searchParams.get("openSubmit") === "1") {
       // Открытие модалки через параметр URL должно работать так же,
@@ -69,7 +75,14 @@ function ExchangePageContent() {
       url.searchParams.delete("openSubmit");
       window.history.replaceState({}, "", url.pathname + url.search);
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, activeSection]);
+
+  const selectSection = useCallback((id: ExchangeSection) => {
+    setActiveSection(id);
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("section", id);
+    router.replace(`/exchange?${nextParams.toString()}`);
+  }, [router, searchParams]);
 
   useEffect(() => {
     fetchHotOffers()
@@ -270,7 +283,7 @@ function ExchangePageContent() {
             <button
               key={id}
               type="button"
-              onClick={() => setActiveSection(id)}
+              onClick={() => selectSection(id)}
               className="shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
               style={{
                 backgroundColor: activeSection === id ? "var(--color-accent)" : "var(--color-bg-elevated)",

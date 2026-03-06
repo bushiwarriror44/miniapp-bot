@@ -1,4 +1,5 @@
 import { fetchDatasetFromApi, fetchDatasetPaginated, type FetchDatasetPaginatedParams } from "./dataSource";
+import { filterNotExpired } from "./expiry";
 
 export type OtherItem = {
   id: string;
@@ -8,6 +9,7 @@ export type OtherItem = {
   price: number;
   description: string;
   publishedAt: string;
+  expiresAt?: string;
 };
 
 export type OtherResponse = {
@@ -19,7 +21,7 @@ export async function fetchOther(): Promise<OtherResponse> {
   if (!payload) {
     throw new Error('Failed to load "other" from content API');
   }
-  return payload;
+  return { other: filterNotExpired(payload.other ?? []) };
 }
 
 export type OtherPaginatedParams = FetchDatasetPaginatedParams & {
@@ -38,5 +40,5 @@ export async function fetchOtherPaginated(
     limit: params.limit ?? 20,
   });
   if (!res) return null;
-  return { other: res.payload.other ?? [], nextCursor: res.nextCursor };
+  return { other: filterNotExpired(res.payload.other ?? []), nextCursor: res.nextCursor };
 }
