@@ -31,6 +31,7 @@ export default function ProfilePage() {
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyPhone, setVerifyPhone] = useState("");
   const [verifyPhoneReadonly, setVerifyPhoneReadonly] = useState(false);
+  const [showNoTelegramPhoneHint, setShowNoTelegramPhoneHint] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportText, setSupportText] = useState("");
   const [showSupportSuccess, setShowSupportSuccess] = useState(false);
@@ -68,29 +69,10 @@ export default function ProfilePage() {
       return;
     }
 
-    // Если Telegram передал номер — подставляем его и блокируем редактирование.
-    // Если нет — открываем модалку с пустым редактируемым полем.
     setVerifyPhone(normalized ?? "");
     setVerifyPhoneReadonly(Boolean(normalized));
+    setShowNoTelegramPhoneHint(!normalized);
     setShowVerifyModal(true);
-
-    if (!normalized) {
-      showNotice(
-        [
-          "Telegram не передал ваш номер телефона.",
-          "Верификация доступна только для аккаунтов с раскрытым номером.",
-          "",
-          "Как включить показ номера в Telegram:",
-          "1) Откройте Telegram → «Настройки».",
-          "2) Перейдите в раздел «Конфиденциальность» / «Privacy».",
-          "3) Откройте пункт «Номер телефона».",
-          "4) Выберите вариант, при котором ваш номер может быть передан ботам/мини‑приложениям (например, «Мои контакты» или менее строгий вариант).",
-          "5) Перезапустите мини‑приложение и повторите попытку.",
-          "",
-          "Либо введите номер вручную и убедитесь, что он совпадает с номером в вашем аккаунте Telegram.",
-        ].join("\n"),
-      );
-    }
   };
 
   const handleVerifySubmit = async () => {
@@ -104,6 +86,7 @@ export default function ProfilePage() {
       await submitVerifyPhone(tgUserId, phone);
       setShowVerifyModal(false);
       setVerifyPhone("");
+      setShowNoTelegramPhoneHint(false);
       showNotice(
         "Заявка на верификацию отправлена. Модераторы свяжутся с вами по вашему Telegram‑номеру телефона."
       );
@@ -266,7 +249,12 @@ export default function ProfilePage() {
         phone={verifyPhone}
         isPhoneReadOnly={verifyPhoneReadonly}
         onPhoneChange={setVerifyPhone}
-        onClose={() => setShowVerifyModal(false)}
+        showNoPhoneHint={showNoTelegramPhoneHint}
+        onHideNoPhoneHint={() => setShowNoTelegramPhoneHint(false)}
+        onClose={() => {
+          setShowVerifyModal(false);
+          setShowNoTelegramPhoneHint(false);
+        }}
         onSubmit={handleVerifySubmit}
       />
       <SupportModal

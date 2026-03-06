@@ -1,20 +1,26 @@
 "use client";
 
+export interface VerifyModalProps {
+  open: boolean;
+  phone: string;
+  isPhoneReadOnly?: boolean;
+  showNoPhoneHint?: boolean;
+  onHideNoPhoneHint?: () => void;
+  onPhoneChange: (value: string) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}
+
 export function VerifyModal({
   open,
   phone,
   isPhoneReadOnly = false,
+  showNoPhoneHint,
+  onHideNoPhoneHint,
   onPhoneChange,
   onClose,
   onSubmit,
-}: {
-  open: boolean;
-  phone: string;
-  isPhoneReadOnly?: boolean;
-  onPhoneChange: (value: string) => void;
-  onClose: () => void;
-  onSubmit: () => void;
-}) {
+}: VerifyModalProps) {
   if (!open) return null;
 
   const readOnly = Boolean(isPhoneReadOnly);
@@ -44,6 +50,47 @@ export function VerifyModal({
             ×
           </button>
         </div>
+        {showNoPhoneHint && (
+          <div
+            className="mb-3 rounded-lg p-3 relative text-xs"
+            style={{
+              backgroundColor: "var(--color-surface)",
+              border: "1px solid var(--color-border)",
+              color: "var(--color-text-muted)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={onHideNoPhoneHint}
+              className="absolute right-2 top-2 w-6 h-6 rounded-md flex items-center justify-center"
+              style={{
+                backgroundColor: "transparent",
+                border: "none",
+                color: "var(--color-text-muted)",
+              }}
+              aria-label="Скрыть подсказку"
+            >
+              ×
+            </button>
+            <p className="mb-1">
+              Telegram не передал ваш номер телефона. Верификация доступна только для аккаунтов с раскрытым номером.
+            </p>
+            <p className="mb-1">Как включить показ номера в Telegram:</p>
+            <ol className="list-decimal pl-4 space-y-0.5">
+              <li>Откройте Telegram → «Настройки».</li>
+              <li>Перейдите в раздел «Конфиденциальность» / «Privacy».</li>
+              <li>Откройте пункт «Номер телефона».</li>
+              <li>
+                Выберите вариант, при котором ваш номер может быть передан ботам/мини‑приложениям (например, «Мои
+                контакты» или менее строгий вариант).
+              </li>
+              <li>Перезапустите мини‑приложение и повторите попытку.</li>
+            </ol>
+            <p className="mt-1">
+              Либо введите номер вручную ниже и убедитесь, что он совпадает с номером в вашем аккаунте Telegram.
+            </p>
+          </div>
+        )}
         <p className="text-xs mb-3" style={{ color: "var(--color-text-muted)" }}>
           Укажите номер телефона, привязанный к вашему Telegram‑аккаунту. Мы используем его только
           для проверки и связи по вопросам верификации.
@@ -53,13 +100,16 @@ export function VerifyModal({
         </label>
         <input
           type="tel"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={phone}
           readOnly={readOnly}
           onChange={
             readOnly
               ? undefined
               : (e) => {
-                  onPhoneChange(e.target.value);
+                  const digitsOnly = e.target.value.replace(/\D+/g, "");
+                  onPhoneChange(digitsOnly);
                 }
           }
           className="w-full rounded-lg px-3 py-2 text-sm outline-none mb-4"

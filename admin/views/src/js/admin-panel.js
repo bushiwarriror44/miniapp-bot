@@ -1864,48 +1864,61 @@ async function loadSystemLog() {
       (params.toString() ? `?${params.toString()}` : "");
     const data = await apiGet(url);
     const entries = data.entries || [];
-    const rows = entries
-      .map((e) => {
-        const dateStr = e.createdAt
-          ? new Date(e.createdAt).toLocaleString()
-          : "";
-        const levelLabel = escapeHtml(e.level || "");
-        const sourceLabel = escapeHtml(e.source || "");
-        const message = escapeHtml(e.message || "");
-        const metaShort = escapeHtml(
-          e.meta ? JSON.stringify(e.meta).slice(0, 200) : "",
-        );
-        return `
-      <tr>
-        <td class="muted" style="font-size:13px;">${dateStr}</td>
-        <td style="font-family:monospace;">${levelLabel}</td>
-        <td style="font-family:monospace;">${sourceLabel}</td>
-        <td style="font-size:13px;max-width:320px;word-break:break-word;">${message}</td>
-        <td class="muted" style="font-size:11px;max-width:260px;word-break:break-word;">${metaShort}</td>
-      </tr>
-    `;
-      })
-      .join("");
+
+    const lines = entries.map((e) => {
+      const dateStr = e.createdAt
+        ? new Date(e.createdAt).toLocaleString()
+        : "-";
+      const level = (e.level || "").toUpperCase();
+      const source = e.source || "";
+      const message = e.message || "";
+      const meta = e.meta ? JSON.stringify(e.meta) : "";
+
+      const parts = [
+        `[${dateStr}]`,
+        level || "-",
+        source ? `(${source})` : "",
+        message,
+        meta ? `| ${meta}` : "",
+      ].filter(Boolean);
+
+      return parts.join(" ");
+    });
+
+    const text =
+      lines.length > 0
+        ? lines.join("\n")
+        : "[—] Записей системного лога нет.";
+
     systemLogTableWrap.innerHTML = `
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Дата</th>
-            <th>Уровень</th>
-            <th>Источник</th>
-            <th>Сообщение</th>
-            <th>Meta</th>
-          </tr>
-        </thead>
-        <tbody>${
-          rows ||
-          '<tr><td colspan="5" class="muted">Записей системного лога нет</td></tr>'
-        }</tbody>
-      </table>
+      <textarea
+        id="systemLogTextarea"
+        class="textarea"
+        readonly
+        style="width:100%;min-height:360px;resize:vertical;white-space:pre;font-family:SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;"
+      ></textarea>
     `;
+
+    const textarea = document.getElementById("systemLogTextarea");
+    if (textarea) {
+      textarea.value = text;
+    }
   } catch (err) {
+    let rawMessage = err instanceof Error ? err.message : String(err);
+
+    // Если backend/Cloudflare вернул HTML-страницу ошибки (например, 502),
+    // не показываем её целиком, а выводим короткое понятное сообщение.
+    const trimmed = rawMessage.trim();
+    if (
+      trimmed.startsWith("<!DOCTYPE") ||
+      trimmed.toLowerCase().includes("<html")
+    ) {
+      rawMessage =
+        "Не удалось загрузить системный лог (сервер вернул HTML-страницу ошибки, например 5xx). Попробуйте обновить страницу позже или проверьте доступность backend-приложения.";
+    }
+
     systemLogTableWrap.innerHTML = `<p class="muted">Ошибка загрузки: ${escapeHtml(
-      err instanceof Error ? err.message : String(err),
+      rawMessage,
     )}</p>`;
   }
 }
