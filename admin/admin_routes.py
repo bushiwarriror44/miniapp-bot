@@ -297,6 +297,10 @@ def _normalize_item_for_dataset(section, form_data, user_verified=False):
             "expiresAt": expires_at,
         }
     if section == "sell-ads":
+        # ВНИМАНИЕ: поле form_data["pinned"] — это пожелание пользователя
+        # («хочет разместить с закрепом»). Реальное закрепление объявления
+        # на бирже контролируется только админскими формами (checkbox pinned)
+        # и не должно устанавливаться автоматически из заявки.
         return {
             "id": str(uuid4()),
             "adType": str(form_data.get("adType") or "post_in_channel"),
@@ -305,7 +309,7 @@ def _normalize_item_for_dataset(section, form_data, user_verified=False):
             "verified": is_verified or _to_bool(form_data.get("verified"), False),
             "username": str(form_data.get("username") or "").lstrip("@"),
             "price": _to_number(form_data.get("price"), 0),
-            "pinned": _to_bool(form_data.get("pinned"), False),
+            "pinned": False,
             "underGuarantee": _to_bool(form_data.get("underGuarantee"), False),
             "publishTime": str(form_data.get("publishTime") or "-"),
             "postDuration": str(form_data.get("postDuration") or "-"),

@@ -1637,6 +1637,17 @@ function renderModerationRequestDetails(requestItem) {
     return;
   }
   const formData = requestItem.formData || {};
+  const rawPinnedPreference = typeof formData.pinned === "string" ? formData.pinned.trim().toLowerCase() : "";
+  let pinnedPreferenceLabel = "—";
+  if (rawPinnedPreference) {
+    if (["yes", "true", "1", "да"].includes(rawPinnedPreference)) {
+      pinnedPreferenceLabel = "Да";
+    } else if (["no", "false", "0", "нет"].includes(rawPinnedPreference)) {
+      pinnedPreferenceLabel = "Нет";
+    } else {
+      pinnedPreferenceLabel = rawPinnedPreference;
+    }
+  }
   const fieldsHtml = Object.entries(formData)
     .map(
       ([key, value]) => `
@@ -1653,6 +1664,9 @@ function renderModerationRequestDetails(requestItem) {
       <p style="margin:0;"><strong>ID:</strong> <span style="font-family:monospace;">${escapeHtml(requestItem.id || "")}</span></p>
       <p style="margin:0;"><strong>Раздел:</strong> ${escapeHtml(requestItem.section || "-")}</p>
       <p style="margin:0;"><strong>Статус:</strong> ${escapeHtml(requestItem.status || "-")}</p>
+      <p style="margin:0;font-size:12px;color:var(--color-text-muted);">
+        Пожелание закрепа (из заявки пользователя): <strong>${escapeHtml(pinnedPreferenceLabel)}</strong>
+      </p>
       <label class="muted">Комментарий администратора</label>
       <textarea id="moderationAdminNoteInput" class="textarea" style="min-height:90px;">${escapeHtml(requestItem.adminNote || "")}</textarea>
       <h3 style="margin:6px 0 0 0;font-size:14px;">Поля заявки</h3>
