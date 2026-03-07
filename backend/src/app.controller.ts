@@ -86,17 +86,46 @@ export class AppController {
 
   @Get('users/me/profile')
   async getMyProfile(@Query() query: TelegramIdQueryDto) {
+    const telegramId = query.telegramId?.trim() || '';
     try {
       const profile = await this.appService.getUserProfileByTelegramId(
-        query.telegramId,
+        telegramId,
       );
       if (!profile) {
+        void this.systemLogService
+          .write({
+            level: 'warn',
+            source: 'profile',
+            message: `Профиль не найден: telegramId=${telegramId || '(пусто)'}`,
+            meta: { telegramId: telegramId || null, endpoint: 'GET /users/me/profile' },
+          })
+          .catch(() => {});
         return { profile: null };
       }
+      void this.systemLogService
+        .write({
+          level: 'log',
+          source: 'profile',
+          message: `Профиль загружен: telegramId=${telegramId}`,
+          meta: { telegramId, endpoint: 'GET /users/me/profile' },
+        })
+        .catch(() => {});
       return { profile };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(`getMyProfile failed: ${message}`);
+      void this.systemLogService
+        .write({
+          level: 'error',
+          source: 'profile',
+          message: `Ошибка загрузки профиля: telegramId=${telegramId || '(пусто)'}, error=${message}`,
+          meta: {
+            telegramId: telegramId || null,
+            error: message,
+            endpoint: 'GET /users/me/profile',
+          },
+        })
+        .catch(() => {});
       return { profile: null, error: message };
     }
   }
