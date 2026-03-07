@@ -205,7 +205,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Временная панель отладки загрузки профиля */}
-      <section
+      {/* <section
         className="rounded-xl p-3 mb-4 text-xs"
         style={{
           backgroundColor: "var(--color-bg-elevated)",
@@ -248,7 +248,7 @@ export default function ProfilePage() {
             </button>
           </div>
         )}
-      </section>
+      </section> */}
 
       <ProfileHeader
         username={tgUsername}

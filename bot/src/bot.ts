@@ -28,14 +28,35 @@ function isHttps(url: string): boolean {
   return url.startsWith('https://');
 }
 
-/** Inline-кнопка для WebApp — передаёт initData. Reply Keyboard не передаёт initData. */
+/** Inline-клавиатура: WebApp (передаёт initData), Верификация, Поддержка. */
 function createStartInlineKeyboard(config: BotConfigPayload) {
   const webAppUrl = getWebAppUrl(config);
+  const supportLink = (config?.supportLink || '').trim();
   if (!isHttps(webAppUrl)) return null;
-  return new InlineKeyboard().webApp('Открыть приложение', webAppUrl);
+
+  const kb = new InlineKeyboard().webApp('Открыть приложение', webAppUrl);
+  const supportUrl = supportLink.startsWith('http')
+    ? supportLink
+    : supportLink.startsWith('@')
+      ? `https://t.me/${supportLink.slice(1)}`
+      : supportLink
+        ? `https://t.me/${supportLink.replace(/^@/, '')}`
+        : null;
+
+  kb.row().text('Верификация', 'verification');
+  if (supportUrl) kb.url('Поддержка', supportUrl);
+
+  return kb;
 }
 
-/** Reply-клавиатура для Верификация / Поддержка. */
+/** При возврате в меню: убрать reply-клавиатуру (inline остаётся) или показать reply для non-HTTPS. */
+function getReturnToMenuMarkup(config: BotConfigPayload) {
+  return isHttps(getWebAppUrl(config))
+    ? { remove_keyboard: true as const }
+    : createStartKeyboard(config);
+}
+
+/** Reply-клавиатура для Верификация / Поддержка (только для non-HTTPS). */
 function createStartKeyboard(config: BotConfigPayload) {
   const webAppUrl = getWebAppUrl(config);
   const hasSupport = Boolean((config?.supportLink || '').trim());
@@ -180,9 +201,6 @@ bot.command('start', async (ctx) => {
         caption: message,
         reply_markup: inlineKb ?? replyKb,
       });
-      if (inlineKb) {
-        await ctx.reply('Дополнительно:', { reply_markup: replyKb });
-      }
       return;
     } catch (error) {
       console.error('Failed to send welcome photo, fallback to text:', error);
@@ -192,8 +210,29 @@ bot.command('start', async (ctx) => {
   await ctx.reply(message, {
     reply_markup: inlineKb ?? replyKb,
   });
-  if (inlineKb) {
-    await ctx.reply('Дополнительно:', { reply_markup: replyKb });
+});
+
+bot.callbackQuery('verification', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await backendTrackUser(ctx);
+  const config = await loadBotConfig();
+  const telegramId = String(ctx.from?.id || '').trim();
+  if (!telegramId) {
+    await ctx.reply('Не удалось определить пользователя.');
+    return;
+  }
+  try {
+    const profile = await backendGetProfile(telegramId);
+    if (profile?.verified) {
+      await ctx.reply('Ваш аккаунт уже верифицирован.');
+      return;
+    }
+    await ctx.reply(
+      'Чтобы пройти верификацию, поделитесь номером телефона, привязанным к вашему Telegram-аккаунту.',
+      { reply_markup: createShareContactKeyboard() },
+    );
+  } catch {
+    await ctx.reply('Не удалось проверить статус верификации. Попробуйте позже.');
   }
 });
 
@@ -210,7 +249,7 @@ bot.on('message:text', async (ctx) => {
   }
   if (ctx.message.text === 'Отмена') {
     await ctx.reply('Ок. Возвращаю в меню.', {
-      reply_markup: createStartKeyboard(config),
+      reply_markup: getReturnToMenuMarkup(config),
     });
     return;
   }
@@ -224,7 +263,7 @@ bot.on('message:text', async (ctx) => {
       const profile = await backendGetProfile(telegramId);
       if (profile?.verified) {
         await ctx.reply('Ваш аккаунт уже верифицирован.', {
-          reply_markup: createStartKeyboard(config),
+          reply_markup: getReturnToMenuMarkup(config),
         });
         return;
       }
@@ -235,7 +274,7 @@ bot.on('message:text', async (ctx) => {
     } catch (error) {
       await ctx.reply(
         `Не удалось проверить статус верификации. Попробуйте позже.`,
-        { reply_markup: createStartKeyboard(config) },
+        { reply_markup: getReturnToMenuMarkup(config) },
       );
     }
     return;
@@ -259,10 +298,11 @@ bot.on('message:text', async (ctx) => {
 
 bot.on('message:contact', async (ctx) => {
   await backendTrackUser(ctx);
+  const config = await loadBotConfig();
   if (ctx.message?.contact?.user_id && ctx.from?.id) {
     if (ctx.message.contact.user_id !== ctx.from.id) {
       await ctx.reply('Пожалуйста, отправьте номер телефона именно вашего аккаунта.', {
-        reply_markup: createStartKeyboard(await loadBotConfig()),
+        reply_markup: getReturnToMenuMarkup(config),
       });
       return;
     }
@@ -272,7 +312,7 @@ bot.on('message:contact', async (ctx) => {
   const phone = String(ctx.message?.contact?.phone_number || '').trim();
   if (!telegramId || !phone) {
     await ctx.reply('Не удалось получить номер телефона. Попробуйте снова.', {
-      reply_markup: createStartKeyboard(await loadBotConfig()),
+      reply_markup: getReturnToMenuMarkup(config),
     });
     return;
   }
@@ -280,12 +320,12 @@ bot.on('message:contact', async (ctx) => {
   try {
     await backendVerifyPhone(telegramId, phone);
     await ctx.reply('Верификация успешно пройдена. Теперь ваш аккаунт отмечен как верифицированный.', {
-      reply_markup: createStartKeyboard(await loadBotConfig()),
+      reply_markup: getReturnToMenuMarkup(config),
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Не удалось выполнить верификацию.';
     await ctx.reply(`Ошибка верификации: ${msg}`, {
-      reply_markup: createStartKeyboard(await loadBotConfig()),
+      reply_markup: getReturnToMenuMarkup(config),
     });
   }
 });
