@@ -1,5 +1,5 @@
 import path from 'path';
-import { Bot, Keyboard } from 'grammy';
+import { Bot, Keyboard, InlineKeyboard } from 'grammy';
 import * as dotenv from 'dotenv';
 
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -28,13 +28,20 @@ function isHttps(url: string): boolean {
   return url.startsWith('https://');
 }
 
+/** Inline-кнопка для WebApp — передаёт initData. Reply Keyboard не передаёт initData. */
+function createStartInlineKeyboard(config: BotConfigPayload) {
+  const webAppUrl = getWebAppUrl(config);
+  if (!isHttps(webAppUrl)) return null;
+  return new InlineKeyboard().webApp('Открыть приложение', webAppUrl);
+}
+
+/** Reply-клавиатура для Верификация / Поддержка. */
 function createStartKeyboard(config: BotConfigPayload) {
   const webAppUrl = getWebAppUrl(config);
   const hasSupport = Boolean((config?.supportLink || '').trim());
 
   if (isHttps(webAppUrl)) {
-    const kb = new Keyboard().webApp('Открыть приложение', webAppUrl);
-    kb.row().text('Верификация');
+    const kb = new Keyboard().text('Верификация');
     if (hasSupport) {
       kb.row().text('Поддержка');
     }
@@ -164,12 +171,18 @@ bot.command('start', async (ctx) => {
   const message = (config?.welcomeMessage || '').trim() || defaultMessage;
   const photoUrl = (config?.welcomePhotoUrl || '').trim();
 
+  const inlineKb = createStartInlineKeyboard(config);
+  const replyKb = createStartKeyboard(config);
+
   if (photoUrl) {
     try {
       await ctx.replyWithPhoto(photoUrl, {
         caption: message,
-        reply_markup: createStartKeyboard(config),
+        reply_markup: inlineKb ?? replyKb,
       });
+      if (inlineKb) {
+        await ctx.reply('Дополнительно:', { reply_markup: replyKb });
+      }
       return;
     } catch (error) {
       console.error('Failed to send welcome photo, fallback to text:', error);
@@ -177,8 +190,11 @@ bot.command('start', async (ctx) => {
   }
 
   await ctx.reply(message, {
-    reply_markup: createStartKeyboard(config),
+    reply_markup: inlineKb ?? replyKb,
   });
+  if (inlineKb) {
+    await ctx.reply('Дополнительно:', { reply_markup: replyKb });
+  }
 });
 
 bot.on('message:text', async (ctx) => {
