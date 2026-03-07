@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSun, faMoon, faCircleExclamation, faChartLine, faStar, faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
+import { faSun, faMoon, faCircleExclamation, faChartLine, faStar, faCircleQuestion, faBug, faCopy } from "@fortawesome/free-solid-svg-icons";
 import { useTheme } from "@/shared/theme/ThemeContext";
 import { getTelegramWebApp } from "@/shared/api/client";
 import { submitSupportRequest } from "@/shared/api/support";
@@ -40,6 +40,8 @@ export default function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
   const [supportLink, setSupportLink] = useState<string>(DEFAULT_SUPPORT_LINK);
+  const [profileDebugLog, setProfileDebugLog] = useState<string>("");
+  const [profileDebugOpen, setProfileDebugOpen] = useState(false);
 
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
@@ -47,6 +49,18 @@ export default function ProfilePage() {
     setNotice(text);
     setTimeout(() => setNotice(null), 6000);
   };
+
+  const appendDebugLog = useCallback((section: string, data: unknown) => {
+    const ts = new Date().toISOString();
+    const str = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+    setProfileDebugLog((prev) => prev + `\n[${ts}] ${section}:\n${str}\n`);
+  }, []);
+
+  const copyDebugLog = useCallback(() => {
+    const full = `=== Profile Debug Log ===\n${profileDebugLog}`;
+    void navigator.clipboard.writeText(full);
+    showNotice("Лог скопирован в буфер обмена");
+  }, [profileDebugLog]);
 
   const refreshTelegramProfile = () => {
     const next = getInitialTelegramProfile();
@@ -86,12 +100,28 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
+    setProfileDebugLog("");
+    const telegram = getTelegramWebApp();
+    const initData = telegram?.initDataUnsafe;
+    appendDebugLog("Telegram initData", {
+      hasTelegram: !!telegram,
+      hasInitDataUnsafe: !!initData,
+      user: initData?.user ?? null,
+      raw: initData ?? null,
+    });
+    appendDebugLog("Resolved telegram profile", {
+      tgUserId,
+      tgUsername,
+      tgAvatarUrl,
+      isValidForApi: !!(tgUserId && tgUserId !== "-"),
+    });
+
     if (!tgUserId || tgUserId === "-") {
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("[profile] Skip profile load: invalid tgUserId", {
-          tgUserId,
-        });
-      }
+      appendDebugLog("ERROR: Skip profile load", {
+        reason: "invalid tgUserId",
+        tgUserId,
+        message: "Telegram не передал userId. API не вызывается.",
+      });
       queueMicrotask(() => {
         setProfileLoading(false);
         showNotice(
@@ -100,17 +130,30 @@ export default function ProfilePage() {
       });
       return;
     }
+
+    appendDebugLog("Profile API call start", { telegramId: tgUserId });
+    setProfileDebugLog((prev) => prev + "\n");
+
     fetchUserProfile(tgUserId)
       .then((response) => {
+        appendDebugLog("Profile API success", {
+          hasProfile: !!response,
+          profile: response ?? null,
+        });
         setProfile(response);
         setProfileLoadError(null);
         setProfileLoading(false);
       })
       .catch((error) => {
-        setProfileLoadError(error instanceof Error ? error.message : String(error));
+        const errMsg = error instanceof Error ? error.message : String(error);
+        appendDebugLog("Profile API error", {
+          message: errMsg,
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        setProfileLoadError(errMsg);
         setProfileLoading(false);
       });
-  }, [tgUserId]);
+  }, [tgUserId, tgUsername, tgAvatarUrl, appendDebugLog]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -160,6 +203,52 @@ export default function ProfilePage() {
           Обновить данные Telegram
         </button>
       </div>
+
+      {/* Временная панель отладки загрузки профиля */}
+      <section
+        className="rounded-xl p-3 mb-4 text-xs"
+        style={{
+          backgroundColor: "var(--color-bg-elevated)",
+          border: "1px solid var(--color-border)",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setProfileDebugOpen((o) => !o)}
+          className="flex items-center gap-2 w-full text-left font-medium"
+          style={{ color: "var(--color-text-muted)" }}
+        >
+          <FontAwesomeIcon icon={faBug} className="w-3.5 h-3.5" />
+          Отладка загрузки профиля {profileDebugOpen ? "▼" : "▶"}
+        </button>
+        {profileDebugOpen && (
+          <div className="mt-3">
+            <pre
+              className="overflow-x-auto overflow-y-auto max-h-64 p-3 rounded-lg text-[11px] whitespace-pre-wrap break-words"
+              style={{
+                backgroundColor: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text)",
+                fontFamily: "ui-monospace, monospace",
+              }}
+            >
+              {profileDebugLog || "Загрузка..."}
+            </pre>
+            <button
+              type="button"
+              onClick={copyDebugLog}
+              className="mt-2 flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium"
+              style={{
+                backgroundColor: "var(--color-accent)",
+                color: "white",
+              }}
+            >
+              <FontAwesomeIcon icon={faCopy} className="w-3.5 h-3.5" />
+              Копировать лог
+            </button>
+          </div>
+        )}
+      </section>
 
       <ProfileHeader
         username={tgUsername}
