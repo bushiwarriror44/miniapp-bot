@@ -16,6 +16,9 @@ let faqItems = [];
 let editingFaqId = null;
 let adminUsers = [];
 let selectedAdminUserId = null;
+const ADMIN_USERS_PAGE_SIZE = 10;
+let adminUsersPage = 1;
+let adminUsersSearchQuery = "";
 let allLabels = [];
 let ratingUsers = [];
 let selectedRatingUserId = null;
@@ -1177,7 +1180,44 @@ function formatMaybeRating(value) {
 }
 
 function renderAdminUsersTable() {
-  const rows = adminUsers
+  if (!adminUsersTableWrap) return;
+
+  const q = adminUsersSearchQuery || "";
+  const isSearchMode = q.length > 0;
+
+  let usersToRender = adminUsers;
+  let paginationHtml = "";
+
+  if (!isSearchMode) {
+    const total = adminUsers.length;
+    const pageSize = ADMIN_USERS_PAGE_SIZE;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+    if (adminUsersPage < 1) adminUsersPage = 1;
+    if (adminUsersPage > totalPages) adminUsersPage = totalPages;
+
+    const start = (adminUsersPage - 1) * pageSize;
+    const end = start + pageSize;
+    usersToRender = adminUsers.slice(start, end);
+
+    if (total > 0 && totalPages > 1) {
+      const disablePrev = adminUsersPage === 1 ? "disabled" : "";
+      const disableNext = adminUsersPage === totalPages ? "disabled" : "";
+      paginationHtml = `
+        <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;font-size:13px;">
+          <span class="muted">Страница ${adminUsersPage} из ${totalPages}, всего пользователей: ${total}</span>
+          <div style="display:flex;gap:8px;">
+            <button class="btn" data-admin-users-page="prev" ${disablePrev}>Назад</button>
+            <button class="btn" data-admin-users-page="next" ${disableNext}>Вперёд</button>
+          </div>
+        </div>
+      `;
+    } else if (total > 0) {
+      paginationHtml = `<p class="muted" style="margin-top:8px;font-size:13px;">Всего пользователей: ${total}</p>`;
+    }
+  }
+
+  const rows = usersToRender
     .map(
       (user) => `
       <tr>
@@ -1192,11 +1232,13 @@ function renderAdminUsersTable() {
     `
     )
     .join("");
+
   adminUsersTableWrap.innerHTML = `
     <table class="table">
       <thead><tr><th>Telegram ID</th><th>Username</th><th>Рейтинг</th><th>Верификация</th><th>SCAM</th><th>Блок</th><th></th></tr></thead>
       <tbody>${rows || '<tr><td colspan="7" class="muted">Нет пользователей</td></tr>'}</tbody>
     </table>
+    ${isSearchMode ? "" : paginationHtml}
   `;
 }
 
@@ -1273,8 +1315,11 @@ function renderAdminUserDetails(user, statistics) {
 
 async function loadAdminUsers() {
   const q = adminUsersSearchInput?.value?.trim() || "";
+  adminUsersSearchQuery = q;
   const data = await apiGet(`/admin/api/users?q=${encodeURIComponent(q)}`);
   adminUsers = data.users || [];
+   // При каждом новом запросе (поиск или обновление) начинаем с первой страницы.
+  adminUsersPage = 1;
   renderAdminUsersTable();
   if (selectedAdminUserId) {
     const stillExists = adminUsers.find((u) => u.id === selectedAdminUserId);
@@ -1701,6 +1746,14 @@ function collectModerationFormData(baseFormData) {
     result[key] = input.value;
   });
   return result;
+}
+
+function resetModerationSelection() {
+  selectedModerationRequestId = null;
+  if (moderationRequestDetailsWrap) {
+    moderationRequestDetailsWrap.innerHTML =
+      '<p class="muted" style="margin:0;">Выберите заявку в таблице выше.</p>';
+  }
 }
 
 async function loadModerationRequests() {
@@ -2264,10 +2317,17 @@ async function switchTab(tabId) {
   if (tabId === "banners") await loadBannersConfig();
   if (tabId === "exchange") await loadCategories();
   if (tabId === "guarant") await loadGuarantConfig();
-  if (tabId === "users") await loadAdminUsers();
+  if (tabId === "users") {
+    adminUsersSearchQuery = adminUsersSearchInput?.value?.trim() || "";
+    adminUsersPage = 1;
+    await loadAdminUsers();
+  }
   if (tabId === "labels") await loadLabels();
   if (tabId === "rating") await loadRatingUsers();
-  if (tabId === "moderation") await loadModerationRequests();
+  if (tabId === "moderation") {
+    resetModerationSelection();
+    await loadModerationRequests();
+  }
   if (tabId === "moderators") await loadModerators();
   if (tabId === "log") await loadLog();
   if (tabId === "support") await loadSupportRequests();
@@ -2286,6 +2346,24 @@ document.addEventListener("click", async (e) => {
   const catBtn = e.target.closest("[data-category]");
   if (catBtn) {
     await loadCategoryItems(catBtn.dataset.category);
+    return;
+  }
+
+  const adminUsersPageBtn = e.target.closest("[data-admin-users-page]");
+  if (adminUsersPageBtn) {
+    const dir = adminUsersPageBtn.getAttribute("data-admin-users-page");
+    if (dir === "prev" && adminUsersPage > 1) {
+      adminUsersPage -= 1;
+    } else if (dir === "next") {
+      const totalPages = Math.max(
+        1,
+        Math.ceil(adminUsers.length / ADMIN_USERS_PAGE_SIZE),
+      );
+      if (adminUsersPage < totalPages) {
+        adminUsersPage += 1;
+      }
+    }
+    renderAdminUsersTable();
     return;
   }
 
@@ -2517,8 +2595,14 @@ addCurrencyBtn?.addEventListener("click", () => {
   renderCurrenciesTable();
 });
 saveExchangeOptionsBtn?.addEventListener("click", saveExchangeOptions);
-moderationRefreshBtn?.addEventListener("click", loadModerationRequests);
-moderationStatusFilter?.addEventListener("change", loadModerationRequests);
+moderationRefreshBtn?.addEventListener("click", () => {
+  resetModerationSelection();
+  loadModerationRequests();
+});
+moderationStatusFilter?.addEventListener("change", () => {
+  resetModerationSelection();
+  loadModerationRequests();
+});
 uploadBotPhotoBtn?.addEventListener("click", async () => {
   try {
     await uploadBotPhoto();

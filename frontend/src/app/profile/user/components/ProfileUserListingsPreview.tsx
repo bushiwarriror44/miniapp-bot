@@ -59,15 +59,7 @@ export function ProfileUserListingsPreview({
           {listings.slice(0, 3).map((listing) => (
             <UserListingCard key={`${listing.section}-${listing.id}`} listing={listing} />
           ))}
-          {listings.length > 3 && (
-            <Link
-              href={`/profile/user/${encodeURIComponent(username)}/listings`}
-              className="block text-center text-xs font-medium py-2"
-              style={{ color: "var(--color-accent)", textDecoration: "none" }}
-            >
-              Показать все
-            </Link>
-          )}
+         
         </div>
       )}
     </section>

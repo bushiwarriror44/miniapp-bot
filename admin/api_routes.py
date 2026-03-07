@@ -508,10 +508,17 @@ def upsert_dataset(dataset_name):
 
 @api_bp.route('/exchange/hide-item', methods=['POST'])
 def hide_exchange_item():
-    admin_token = os.getenv('ADMIN_API_TOKEN', '')
+    admin_token = (
+        os.getenv('ADMIN_API_TOKEN', '').strip()
+        or os.getenv('BACKEND_ADMIN_API_KEY', '').strip()
+        or os.getenv('ADMIN_API_KEY', '').strip()
+    )
     if admin_token:
-        incoming_token = request.headers.get('X-Admin-Token', '')
-        if incoming_token != admin_token:
+        incoming = (
+            request.headers.get('X-Admin-Token', '')
+            or request.headers.get('X-Admin-Key', '')
+        )
+        if incoming != admin_token:
             return jsonify({'error': 'Forbidden'}), 403
 
     body = request.get_json(silent=True) or {}
